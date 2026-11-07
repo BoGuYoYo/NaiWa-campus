@@ -27,9 +27,9 @@
 - 自检命令：`python tools/make_placeholders.py check` → `assets=109 missing=0 unlicensed=0`
 - 关键资源：`char_naiwan_walk`（192×384）、`char_naiwan_idle`（144×384）、`char_shadow`（24×8）、
   `ui_panel_9slice`（48×48，边距 16）、`palette`（32 色）、4 首 BGM + 12 个音效（OGG）
-- 全部为同尺寸资源；`char_naiwan_walk` / `char_naiwan_idle` 已是从用户提供的 8 方向序列帧切出的
-  **正式资源**（`tools/slice_reference_sheets.py`，见 `docs/art/README.md`），其余为占位/白模/合成音频，
-  替换流程见 `docs/art/README.md`
+- 全部为同尺寸资源；`char_naiwan_walk`（384×384，8 帧 × 8 方向）/ `char_naiwan_idle`（144×384，3 帧）
+  已是从用户提供的单方向序列帧切出的**正式资源**（`tools/slice_reference_sheets.py`，见 `docs/art/README.md`），
+  其余为占位/白模/合成音频，替换流程见 `docs/art/README.md`
 
 ## 3. 测试入口
 

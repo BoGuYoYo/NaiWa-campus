@@ -19,26 +19,41 @@
 
 | 资源 | 状态 | 来源 |
 | --- | --- | --- |
-| `char_naiwan_walk` / `char_naiwan_idle` | **正式资源**（`LIC-0001`） | 用户提供的 8 方向序列帧，经 `tools/slice_reference_sheets.py` 自动切片 |
+| `char_naiwan_walk` / `char_naiwan_idle` | **正式资源**（`LIC-0001`） | 用户提供的单方向序列帧（8 张，每张 8 帧），经 `tools/slice_reference_sheets.py` 自动切片 |
 | 其余全部美术与音频 | 同尺寸占位资源 | `tools/make_placeholders.py` 程序生成 |
+
+## 2.1 当前角色规格（2026-11-07 素材更新）
+
+| 项 | 值 |
+| --- | --- |
+| 行走表 | `walk.png` 384×384：**8 帧** × 8 方向，8 fps |
+| 待机表 | `idle.png` 144×384：3 帧 × 8 方向，3 fps |
+| 单帧 | 48×48，脚点 (24,46)，实测身高 39～42 像素 |
+| 素材来源 | 素材目录 8 张单方向图：向前走 / 右前前进 / 向右走 / 右后行走 / 向后行走 / 左后行走 / 向左走 / 左前前进 |
+
+`walk.png` 从 A8 表的 4 帧（192×384）升级到 8 帧（384×384）：新素材本身就是 8 帧循环，
+丢掉一半会破坏接触—经过的节奏。行宽由 `manifest.json` 的 `cols` 驱动，App/渲染层不做硬编码。
 
 切片的完整流程（可重复执行，结果稳定）：
 
 ```powershell
-python tools/slice_reference_sheets.py --verify   # 只输出 build/_slice_contact_walk.png 等核对图
+python tools/slice_reference_sheets.py --verify   # 只输出 build/_slice_contact_{walk,idle}.png 核对图
 python tools/slice_reference_sheets.py            # 写入 assets/characters/naiwan/{walk,idle}.png
+python tools/slice_reference_sheets.py --idle-source "..\素材\待机.jfif"   # 有专门待机图时
 ```
 
 切片做的处理（每一步都能在脚本里查到）：
 
-1. 面板定位：黄色身体掩码 -> 1/4 降采样连通域 -> 按行/列聚类，自动得到 8 个方向面板；
-   行走图每个面板有两排角色，只有第 1、3 排是标签方向（第 2、4 排画的是对立面，不用）；
-2. 抠背景：从 bbox 边界对灰色背景做洪水填充，再做 3×3 开闭运算去噪并只保留最大连通域；
-3. 像素化：按整张表统一的块大小（本例 6 像素）取**块内众数**降采样，保住硬边、消掉 JPEG 振铃；
-4. 落位：身高归一到 38 像素、脚点对齐 (24,46)、加 1 像素 `#2B2235` 描边、量化到 32 色、
+1. 素材识别：按文件名关键字把 8 张图映射到方向（向前→s、右前→se、向右→e、右后→ne、
+   向后→n、左后→nw、向左→w、左前→sw），缺方向或少文件会直接报错；
+2. 面板定位：黄色身体掩码 → 1/4 降采样连通域 → 按行/列排序成 FRAME 01～08（杂乱小块按面积过滤）；
+3. 抠背景：从 bbox 边界对灰色背景洪水填充，3×3 开闭去噪，再按“贴着身体 + 面积占比”保留
+   分离的手臂/脚（只留最大连通域会把背面视图的胳膊吃掉）；
+4. 缩放：整张表统一用一个 `scale` 做面积（BOX）缩放——新素材的放大倍数不是整数（≈15.3），
+   块众数会随网格漂移把眼睛和描边吃掉；
+5. 落位：身高归一到 38 像素、脚点 (24,46)、加 1 像素 `#2B2235` 描边、量化到 32 色、
    透明像素 RGB 置 0；
-5. 待机：参考图只有正面 8 帧（FRAME 01～08），取 01/03/05 做 `s` 方向呼吸循环；
-   其余 7 个方向用该方向行走第 1 帧 + 1 像素呼吸位移补齐 3 帧（A8 要求 144×384）。
+6. 待机：没有待机素材时用各方向行走首帧 + 1 像素呼吸位移（3 帧）；有 `--idle-source` 就用它。
 
 注意：`tools/make_placeholders.py art` 会跳过 `FINAL_ASSETS`（`walk.png`、`idle.png`），
 不会被占位图覆盖回去。要恢复占位图必须先手动删除这两张正式资源。
@@ -49,7 +64,7 @@ python tools/slice_reference_sheets.py            # 写入 assets/characters/nai
 
 | 类别 | 数量 | 规格 | 状态 |
 | --- | --- | --- | --- |
-| `char_naiwan_walk` | 1 | 192×384，4 帧 × 8 方向，8 fps | 正式（切片） |
+| `char_naiwan_walk` | 1 | 384×384，8 帧 × 8 方向，8 fps | 正式（切片） |
 | `char_naiwan_idle` | 1 | 144×384，3 帧 × 8 方向，3 fps | 正式（切片） |
 | `char_shadow` | 1 | 24×8 | 占位 |
 | `portrait_naiwan_*` | 8 | 96×96（neutral happy sad tired surprised determined shy proud） | 占位 |

@@ -94,10 +94,14 @@ A 只注册 `flow_tick(45)`、`offscreen_capture(60)`、`autoplay(70)`。其他�
   `sprite_sheet` 必须带 `frame_w/frame_h/cols/rows/fps/pivot`，`music` 必须带 `loop`
 - `AssetRegistry.release_blockers()` 返回 `commercial_ok != yes` 的资源，发布脚本必须挡住
 - **角色精灵表已转正式**：`char_naiwan_walk` / `char_naiwan_idle` 由
-  `tools/slice_reference_sheets.py` 从用户提供的 8 方向序列帧自动切片（面板标签 -> 方向映射：
-  FRONT=s、FRONT-RIGHT=se、RIGHT=e、BACK-RIGHT=ne、BACK=n、BACK-LEFT=nw、LEFT=w、FRONT-LEFT=sw），
-  manifest 里 `tags` 为 `["final", "sliced_from_reference"]`，许可记录 `LIC-0001`。
-  `tools/make_placeholders.py art` 已把这两张列入 `FINAL_ASSETS`，不会被占位图覆盖。
+  `tools/slice_reference_sheets.py` 从用户提供的单方向序列帧自动切片。素材更新（2026-11-07）后：
+  - 一张图 = 一个方向，4 列 × 2 排 = FRAME 01～08；
+  - 文件名词映射：向前→`s`、右前→`se`、向右→`e`、右后→`ne`、向后→`n`、左后→`nw`、向左→`w`、左前→`sw`；
+  - `walk.png` 升级为 **384×384（8 帧）**，`manifest.json` 的 `cols` 从 4 改为 8；
+    渲染层一律读 `entry.cols`，禁止硬编码 4 帧；
+  - `idle.png` 仍为 144×384（3 帧），由各方向行走首帧做呼吸，可用 `--idle-source` 换成专门待机图；
+  - manifest 里 `tags` 为 `["final", "sliced_from_reference"]`，许可记录 `LIC-0001`；
+  - `tools/make_placeholders.py art` 已把这两张列入 `FINAL_ASSETS`，不会被占位图覆盖。
 
 ---
 

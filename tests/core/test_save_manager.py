@@ -7,7 +7,7 @@ import json
 import pytest
 
 from game.core.save_manager import SaveLoadError, SaveManager
-from game.core.state import GameState, WorldPos, new_state
+from game.core.state import WorldPos, new_state
 
 
 @pytest.fixture()

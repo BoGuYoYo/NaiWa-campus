@@ -18,9 +18,7 @@ from . import config
 from .core.asset_registry import AssetRegistry
 from .core.audio import AudioManager
 from .core.event_bus import (
-    TOPIC_ACTIVITY_DONE,
     TOPIC_DAY_ENDED,
-    TOPIC_EVENT_FINISHED,
     TOPIC_GAME_GRADUATED,
     TOPIC_SCENE_CHANGED,
     EventBus,
@@ -30,7 +28,7 @@ from .core.render_pipeline import LowResPipeline
 from .core.results import ActivityResult, DayEndResult, EndingResult, EventResult
 from .core.save_manager import SaveLoadError, SaveManager
 from .core.scene_manager import SceneManager
-from .core.state import GameState, WorldPos
+from .core.state import WorldPos
 
 # 任务 sort 常量（其他人只读）
 SORT_INPUT_POLL = 10

@@ -350,6 +350,7 @@ class StubCampus(StubScene):
         self.facing = world.facing
         self.anim_time = 0.0
         self.sprite = self.app.registry.load_sprite("char_naiwan_walk")
+        self.idle_sprite = self.app.registry.load_sprite("char_naiwan_idle")
         self.card = self.app.pipeline.make_character_card(self.root, "naiwan_card")
         self.card.setTexture(self.sprite.texture, 1)
         self.card.setPos(self.pos[0], self.pos[1], 0)
@@ -443,7 +444,7 @@ class StubCampus(StubScene):
         if watcher.isButtonDown(self.keys["d"]):
             move.x += 1
         if move.lengthSquared() == 0:
-            self.anim_time = 0.0
+            self.anim_time += dt
             self._apply_frame(idle=True)
             return
         move.normalize()
@@ -460,11 +461,13 @@ class StubCampus(StubScene):
                                    y=self.pos[1], facing=self.facing)
 
     def _apply_frame(self, idle: bool = False) -> None:
-        fps = self.sprite.fps if not idle else 3.0
-        frame = int(self.anim_time * fps) % max(1, self.sprite.entry.cols)
-        uv = self.sprite.frame_uv(self.facing, frame)
+        """静止用待机表（3 fps，正面呼吸/眨眼），移动用行走表（8 fps）。"""
         from panda3d.core import TextureStage
 
+        sheet = self.idle_sprite if idle else self.sprite
+        frame = int(self.anim_time * sheet.fps) % max(1, sheet.entry.cols)
+        uv = sheet.frame_uv(self.facing, frame)
+        self.card.setTexture(sheet.texture, 1)
         self.card.setTexOffset(TextureStage.getDefault(), uv[0], uv[1])
         self.card.setTexScale(TextureStage.getDefault(), uv[2] - uv[0], uv[3] - uv[1])
 

@@ -87,6 +87,12 @@ SCHEMES = {
 }
 
 DIRECTIONS = ("s", "se", "e", "ne", "n", "nw", "w", "sw")
+
+# 已由 tools/slice_reference_sheets.py 从用户提供的序列帧切出的正式资源：
+# generate_art() 不得覆盖它们，manifest 里也不再标 placeholder。
+FINAL_ASSETS = ("char_naiwan_walk", "char_naiwan_idle")
+FINAL_ASSET_TAGS = ("final", "sliced_from_reference")
+FINAL_ART_PATHS = ("characters/naiwan/walk.png", "characters/naiwan/idle.png")
 # wf=身体宽度系数，face=脸部横向偏移，eyes=可见眼睛数量，back=是否背向
 DIR_PARAMS = {
     "s": {"wf": 1.00, "face": 0, "eyes": 2, "back": False},
@@ -557,18 +563,19 @@ def asset_specs() -> list[dict]:
 
     add("char_naiwan_walk", "sprite_sheet", "characters/naiwan/walk.png", "LIC-0001",
         frame_w=48, frame_h=48, cols=4, rows=8, fps=8, pivot=[24, 46],
-        row_order=list(DIRECTIONS), tags=["placeholder"])
+        row_order=list(DIRECTIONS), tags=list(FINAL_ASSET_TAGS))
     add("char_naiwan_idle", "sprite_sheet", "characters/naiwan/idle.png", "LIC-0001",
         frame_w=48, frame_h=48, cols=3, rows=8, fps=3, pivot=[24, 46],
-        row_order=list(DIRECTIONS), tags=["placeholder"])
+        row_order=list(DIRECTIONS), tags=list(FINAL_ASSET_TAGS))
     add("char_shadow", "image", "characters/common/shadow.png", "LIC-0002", tags=["placeholder"])
 
     for expression in EXPRESSIONS:
-        add(f"portrait_naiwan_{expression}", "image", f"portraits/naiwan/{expression}.png", "LIC-0001",
+        add(f"portrait_naiwan_{expression}", "image", f"portraits/naiwan/{expression}.png", "LIC-0005",
             tags=["placeholder"])
 
     for activity in CG_ACTIVITIES:
-        add(f"cg_naiwan_{activity}", "image", f"art/cg/naiwan_{activity}.png", "LIC-0001", tags=["placeholder"])
+        add(f"cg_naiwan_{activity}", "image", f"art/cg/naiwan_{activity}.png", "LIC-0005",
+            tags=["placeholder"])
 
     for npc in ("npc_sumo", "npc_chenlang", "npc_xiaoyou"):
         short = npc.split("_")[1]
@@ -626,12 +633,23 @@ def asset_specs() -> list[dict]:
 
 LICENSE_ROWS = [
     {
-        "license_id": "LIC-0001", "asset_ids": "char_naiwan_walk;char_naiwan_idle;portrait_naiwan_*;cg_naiwan_*",
+        "license_id": "LIC-0001", "asset_ids": "char_naiwan_walk;char_naiwan_idle",
+        "author": "开发者A（切片与像素化处理）；原图由用户提供",
+        "source_url": "素材/8 方向行走动画序列帧.jfif；素材/8 方向待机动画序列帧.jfif",
+        "license": "用户提供的 AI 生成素材（生成工具与条款版本见素材来源说明）",
+        "commercial_ok": "yes", "modified": "yes",
+        "date_added": "2026-01-05",
+        "notes": "由 tools/slice_reference_sheets.py 自动切片：按面板标签映射 8 方向、抠背景、"
+                 "块众数降采样到 48×48（身高约 38 像素、脚点 24,46）、1 像素描边、量化到 32 色；"
+                 "商用范围以用户提供的生成条款为准，对外发布前需再确认一次",
+    },
+    {
+        "license_id": "LIC-0005", "asset_ids": "portrait_naiwan_*;cg_naiwan_*",
         "author": "开发者A（占位图由 tools/make_placeholders.py 程序生成）",
         "source_url": "internal://naiwa_campus/tools/make_placeholders.py",
         "license": "项目内部原创", "commercial_ok": "yes", "modified": "yes",
         "date_added": "2026-01-05",
-        "notes": "同尺寸占位图，正式素材按 A9 流程重绘后替换；三视图参考见 docs/art/naiwan_ref.png（AI 生成，仅参考，不进入发布包）",
+        "notes": "头像与活动插图仍是占位图，待按 A9 流程重绘后替换并更新本行",
     },
     {
         "license_id": "LIC-0002", "asset_ids": "char_shadow",
@@ -691,11 +709,15 @@ LICENSE_ROWS = [
 # --------------------------------------------------------------------------- #
 # 生成：美术
 # --------------------------------------------------------------------------- #
-def generate_art() -> list[str]:
+def generate_art(keep_final: bool = True) -> list[str]:
+    """生成占位美术；keep_final=True 时不覆盖已切好的正式角色精灵表。"""
     written: list[str] = []
 
     def save(img, relative: str) -> None:
         target = ASSETS / relative
+        if keep_final and relative in FINAL_ART_PATHS:
+            print(f"  skip final: {relative}")
+            return
         target.parent.mkdir(parents=True, exist_ok=True)
         img.save(target, "PNG")
         written.append(relative)

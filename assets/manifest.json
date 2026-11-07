@@ -26,7 +26,8 @@
         "sw"
       ],
       "tags": [
-        "placeholder"
+        "final",
+        "sliced_from_reference"
       ]
     },
     {
@@ -54,7 +55,8 @@
         "sw"
       ],
       "tags": [
-        "placeholder"
+        "final",
+        "sliced_from_reference"
       ]
     },
     {
@@ -70,7 +72,7 @@
       "id": "portrait_naiwan_neutral",
       "type": "image",
       "path": "portraits/naiwan/neutral.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -79,7 +81,7 @@
       "id": "portrait_naiwan_happy",
       "type": "image",
       "path": "portraits/naiwan/happy.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -88,7 +90,7 @@
       "id": "portrait_naiwan_sad",
       "type": "image",
       "path": "portraits/naiwan/sad.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -97,7 +99,7 @@
       "id": "portrait_naiwan_tired",
       "type": "image",
       "path": "portraits/naiwan/tired.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -106,7 +108,7 @@
       "id": "portrait_naiwan_surprised",
       "type": "image",
       "path": "portraits/naiwan/surprised.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -115,7 +117,7 @@
       "id": "portrait_naiwan_determined",
       "type": "image",
       "path": "portraits/naiwan/determined.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -124,7 +126,7 @@
       "id": "portrait_naiwan_shy",
       "type": "image",
       "path": "portraits/naiwan/shy.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -133,7 +135,7 @@
       "id": "portrait_naiwan_proud",
       "type": "image",
       "path": "portraits/naiwan/proud.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -142,7 +144,7 @@
       "id": "cg_naiwan_attend_class",
       "type": "image",
       "path": "art/cg/naiwan_attend_class.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -151,7 +153,7 @@
       "id": "cg_naiwan_library_study",
       "type": "image",
       "path": "art/cg/naiwan_library_study.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -160,7 +162,7 @@
       "id": "cg_naiwan_play_games",
       "type": "image",
       "path": "art/cg/naiwan_play_games.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -169,7 +171,7 @@
       "id": "cg_naiwan_create_work",
       "type": "image",
       "path": "art/cg/naiwan_create_work.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -178,7 +180,7 @@
       "id": "cg_naiwan_join_club",
       "type": "image",
       "path": "art/cg/naiwan_join_club.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -187,7 +189,7 @@
       "id": "cg_naiwan_exercise",
       "type": "image",
       "path": "art/cg/naiwan_exercise.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -196,7 +198,7 @@
       "id": "cg_naiwan_eat_canteen",
       "type": "image",
       "path": "art/cg/naiwan_eat_canteen.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -205,7 +207,7 @@
       "id": "cg_naiwan_rest_dorm",
       "type": "image",
       "path": "art/cg/naiwan_rest_dorm.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]
@@ -214,7 +216,7 @@
       "id": "cg_naiwan_campus_walk",
       "type": "image",
       "path": "art/cg/naiwan_campus_walk.png",
-      "license_id": "LIC-0001",
+      "license_id": "LIC-0005",
       "tags": [
         "placeholder"
       ]

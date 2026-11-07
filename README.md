@@ -50,7 +50,7 @@ game/ui/         (D) 主题、控件、面板、文本
 game/sim/        (B) 无图形模拟器
 content/         (B/C/D/E) JSON 规则、文本、地图、schema
 assets/          (A) manifest.json、LICENSES.csv、characters/ campus/ portraits/ ui/ fonts/ audio/
-tools/           (A) make_placeholders.py pack_sprites.py gltf_to_bam.py
+tools/           (A) make_placeholders.py slice_reference_sheets.py pack_sprites.py gltf_to_bam.py
 tests/           (E 框架；B/C/D 各自子目录；A 的 standalone_a)
 docs/            接口变更记录、整合记录、美术说明
 ```
@@ -62,8 +62,10 @@ docs/            接口变更记录、整合记录、美术说明
   `[FLOW] services: {'activity': 'fallback', ...}`。合入后自动切换为正式实现。
 - `assets/fonts/FusionPixel12.ttf` 尚未放入（SIL OFL 1.1，见 `assets/LICENSES.csv` 的 `LIC-0301`）。
   缺失时字体加载返回 `None`，D 的 TextDB 回退引擎默认字体并写 `asset.missing`。
-- 全部美术与音频目前是**同尺寸占位资源**，由 `tools/make_placeholders.py` 程序生成，
-  逐张按 A9 流程重绘后同名替换即可。
+- 角色的行走表与待机表已经是**正式资源**：由 `tools/slice_reference_sheets.py` 从用户提供的
+  8 方向序列帧自动切片、去背、像素化到 48×48（身高 38 像素、脚点 24,46）。其余美术与全部音频
+  仍是同尺寸占位资源（`LIC-0005`、`LIC-0002~0004`、`LIC-0101` 等）。逐张按 A9 流程重绘后同名替换即可，
+  注意 `tools/make_placeholders.py art` 不会覆盖这两张正式精灵表（`FINAL_ASSETS`）。
 
 ## 协作约定
 

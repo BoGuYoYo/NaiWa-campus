@@ -38,7 +38,8 @@ python -m game --dev --scene CampusScene --skip-intro --offscreen --frames 12
    `SceneManager` 使用 A 的替身场景（测试地面）。日志会显示 `fallback`。
 2. `assets/fonts/FusionPixel12.ttf` 未放入，`font_ui` 标记 `pending`；缺字体时中文文本无法显示
    （A 的替身场景已改用 ASCII 标签规避）。D 接入 TextDB 后需要真实字体。
-3. 全部美术为占位资源，`LICENSES.csv` 中 `author` 字段已注明“占位图程序生成”，替换后需更新。
+3. 除角色的行走/待机两张精灵表外，其余美术仍是占位资源；`LICENSES.csv` 中 `author` 字段已注明来源，
+   替换后需更新（角色两张已升级为 `LIC-0001` 正式资源，来源为用户提供的 AI 序列帧）。
 4. `tools/gltf_to_bam.py` 尚未用真实 glTF 验证（仓库里还没有 Blender 导出的资源）。
 5. 替身场景的 `campus_walk` 互动只演示流程，正式交互由 C 的 `InteractionService` 提供。
 

@@ -1,5 +1,6 @@
 license_id,asset_ids,author,source_url,license,commercial_ok,modified,date_added,notes
-LIC-0001,char_naiwan_walk;char_naiwan_idle;portrait_naiwan_*;cg_naiwan_*,开发者A（占位图由 tools/make_placeholders.py 程序生成）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,同尺寸占位图，正式素材按 A9 流程重绘后替换；三视图参考见 docs/art/naiwan_ref.png（AI 生成，仅参考，不进入发布包）
+LIC-0001,char_naiwan_walk;char_naiwan_idle,开发者A（切片与像素化处理）；原图由用户提供,素材/8 方向行走动画序列帧.jfif；素材/8 方向待机动画序列帧.jfif,用户提供的 AI 生成素材（生成工具与条款版本见素材来源说明）,yes,yes,2026-01-05,"由 tools/slice_reference_sheets.py 自动切片：按面板标签映射 8 方向、抠背景、块众数降采样到 48×48（身高约 38 像素、脚点 24,46）、1 像素描边、量化到 32 色；商用范围以用户提供的生成条款为准，对外发布前需再确认一次"
+LIC-0005,portrait_naiwan_*;cg_naiwan_*,开发者A（占位图由 tools/make_placeholders.py 程序生成）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,头像与活动插图仍是占位图，待按 A9 流程重绘后替换并更新本行
 LIC-0002,char_shadow,开发者A,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,no,2026-01-05,24×8 椭圆阴影，黑色 40% 不透明度
 LIC-0003,char_npc_*;portrait_npc_*,开发者A（占位图程序生成）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,NPC 待机与头像占位，正式素材替换前不得对外宣传
 LIC-0004,char_extra_*,开发者A（占位图程序生成）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,环境 NPC 单帧占位

@@ -93,6 +93,11 @@ A 只注册 `flow_tick(45)`、`offscreen_capture(60)`、`autoplay(70)`。其他�
 - `assets/manifest.json` 的 `type` 只允许 `sprite_sheet/image/model/sound/music/font`；
   `sprite_sheet` 必须带 `frame_w/frame_h/cols/rows/fps/pivot`，`music` 必须带 `loop`
 - `AssetRegistry.release_blockers()` 返回 `commercial_ok != yes` 的资源，发布脚本必须挡住
+- **角色精灵表已转正式**：`char_naiwan_walk` / `char_naiwan_idle` 由
+  `tools/slice_reference_sheets.py` 从用户提供的 8 方向序列帧自动切片（面板标签 -> 方向映射：
+  FRONT=s、FRONT-RIGHT=se、RIGHT=e、BACK-RIGHT=ne、BACK=n、BACK-LEFT=nw、LEFT=w、FRONT-LEFT=sw），
+  manifest 里 `tags` 为 `["final", "sliced_from_reference"]`，许可记录 `LIC-0001`。
+  `tools/make_placeholders.py art` 已把这两张列入 `FINAL_ASSETS`，不会被占位图覆盖。
 
 ---
 

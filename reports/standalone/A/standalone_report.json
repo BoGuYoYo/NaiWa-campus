@@ -1,0 +1,73 @@
+{
+  "suite": "standalone_a",
+  "total": 13,
+  "passed": 13,
+  "failed": 0,
+  "results": [
+    {
+      "name": "A-ST-03a 存档往返一致",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-03b 损坏档案回退 .bak",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-03c 损坏无备份返回 SaveError",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-02a manifest 解析",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-02b 缺失文件列表",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-02c 缺失贴图回退并广播 asset.missing",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-02d 非商用资源阻止发布",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-05 场景脚本（MainMenu→Campus→Pause）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "流程图：3 个行动结束一天并自动存档",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "流程图：16 天推进到毕业",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "流程图：暂停不累计 play_seconds",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-04a 缩放规则与网格对齐",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "A-ST-04b 6 帧离屏渲染生成 480×270 截图",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

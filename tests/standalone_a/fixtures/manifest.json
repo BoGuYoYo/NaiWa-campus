@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "fixture_sprite_present",
+      "type": "sprite_sheet",
+      "path": "characters/fixture/present.png",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 4,
+      "rows": 8,
+      "fps": 8,
+      "pivot": [24, 46],
+      "row_order": ["s", "se", "e", "ne", "n", "nw", "w", "sw"],
+      "license_id": "LIC-9001"
+    },
+    {
+      "id": "fixture_sprite_missing",
+      "type": "sprite_sheet",
+      "path": "characters/fixture/does_not_exist.png",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 1,
+      "rows": 1,
+      "fps": 8,
+      "pivot": [24, 46],
+      "license_id": "LIC-9001"
+    },
+    {
+      "id": "fixture_model",
+      "type": "model",
+      "path": "campus/fixture/absent.bam",
+      "license_id": "LIC-9002"
+    }
+  ]
+}

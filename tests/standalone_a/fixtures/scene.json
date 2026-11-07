@@ -1,0 +1,19 @@
+{
+  "description": "A-ST-05 场景切换夹具：MainMenu -> CampusScene -> PauseMenu -> CampusScene",
+  "steps": [
+    {"action": "start", "scene": "MainMenu"},
+    {"action": "update", "dt": 0.3},
+    {"action": "change", "scene": "CampusScene", "kwargs": {"spawn": "loc_gate"}},
+    {"action": "update", "dt": 0.3},
+    {"action": "update", "dt": 0.3},
+    {"action": "expect_scene", "scene": "CampusScene"},
+    {"action": "expect_input_locked", "value": false},
+    {"action": "push", "scene": "PauseMenu"},
+    {"action": "expect_overlay", "scene": "PauseMenu"},
+    {"action": "expect_input_locked", "value": true},
+    {"action": "pop"},
+    {"action": "expect_overlay", "scene": null},
+    {"action": "expect_input_locked", "value": false},
+    {"action": "expect_scene", "scene": "CampusScene"}
+  ]
+}

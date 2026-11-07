@@ -1,0 +1,28 @@
+# 本地环境、构建与运行产物
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/_*/
+build/*.log
+build/_audio_tmp/
+dist/
+*.spec
+*.log
+!docs/**/*.log
+
+# 报告与临时截图（reports/standalone/<岗位>/ 下的验收产物可以提交，其余忽略）
+reports/**/*.tmp
+reports/**/_*.png
+
+# 编辑器与系统垃圾
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store

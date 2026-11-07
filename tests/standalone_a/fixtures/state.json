@@ -1,0 +1,21 @@
+{
+  "save_version": 1,
+  "seed": 42,
+  "day_index": 2,
+  "action_slot": 1,
+  "stats": {"academic": 24, "stamina": 22, "social": 15, "interest": 18},
+  "mood": 58,
+  "energy": 61,
+  "relationships": {"npc_sumo": 2, "npc_chenlang": 0, "npc_xiaoyou": 1},
+  "flags": ["accepted_lab", "npc_sumo_stage1"],
+  "counters": {"library_count": 2, "canteen_count": 1},
+  "today_counts": {"eat_canteen": 1},
+  "talked_today": ["npc_sumo"],
+  "event_log": ["sem_1_club_fair:fair_lab"],
+  "pending_event_id": null,
+  "phase": "campus",
+  "ending_id": null,
+  "world": {"location_id": "loc_library", "x": 24.0, "y": 2.5, "facing": "n"},
+  "tutorial_done": ["move", "interact"],
+  "play_seconds": 187.5
+}

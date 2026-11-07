@@ -1,0 +1,842 @@
+"""A 维护：ShowBase 子类、任务调度与场景装配（组合根）。
+
+任务 sort 顺序固定：input_poll 10(C)、world_update 20(C)、interaction_scan 30(C)、
+ui_update 40(D)、flow_tick 45(A)、其他 >= 50。本文件只注册 flow_tick(45) 与调试任务(>=50)。
+"""
+
+from __future__ import annotations
+
+import importlib
+import json
+import logging
+from pathlib import Path
+from typing import Any
+
+from direct.showbase.ShowBase import ShowBase  # type: ignore
+
+from . import config
+from .core.asset_registry import AssetRegistry
+from .core.audio import AudioManager
+from .core.event_bus import (
+    TOPIC_ACTIVITY_DONE,
+    TOPIC_DAY_ENDED,
+    TOPIC_EVENT_FINISHED,
+    TOPIC_GAME_GRADUATED,
+    TOPIC_SCENE_CHANGED,
+    EventBus,
+)
+from .core.flow import GameFlow, resolve_services
+from .core.render_pipeline import LowResPipeline
+from .core.results import ActivityResult, DayEndResult, EndingResult, EventResult
+from .core.save_manager import SaveLoadError, SaveManager
+from .core.scene_manager import SceneManager
+from .core.state import GameState, WorldPos
+
+# 任务 sort 常量（其他人只读）
+SORT_INPUT_POLL = 10
+SORT_WORLD_UPDATE = 20
+SORT_INTERACTION_SCAN = 30
+SORT_UI_UPDATE = 40
+SORT_FLOW_TICK = 45
+SORT_MIN_OTHER = 50
+
+LOG = logging.getLogger("naiwa.app")
+
+# 场景 ID -> (模块, 类名)。D/C 合入正式实现后自动优先使用，否则退到 A 的替身场景。
+SCENE_MODULES: dict[str, tuple[str, str]] = {
+    "MainMenu": ("game.ui.main_menu", "MainMenuScene"),
+    "CampusScene": ("game.world.campus_scene", "CampusScene"),
+    "InteriorScene": ("game.world.interior_scene", "InteriorScene"),
+    "EventScene": ("game.ui.event_scene", "EventScene"),
+    "ResultPanel": ("game.ui.result_panel", "ResultPanel"),
+    "DaySummary": ("game.ui.day_summary", "DaySummary"),
+    "TabPanel": ("game.ui.tab_panel", "TabPanel"),
+    "PauseMenu": ("game.ui.pause_menu", "PauseMenu"),
+    "SettingsMenu": ("game.ui.settings_menu", "SettingsMenu"),
+    "SaveMenu": ("game.ui.save_menu", "SaveMenu"),
+    "GraduationScene": ("game.ui.graduation_scene", "GraduationScene"),
+}
+
+
+def apply_prc(options: config.Options, settings: config.Settings) -> None:
+    """ShowBase 实例化前写入 PRC，窗口尺寸与离屏模式都在这里决定。"""
+    from panda3d.core import loadPrcFileData
+
+    width, height = options.windowed
+    loadPrcFileData("", f"win-size {width} {height}")
+    loadPrcFileData("", "window-title 奶娃：大学四年")
+    loadPrcFileData("", "sync-video false")
+    loadPrcFileData("", "framebuffer-srgb false")
+    loadPrcFileData("", "notify-level-display error")
+    loadPrcFileData("", "textures-power-2 none")
+    loadPrcFileData("", "default-fov 40")
+    if options.offscreen:
+        loadPrcFileData("", "window-type offscreen")
+        loadPrcFileData("", "audio-library-name null")
+    if settings.window_mode == "borderless" and not options.offscreen:
+        loadPrcFileData("", "undecorated true")
+
+
+class NaiwaApp(ShowBase):
+    """程序骨架：资源、渲染、场景、存档、音频、流程的唯一装配点。"""
+
+    def __init__(self, options: config.Options) -> None:
+        self.options = options
+        self.log = LOG
+        self.settings = config.Settings.load()
+        super().__init__()
+
+        self.bus = EventBus(logger=logging.getLogger("naiwa.bus"), strict_topics=options.dev)
+        self.registry = AssetRegistry(loader=self, bus=self.bus)
+        self.pipeline = LowResPipeline(self)
+        self.pipeline.setup()
+        self.audio = AudioManager(self.registry, self.settings, enabled=not options.offscreen)
+        self.saves = SaveManager()
+        self.scenes = SceneManager(self, factory=self.make_scene, bus=self.bus)
+        self.services = resolve_services()
+        self.flow = GameFlow(self, self.scenes, self.saves, self.bus,
+                             services=self.services, registry=self.registry)
+        self._fade_card = self._build_fade_overlay()
+        self._frame_count = 0
+        self._shutdown_done = False
+        self.exit_code = 0
+
+        self._wire_events()
+        self._register_tasks()
+        self._apply_settings_to_window()
+        self.accept("window-event", self._on_window_event)
+
+        if options.dev:
+            self.accept("f1", self._debug_toggle_fps)
+            self.accept("f4", self._debug_inspect_character)
+
+        self.log.info("[APP] ready offscreen=%s scene=%s", options.offscreen, options.scene)
+        self._start_initial_scene()
+
+    # ------------------------------------------------------------------ #
+    # 装配
+    # ------------------------------------------------------------------ #
+    def _wire_events(self) -> None:
+        self.bus.subscribe(TOPIC_SCENE_CHANGED, self.audio.on_scene_changed)
+        self.bus.subscribe(TOPIC_DAY_ENDED, self.audio.on_day_ended)
+        self.bus.subscribe(TOPIC_GAME_GRADUATED, self.audio.on_graduated)
+
+    def _register_tasks(self) -> None:
+        self.taskMgr.add(self._flow_tick, "flow_tick", sort=SORT_FLOW_TICK)
+        if self.options.offscreen:
+            self.taskMgr.add(self._offscreen_capture, "offscreen_capture", sort=SORT_MIN_OTHER + 10)
+        if self.options.autoplay:
+            self.taskMgr.add(self._autoplay_step, "autoplay", sort=SORT_MIN_OTHER + 20)
+
+    def add_owned_task(self, func, name: str, sort: int):
+        """其他人注册任务必须走这里；禁止新增 sort < 50 的任务。"""
+        if sort < SORT_MIN_OTHER:
+            raise ValueError(f"task {name} uses sort={sort}: sort<50 只能由 A/C/D 的约定任务占用")
+        return self.taskMgr.add(func, name, sort=sort)
+
+    def _apply_settings_to_window(self) -> None:
+        if self.options.offscreen or not hasattr(self, "win") or self.win is None:
+            return
+        if not hasattr(self.win, "getProperties"):
+            return
+        props = self.win.getProperties()
+        width, height = self.settings.window_size
+        if (props.getXSize(), props.getYSize()) == (width, height):
+            return
+        from panda3d.core import WindowProperties
+
+        new_props = WindowProperties()
+        new_props.setSize(int(width), int(height))
+        if self.settings.window_mode == "borderless":
+            new_props.setUndecorated(True)
+        self.win.requestProperties(new_props)
+
+    # ------------------------------------------------------------------ #
+    # 主循环
+    # ------------------------------------------------------------------ #
+    def _flow_tick(self, task):
+        dt = min(globalClock.getDt(), 1.0 / 30.0)  # type: ignore[name-defined]
+        self.scenes.update(dt)
+        self.scenes.update_scenes(dt)
+        self.flow.tick(dt)
+        self._update_fade()
+        self._frame_count += 1
+        return task.cont
+
+    def _update_fade(self) -> None:
+        if self._fade_card is None:
+            return
+        alpha = self.scenes.fade_alpha
+        self._fade_card.setColorScale(0, 0, 0, alpha)
+        if alpha <= 0.001:
+            self._fade_card.hide()
+        else:
+            self._fade_card.show()
+
+    def _build_fade_overlay(self):
+        from panda3d.core import CardMaker, TransparencyAttrib
+
+        maker = CardMaker("fade_overlay")
+        maker.setFrame(-1.2, 1.2, -1.2, 1.2)
+        card = self.aspect2d.attachNewNode(maker.generate())
+        card.setTransparency(TransparencyAttrib.MAlpha)
+        card.setColorScale(0, 0, 0, 0)
+        card.setBin("fixed", 100)
+        card.setDepthTest(False)
+        card.setDepthWrite(False)
+        card.hide()
+        return card
+
+    def _on_window_event(self, window) -> None:
+        try:
+            self.pipeline.resize(int(window.getXSize()), int(window.getYSize()))
+        except Exception as exc:
+            self.log.warning("[APP] resize failed: %s", exc)
+
+    # ------------------------------------------------------------------ #
+    # 场景装配
+    # ------------------------------------------------------------------ #
+    def make_scene(self, scene_id: str, kwargs: dict[str, Any]):
+        spec = SCENE_MODULES.get(scene_id)
+        if spec is not None:
+            module_name, class_name = spec
+            try:
+                module = importlib.import_module(module_name)
+                cls = getattr(module, class_name)
+                return cls(self, **kwargs)
+            except (ImportError, AttributeError):
+                self.log.info("[SCENE] %s 未合入，使用 A 的替身场景", scene_id)
+        stub = STUB_SCENES.get(scene_id)
+        if stub is None:
+            raise KeyError(f"unknown scene id: {scene_id}")
+        return stub(self, **kwargs)
+
+    def _start_initial_scene(self) -> None:
+        options = self.options
+        if options.load:
+            try:
+                self.flow.load_game(options.load)
+            except SaveLoadError as exc:
+                self.log.error("[APP] load %s failed: %s", options.load, exc)
+                self.scenes.start("MainMenu")
+            return
+        if options.scene in ("CampusScene", "InteriorScene"):
+            self.flow.new_game(seed=options.seed, skip_intro=True)
+            if options.day is not None:
+                state = self.flow.require_state()
+                state.day_index = max(0, min(config.TOTAL_DAYS - 1, int(options.day)))
+            if options.inspect:
+                self._debug_inspect_character()
+            return
+        if options.scene == "EventScene":
+            self.scenes.start("CampusScene")
+            return
+        self.scenes.start(options.scene)
+
+    # ------------------------------------------------------------------ #
+    # 离屏截图与冒烟
+    # ------------------------------------------------------------------ #
+    def _offscreen_capture(self, task):
+        if self._frame_count < self.options.frames:
+            return task.cont
+        target = self.options.screenshot or "reports/standalone/A/offscreen.png"
+        path = Path(config.resource_root()) / target
+        ok = self.pipeline.save_buffer_screenshot(str(path))
+        self.log.info("[APP] offscreen capture frames=%d ok=%s path=%s",
+                      self._frame_count, ok, path)
+        self.quit_game(exit_code=0 if ok else 2)
+        return task.done
+
+    def _autoplay_step(self, task):
+        driver = getattr(self, "_driver", None)
+        if driver is None:
+            driver = self._driver = AutoplayDriver(self)
+        done = driver.step()
+        if done:
+            self.quit_game(exit_code=0 if driver.ok else 3)
+            return task.done
+        return task.cont
+
+    # ------------------------------------------------------------------ #
+    def quit_game(self, exit_code: int = 0) -> None:
+        """请求退出：ShowBase.shutdown() 是引擎生命周期方法，不能覆盖，故另起名字。"""
+        if self._shutdown_done:
+            return
+        self._shutdown_done = True
+        self.exit_code = int(exit_code)
+        self.flow.back_to_main_menu()
+        self.log.info("[APP] quit exit_code=%d frames=%d", exit_code, self._frame_count)
+        self.userExit()
+
+    # ------------------------------------------------------------------ #
+    # --dev 调试
+    # ------------------------------------------------------------------ #
+    def _debug_toggle_fps(self) -> None:
+        current = self.render.analyze()
+        self.log.info("[DEBUG] render analyze: %s", current)
+
+    def _debug_inspect_character(self) -> None:
+        scene = self.scenes.base_scene
+        hook = getattr(scene, "inspect_character", None)
+        if callable(hook):
+            hook()
+
+
+# --------------------------------------------------------------------------- #
+# A 的替身场景：C/D 的正式实现合入后自动被替换。只用于独立验收与骨架演示。
+# --------------------------------------------------------------------------- #
+class StubScene:
+    is_overlay = False
+
+    def __init__(self, app: NaiwaApp, **kwargs: Any) -> None:
+        self.app = app
+        self.kwargs = kwargs
+        self.log = LOG
+        self.root = None
+
+    def on_enter(self, **kwargs: Any) -> None:
+        pass
+
+    def on_exit(self) -> None:
+        if self.root is not None and not self.root.isEmpty():
+            self.root.removeNode()
+        self.root = None
+
+    def on_update(self, dt: float) -> None:
+        pass
+
+    def _panel(self, text: str):
+        from direct.gui.OnscreenText import OnscreenText
+
+        return OnscreenText(
+            text=text,
+            parent=self.app.aspect2d,
+            scale=0.06,
+            fg=(0.95, 0.95, 0.95, 1),
+            bg=(0.05, 0.06, 0.09, 0.75),
+            align=0,
+            mayChange=False,
+        )
+
+
+class StubMainMenu(StubScene):
+    def on_enter(self, **kwargs: Any) -> None:
+        self.root = self.app.render2d.attachNewNode("stub_main_menu")
+        self.label = self._panel("NAIWA CAMPUS  |  Enter: New Game   Esc: Quit")
+        self.app.accept("enter", self._start)
+        self.app.accept("escape", self.app.quit_game)
+
+    def on_exit(self) -> None:
+        self.app.ignore("enter")
+        self.app.ignore("escape")
+        super().on_exit()
+
+    def _start(self) -> None:
+        self.app.flow.new_game(seed=self.app.options.seed, skip_intro=self.app.options.skip_intro)
+
+
+class StubCampus(StubScene):
+    """测试地面：1 米网格 + 5 建筑占位框 + 奶娃行走卡片 + 固定俯角跟随相机。"""
+
+    SPEED = 4.0  # 米/秒
+
+    def on_enter(self, **kwargs: Any) -> None:
+        from panda3d.core import KeyboardButton, LineSegs
+
+        self.root = self.app.render.attachNewNode("stub_campus")
+        self._build_ground()
+        self._build_buildings()
+        state = self.app.flow.state
+        world = state.world if state is not None else WorldPos()
+        self.pos = [world.x, world.y]
+        self.facing = world.facing
+        self.anim_time = 0.0
+        self.sprite = self.app.registry.load_sprite("char_naiwan_walk")
+        self.card = self.app.pipeline.make_character_card(self.root, "naiwan_card")
+        self.card.setTexture(self.sprite.texture, 1)
+        self.card.setPos(self.pos[0], self.pos[1], 0)
+        self.app.pipeline.align_camera(self.pos[0], self.pos[1])
+        self._apply_frame()
+        self.keys = {
+            "w": KeyboardButton.asciiKey("w"),
+            "s": KeyboardButton.asciiKey("s"),
+            "a": KeyboardButton.asciiKey("a"),
+            "d": KeyboardButton.asciiKey("d"),
+        }
+        self.app.accept("e", self._interact)
+        self.app.accept("escape", self._pause)
+        self.app.accept("tab", self._tab)
+
+    def on_exit(self) -> None:
+        for key in ("e", "escape", "tab"):
+            self.app.ignore(key)
+        super().on_exit()
+
+    # ------------------------------------------------------------------ #
+    def _build_ground(self) -> None:
+        from panda3d.core import CardMaker, LineSegs
+
+        maker = CardMaker("ground")
+        maker.setFrame(-20, 60, -15, 30)
+        ground = self.root.attachNewNode(maker.generate())
+        ground.setP(-90)
+        ground.setColorScale(0.24, 0.27, 0.32, 1)
+        ground.setZ(-0.01)
+
+        segs = LineSegs("grid")
+        segs.setThickness(1.0)
+        for x in range(-20, 61, 2):
+            segs.setColor(0.32, 0.36, 0.42, 1)
+            segs.moveTo(x, -15, 0)
+            segs.drawTo(x, 30, 0)
+        for y in range(-15, 31, 2):
+            segs.setColor(0.32, 0.36, 0.42, 1)
+            segs.moveTo(-20, y, 0)
+            segs.drawTo(60, y, 0)
+        self.root.attachNewNode(segs.create())
+
+    def _build_buildings(self) -> None:
+        from panda3d.core import CardMaker, LineSegs
+
+        footprints = (
+            ("dorm", 46, 11, 8, 6),
+            ("teaching", 33, 12, 9, 6),
+            ("library", 47, -5, 8, 7),
+            ("club", 32, -6, 7, 6),
+            ("canteen", 39, -12, 8, 6),
+        )
+        maker = CardMaker("block")
+        maker.setFrame(-0.5, 0.5, -0.5, 0.5)
+        for name, x, y, w, h in footprints:
+            block = self.root.attachNewNode(maker.generate())
+            block.setP(-90)
+            block.setScale(w, h, 1)
+            block.setPos(x, y, 0.02)
+            block.setColorScale(0.42, 0.47, 0.56, 1)
+            seg = LineSegs(name + "_line")
+            seg.setThickness(1.5)
+            seg.setColor(0.86, 0.75, 0.45, 1)
+            x0, y0 = x - w / 2, y - h / 2
+            seg.moveTo(x0, y0, 0.05)
+            seg.drawTo(x0 + w, y0, 0.05)
+            seg.drawTo(x0 + w, y0 + h, 0.05)
+            seg.drawTo(x0, y0 + h, 0.05)
+            seg.drawTo(x0, y0, 0.05)
+            self.root.attachNewNode(seg.create())
+
+    # ------------------------------------------------------------------ #
+    def on_update(self, dt: float) -> None:
+        import math
+
+        from panda3d.core import Vec2
+
+        if self.app.scenes.input_locked:
+            return
+        watcher = getattr(self.app, "mouseWatcherNode", None)
+        if watcher is None:
+            return
+        move = Vec2(0, 0)
+        if watcher.isButtonDown(self.keys["w"]):
+            move.y += 1
+        if watcher.isButtonDown(self.keys["s"]):
+            move.y -= 1
+        if watcher.isButtonDown(self.keys["a"]):
+            move.x -= 1
+        if watcher.isButtonDown(self.keys["d"]):
+            move.x += 1
+        if move.lengthSquared() == 0:
+            self.anim_time = 0.0
+            self._apply_frame(idle=True)
+            return
+        move.normalize()
+        self.pos[0] += move.x * self.SPEED * dt
+        self.pos[1] += move.y * self.SPEED * dt
+        self.anim_time += dt
+        self.facing = _facing_from_vector(move.x, move.y)
+        self.card.setPos(self.pos[0], self.pos[1], 0)
+        self.app.pipeline.align_camera(self.pos[0], self.pos[1])
+        self._apply_frame()
+        state = self.app.flow.state
+        if state is not None:
+            state.world = WorldPos(location_id=state.world.location_id, x=self.pos[0],
+                                   y=self.pos[1], facing=self.facing)
+
+    def _apply_frame(self, idle: bool = False) -> None:
+        fps = self.sprite.fps if not idle else 3.0
+        frame = int(self.anim_time * fps) % max(1, self.sprite.entry.cols)
+        uv = self.sprite.frame_uv(self.facing, frame)
+        from panda3d.core import TextureStage
+
+        self.card.setTexOffset(TextureStage.getDefault(), uv[0], uv[1])
+        self.card.setTexScale(TextureStage.getDefault(), uv[2] - uv[0], uv[3] - uv[1])
+
+    def _interact(self) -> None:
+        flow = self.app.flow
+        state = flow.state
+        if state is None or state.phase != "campus":
+            return
+        service = self.app.services.activity
+        result = service.start(state, "campus_walk")
+        if not isinstance(result, ActivityResult):
+            return
+        flow.handle_activity_result(result)
+        self.app.scenes.push("ResultPanel", result=result)
+
+    def _pause(self) -> None:
+        self.app.flow.set_paused(True)
+        self.app.scenes.push("PauseMenu")
+
+    def _tab(self) -> None:
+        self.app.scenes.push("TabPanel")
+
+    def teleport(self, world: WorldPos) -> None:
+        self.pos = [world.x, world.y]
+        self.facing = world.facing
+        if getattr(self, "card", None) is not None:
+            self.card.setPos(self.pos[0], self.pos[1], 0)
+            self.app.pipeline.align_camera(self.pos[0], self.pos[1])
+
+    def inspect_character(self) -> None:
+        """F4：8 方向检视网格（A-09 验收用），再次按 F4 关闭。"""
+        from panda3d.core import TextureStage
+
+        existing = getattr(self, "inspect_root", None)
+        if existing is not None and not existing.isEmpty():
+            existing.removeNode()
+            self.inspect_root = None
+            self.log.info("[DEBUG] character inspect closed")
+            return
+        root = self.app.render.attachNewNode("char_inspect")
+        self.inspect_root = root
+        for index, direction in enumerate(("s", "se", "e", "ne", "n", "nw", "w", "sw")):
+            column = index % 4
+            row = index // 4
+            card = self.app.pipeline.make_character_card(root, f"inspect_{direction}")
+            card.setPos(32.0 + column * 5.0, 11.0 - row * 5.0, 0)
+            card.setTexture(self.sprite.texture, 1)
+            uv = self.sprite.frame_uv(direction, 0)
+            card.setTexOffset(TextureStage.getDefault(), uv[0], uv[1])
+            card.setTexScale(TextureStage.getDefault(), uv[2] - uv[0], uv[3] - uv[1])
+        self.log.info("[DEBUG] character inspect grid: 8 directions x %d frames", self.sprite.entry.cols)
+
+
+def _facing_from_vector(x: float, y: float) -> str:
+    """输入向量 -> 8 方向（s 面朝镜头，n 背向镜头）。"""
+    import math
+
+    angle = math.degrees(math.atan2(y, x)) % 360.0
+    sectors = (
+        (22.5, "e"), (67.5, "ne"), (112.5, "n"), (157.5, "nw"),
+        (202.5, "w"), (247.5, "sw"), (292.5, "s"), (337.5, "se"),
+    )
+    for limit, facing in sectors:
+        if angle < limit:
+            return facing
+    return "e"
+
+
+def _unused_to_aspect_x(world_x: float) -> float:
+    """世界 X（米）近似换算到 aspect2d 坐标，仅用于调试标签摆放。"""
+    return (world_x - 40.0) / 10.0
+
+
+def _unused_to_aspect_z(world_y: float) -> float:
+    return (world_y - 5.0) / 8.8
+
+
+class StubResultPanel(StubScene):
+    def on_enter(self, **kwargs: Any) -> None:
+        result = kwargs.get("result")
+        self.root = self.app.render2d.attachNewNode("stub_result")
+        text = ""
+        if isinstance(result, ActivityResult):
+            text = f"ACTIVITY {result.activity_id}\n" + "\n".join(
+                f"{k} {v:+d}" for k, v in result.deltas.items()
+            )
+        self.label = self._panel(text or "结果")
+        self.app.accept("enter", self._close)
+
+    def on_exit(self) -> None:
+        self.app.ignore("enter")
+        super().on_exit()
+
+    def _close(self) -> None:
+        result = self.kwargs.get("result")
+        self.app.scenes.pop()
+        self.app.flow.close_result_panel(result)
+
+
+class StubEventScene(StubScene):
+    def on_enter(self, **kwargs: Any) -> None:
+        self.event_id = kwargs.get("event_id", "story_opening")
+        state = self.app.flow.state
+        pages: list[str] = []
+        if state is not None:
+            service = self.app.services.event
+            view = service.get_view(state, self.event_id)
+            pages = list(getattr(view, "page_text_ids", [])) or [f"evt.{self.event_id}.body.1"]
+            self.choices = list(getattr(view, "choices", []))
+        else:
+            pages = [f"evt.{self.event_id}.body.1"]
+            self.choices = []
+        self.root = self.app.render2d.attachNewNode("stub_event")
+        self.label = self._panel(f"[EVENT] {self.event_id}\n" + "\n".join(pages) + "\n\nEnter: continue")
+        self.app.accept("enter", self._choose)
+
+    def on_exit(self) -> None:
+        self.app.ignore("enter")
+        super().on_exit()
+
+    def _choose(self) -> None:
+        self.app.scenes.pop()
+        state = self.app.flow.state
+        if state is None:
+            return
+        choice_id = self.choices[0].choice_id if self.choices else "ok"
+        service = self.app.services.event
+        result = service.choose(state, self.event_id, choice_id)
+        if not isinstance(result, EventResult):
+            result = EventResult(event_id=self.event_id, choice_id=choice_id)
+        self.app.flow.handle_event_result(result)
+        if self.kwargs.get("story"):
+            self.app.flow.enter_campus()
+
+
+class StubDaySummary(StubScene):
+    def on_enter(self, **kwargs: Any) -> None:
+        result = kwargs.get("result")
+        lines = []
+        if isinstance(result, DayEndResult):
+            lines = [f"{k} {v:+d}" for k, v in result.deltas.items()]
+            lines.append(f"next day_index={result.new_day_index}")
+            if result.semester_event_id:
+                lines.append(f"semester event: {result.semester_event_id}")
+            if result.graduated:
+                lines.append("毕业")
+        self.root = self.app.render2d.attachNewNode("stub_summary")
+        self.label = self._panel("DAY SUMMARY\n" + "\n".join(lines) + "\n\nEnter: close")
+        self.app.accept("enter", self._close)
+
+    def on_exit(self) -> None:
+        self.app.ignore("enter")
+        super().on_exit()
+
+    def _close(self) -> None:
+        self.app.scenes.pop()
+
+
+class StubPauseMenu(StubScene):
+    def on_enter(self, **kwargs: Any) -> None:
+        self.root = self.app.render2d.attachNewNode("stub_pause")
+        self.label = self._panel("PAUSED\nEnter: resume   S: save   L: load")
+        self.app.accept("enter", self._resume)
+        self.app.accept("s", self._save)
+        self.app.accept("l", self._load)
+
+    def on_exit(self) -> None:
+        for key in ("enter", "s", "l"):
+            self.app.ignore(key)
+        super().on_exit()
+
+    def _resume(self) -> None:
+        self.app.scenes.pop()
+        self.app.flow.set_paused(False)
+
+    def _save(self) -> None:
+        ok = self.app.flow.request_save("slot_1")
+        self.label.setText(f"SAVED {'ok' if ok else 'failed'}\nEnter: resume")
+
+
+class StubTabPanel(StubScene):
+    def on_enter(self, **kwargs: Any) -> None:
+        state = self.app.flow.state
+        text = "STATUS"
+        if state is not None:
+            stats = "  ".join(f"{k}={v}" for k, v in state.stats.items())
+            text = f"{state.year} 年 {state.semester} 学期 第 {state.day} 天\n{stats}\n心情={state.mood} 精力={state.energy}\nTab 关闭"
+        self.root = self.app.render2d.attachNewNode("stub_tab")
+        self.label = self._panel(text)
+        self.app.accept("tab", lambda: self.app.scenes.pop())
+
+    def on_exit(self) -> None:
+        self.app.ignore("tab")
+        super().on_exit()
+
+
+class StubGraduation(StubScene):
+    def on_enter(self, **kwargs: Any) -> None:
+        ending = kwargs.get("ending")
+        ending_id = ending.ending_id if isinstance(ending, EndingResult) else str(ending)
+        self.root = self.app.render2d.attachNewNode("stub_grad")
+        state = self.app.flow.state
+        stats = "  ".join(f"{k}={v}" for k, v in state.stats.items()) if state else ""
+        self.label = self._panel(f"GRADUATION: {ending_id}\n{stats}\n\nEnter: back to menu")
+        self.app.accept("enter", self._back)
+
+    def on_exit(self) -> None:
+        self.app.ignore("enter")
+        super().on_exit()
+
+    def _back(self) -> None:
+        self.app.flow.finish_graduation()
+
+
+class AutoplayDriver:
+    """--autoplay：一帧一步的脚本化通关，用于 A-06 与冒烟流程自检。"""
+
+    MAX_STEPS = 800
+    PREFERRED_ACTIVITIES = (
+        "attend_class",
+        "library_study",
+        "exercise",
+        "join_club",
+        "play_games",
+        "create_work",
+        "eat_canteen",
+        "rest_dorm",
+        "campus_walk",
+    )
+
+    def __init__(self, app: NaiwaApp) -> None:
+        self.app = app
+        self.log = LOG
+        self.steps = 0
+        self.phase_trail: list[str | None] = []
+        self.activity_log: list[str] = []
+        self.event_log: list[str] = []
+        self.errors: list[str] = []
+        self.ok = False
+        self.done = False
+        self.ending_id: str | None = None
+        self.final_day_index: int | None = None
+        self.final_play_seconds: float | None = None
+        self.app.scenes.pop_all()
+        seed = app.options.seed if app.options.seed is not None else 42
+        self.app.flow.new_game(seed=seed, skip_intro=True)
+        self._record_phase()
+
+    # ------------------------------------------------------------------ #
+    def _record_phase(self) -> None:
+        state = self.app.flow.state
+        phase = state.phase if state is not None else "finished"
+        if not self.phase_trail or self.phase_trail[-1] != phase:
+            self.phase_trail.append(phase)
+
+    def step(self) -> bool:
+        if self.done:
+            return True
+        self.steps += 1
+        flow = self.app.flow
+        scenes = self.app.scenes
+        if self.steps > self.MAX_STEPS:
+            self.errors.append("step limit reached")
+            return self._finish(False)
+        state = flow.state
+        if state is None:
+            return self._finish(self.ok)
+
+        while scenes.overlays and scenes.top_overlay_id != "EventScene":
+            scenes.pop()
+
+        if state.phase == "graduation":
+            self.ending_id = state.ending_id
+            self.final_day_index = state.day_index
+            self.final_play_seconds = round(state.play_seconds, 2)
+            self._record_phase()
+            flow.finish_graduation()
+            self.ok = self.ending_id is not None
+            return self._finish(self.ok)
+
+        if state.phase == "event":
+            event_id = state.pending_event_id or flow.story_opening_id
+            service = self.app.services.event
+            view = service.get_view(state, event_id)
+            choices = list(getattr(view, "choices", []))
+            choice_id = "ok"
+            for choice in choices:
+                if getattr(choice, "enabled", True):
+                    choice_id = choice.choice_id
+                    break
+            result = service.choose(state, event_id, choice_id)
+            if not isinstance(result, EventResult):
+                result = EventResult(event_id=event_id, choice_id=choice_id)
+            if scenes.top_overlay_id == "EventScene":
+                scenes.pop()
+            flow.handle_event_result(result)
+            self.event_log.append(f"{event_id}:{choice_id}")
+            self._record_phase()
+            return False
+
+        if state.day_finished:
+            flow.finish_day()
+            self._record_phase()
+            return False
+
+        service = self.app.services.activity
+        chosen = None
+        for activity_id in self.PREFERRED_ACTIVITIES:
+            can, _error = service.can_start(state, activity_id)
+            if can:
+                chosen = activity_id
+                break
+        if chosen is None:
+            self.errors.append(f"no startable activity at day={state.day_index}")
+            return self._finish(False)
+        result = service.start(state, chosen)
+        flow.handle_activity_result(result)
+        self.activity_log.append(f"{state.day_index}:{chosen}")
+        flow.close_result_panel(result)
+        self._record_phase()
+        return False
+
+    # ------------------------------------------------------------------ #
+    def _finish(self, ok: bool) -> bool:
+        self.ok = bool(ok)
+        self.done = True
+        flow = self.app.flow
+        state = flow.state
+        report = {
+            "ok": self.ok,
+            "steps": self.steps,
+            "phase_trail": self.phase_trail,
+            "activities": len(self.activity_log),
+            "events": self.event_log,
+            "ending_id": self.ending_id,
+            "day_index": self.final_day_index if self.final_day_index is not None
+            else (state.day_index if state is not None else None),
+            "play_seconds": self.final_play_seconds if self.final_play_seconds is not None
+            else (round(state.play_seconds, 2) if state is not None else None),
+            "errors": self.errors,
+            "missing_assets": sorted(self.app.registry.missing),
+            "save_slots": [info.slot for info in self.app.saves.list_slots()],
+        }
+        target = Path(config.resource_root()) / "reports" / "standalone" / "A" / "autoplay.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.log.info("[AUTOPLAY] ok=%s steps=%d phases=%s -> %s", self.ok, self.steps,
+                      self.phase_trail, target)
+        return True
+
+
+STUB_SCENES = {
+    "MainMenu": StubMainMenu,
+    "CampusScene": StubCampus,
+    "InteriorScene": StubCampus,
+    "EventScene": StubEventScene,
+    "ResultPanel": StubResultPanel,
+    "DaySummary": StubDaySummary,
+    "TabPanel": StubTabPanel,
+    "PauseMenu": StubPauseMenu,
+    "SettingsMenu": StubPauseMenu,
+    "SaveMenu": StubPauseMenu,
+    "GraduationScene": StubGraduation,
+}
+
+
+def run(options: config.Options) -> int:
+    apply_prc(options, config.Settings.load())
+    app = NaiwaApp(options)
+    app.run()
+    return int(getattr(app, "exit_code", 0))
+
+

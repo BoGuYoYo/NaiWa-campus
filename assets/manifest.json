@@ -1,0 +1,1126 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "id": "char_naiwan_walk",
+      "type": "sprite_sheet",
+      "path": "characters/naiwan/walk.png",
+      "license_id": "LIC-0001",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 4,
+      "rows": 8,
+      "fps": 8,
+      "pivot": [
+        24,
+        46
+      ],
+      "row_order": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_naiwan_idle",
+      "type": "sprite_sheet",
+      "path": "characters/naiwan/idle.png",
+      "license_id": "LIC-0001",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 3,
+      "rows": 8,
+      "fps": 3,
+      "pivot": [
+        24,
+        46
+      ],
+      "row_order": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_shadow",
+      "type": "image",
+      "path": "characters/common/shadow.png",
+      "license_id": "LIC-0002",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_neutral",
+      "type": "image",
+      "path": "portraits/naiwan/neutral.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_happy",
+      "type": "image",
+      "path": "portraits/naiwan/happy.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_sad",
+      "type": "image",
+      "path": "portraits/naiwan/sad.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_tired",
+      "type": "image",
+      "path": "portraits/naiwan/tired.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_surprised",
+      "type": "image",
+      "path": "portraits/naiwan/surprised.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_determined",
+      "type": "image",
+      "path": "portraits/naiwan/determined.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_shy",
+      "type": "image",
+      "path": "portraits/naiwan/shy.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_naiwan_proud",
+      "type": "image",
+      "path": "portraits/naiwan/proud.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_attend_class",
+      "type": "image",
+      "path": "art/cg/naiwan_attend_class.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_library_study",
+      "type": "image",
+      "path": "art/cg/naiwan_library_study.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_play_games",
+      "type": "image",
+      "path": "art/cg/naiwan_play_games.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_create_work",
+      "type": "image",
+      "path": "art/cg/naiwan_create_work.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_join_club",
+      "type": "image",
+      "path": "art/cg/naiwan_join_club.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_exercise",
+      "type": "image",
+      "path": "art/cg/naiwan_exercise.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_eat_canteen",
+      "type": "image",
+      "path": "art/cg/naiwan_eat_canteen.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_rest_dorm",
+      "type": "image",
+      "path": "art/cg/naiwan_rest_dorm.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "cg_naiwan_campus_walk",
+      "type": "image",
+      "path": "art/cg/naiwan_campus_walk.png",
+      "license_id": "LIC-0001",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_npc_sumo_idle",
+      "type": "sprite_sheet",
+      "path": "characters/npc/sumo_idle.png",
+      "license_id": "LIC-0003",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 2,
+      "rows": 4,
+      "fps": 2,
+      "pivot": [
+        24,
+        46
+      ],
+      "row_order": [
+        "s",
+        "e",
+        "n",
+        "w"
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_sumo_neutral",
+      "type": "image",
+      "path": "portraits/sumo/neutral.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_sumo_happy",
+      "type": "image",
+      "path": "portraits/sumo/happy.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_sumo_sad",
+      "type": "image",
+      "path": "portraits/sumo/sad.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_sumo_surprised",
+      "type": "image",
+      "path": "portraits/sumo/surprised.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_npc_chenlang_idle",
+      "type": "sprite_sheet",
+      "path": "characters/npc/chenlang_idle.png",
+      "license_id": "LIC-0003",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 2,
+      "rows": 4,
+      "fps": 2,
+      "pivot": [
+        24,
+        46
+      ],
+      "row_order": [
+        "s",
+        "e",
+        "n",
+        "w"
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_chenlang_neutral",
+      "type": "image",
+      "path": "portraits/chenlang/neutral.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_chenlang_happy",
+      "type": "image",
+      "path": "portraits/chenlang/happy.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_chenlang_sad",
+      "type": "image",
+      "path": "portraits/chenlang/sad.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_chenlang_surprised",
+      "type": "image",
+      "path": "portraits/chenlang/surprised.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_npc_xiaoyou_idle",
+      "type": "sprite_sheet",
+      "path": "characters/npc/xiaoyou_idle.png",
+      "license_id": "LIC-0003",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 2,
+      "rows": 4,
+      "fps": 2,
+      "pivot": [
+        24,
+        46
+      ],
+      "row_order": [
+        "s",
+        "e",
+        "n",
+        "w"
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_xiaoyou_neutral",
+      "type": "image",
+      "path": "portraits/xiaoyou/neutral.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_xiaoyou_happy",
+      "type": "image",
+      "path": "portraits/xiaoyou/happy.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_xiaoyou_sad",
+      "type": "image",
+      "path": "portraits/xiaoyou/sad.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "portrait_npc_xiaoyou_surprised",
+      "type": "image",
+      "path": "portraits/xiaoyou/surprised.png",
+      "license_id": "LIC-0003",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_extra_1",
+      "type": "image",
+      "path": "characters/extra/extra_1.png",
+      "license_id": "LIC-0004",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 1,
+      "rows": 1,
+      "fps": 1,
+      "pivot": [
+        24,
+        46
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_extra_2",
+      "type": "image",
+      "path": "characters/extra/extra_2.png",
+      "license_id": "LIC-0004",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 1,
+      "rows": 1,
+      "fps": 1,
+      "pivot": [
+        24,
+        46
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_extra_3",
+      "type": "image",
+      "path": "characters/extra/extra_3.png",
+      "license_id": "LIC-0004",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 1,
+      "rows": 1,
+      "fps": 1,
+      "pivot": [
+        24,
+        46
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "char_extra_4",
+      "type": "image",
+      "path": "characters/extra/extra_4.png",
+      "license_id": "LIC-0004",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 1,
+      "rows": 1,
+      "fps": 1,
+      "pivot": [
+        24,
+        46
+      ],
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_dorm",
+      "type": "model",
+      "path": "campus/dorm.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_interior_dorm",
+      "type": "model",
+      "path": "campus/interior_dorm.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_teaching",
+      "type": "model",
+      "path": "campus/teaching.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_interior_teaching",
+      "type": "model",
+      "path": "campus/interior_teaching.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_library",
+      "type": "model",
+      "path": "campus/library.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_interior_library",
+      "type": "model",
+      "path": "campus/interior_library.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_club",
+      "type": "model",
+      "path": "campus/club.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_interior_club",
+      "type": "model",
+      "path": "campus/interior_club.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_canteen",
+      "type": "model",
+      "path": "campus/canteen.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_interior_canteen",
+      "type": "model",
+      "path": "campus/interior_canteen.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_ground",
+      "type": "model",
+      "path": "campus/ground.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_road",
+      "type": "model",
+      "path": "campus/props/road.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_tree",
+      "type": "model",
+      "path": "campus/props/tree.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_lamp",
+      "type": "model",
+      "path": "campus/props/lamp.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_bench",
+      "type": "model",
+      "path": "campus/props/bench.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_fence",
+      "type": "model",
+      "path": "campus/props/fence.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_sign",
+      "type": "model",
+      "path": "campus/props/sign.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_planter",
+      "type": "model",
+      "path": "campus/props/planter.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_bin",
+      "type": "model",
+      "path": "campus/props/bin.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_bike_rack",
+      "type": "model",
+      "path": "campus/props/bike_rack.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_flag_pole",
+      "type": "model",
+      "path": "campus/props/flag_pole.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_rock",
+      "type": "model",
+      "path": "campus/props/rock.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "model_prop_flower_bed",
+      "type": "model",
+      "path": "campus/props/flower_bed.bam",
+      "license_id": "LIC-0201",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_panel_9slice",
+      "type": "image",
+      "path": "ui/panel_9slice.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_academic",
+      "type": "image",
+      "path": "ui/icons/academic.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_stamina",
+      "type": "image",
+      "path": "ui/icons/stamina.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_mood",
+      "type": "image",
+      "path": "ui/icons/mood.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_social",
+      "type": "image",
+      "path": "ui/icons/social.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_interest",
+      "type": "image",
+      "path": "ui/icons/interest.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_energy",
+      "type": "image",
+      "path": "ui/icons/energy.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_attend_class",
+      "type": "image",
+      "path": "ui/icons/activity_attend_class.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_library_study",
+      "type": "image",
+      "path": "ui/icons/activity_library_study.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_play_games",
+      "type": "image",
+      "path": "ui/icons/activity_play_games.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_create_work",
+      "type": "image",
+      "path": "ui/icons/activity_create_work.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_join_club",
+      "type": "image",
+      "path": "ui/icons/activity_join_club.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_exercise",
+      "type": "image",
+      "path": "ui/icons/activity_exercise.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_eat_canteen",
+      "type": "image",
+      "path": "ui/icons/activity_eat_canteen.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_rest_dorm",
+      "type": "image",
+      "path": "ui/icons/activity_rest_dorm.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_icon_campus_walk",
+      "type": "image",
+      "path": "ui/icons/activity_campus_walk.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_e",
+      "type": "image",
+      "path": "ui/keys/e.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_space",
+      "type": "image",
+      "path": "ui/keys/space.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_tab",
+      "type": "image",
+      "path": "ui/keys/tab.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_esc",
+      "type": "image",
+      "path": "ui/keys/esc.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_w",
+      "type": "image",
+      "path": "ui/keys/w.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_a",
+      "type": "image",
+      "path": "ui/keys/a.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_s",
+      "type": "image",
+      "path": "ui/keys/s.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_key_d",
+      "type": "image",
+      "path": "ui/keys/d.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_slot_full",
+      "type": "image",
+      "path": "ui/slot_full.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_slot_empty",
+      "type": "image",
+      "path": "ui/slot_empty.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_bar_frame",
+      "type": "image",
+      "path": "ui/bar_frame.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_bar_fill",
+      "type": "image",
+      "path": "ui/bar_fill.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "ui_cursor",
+      "type": "image",
+      "path": "ui/cursor.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "palette",
+      "type": "image",
+      "path": "palette.png",
+      "license_id": "LIC-0101",
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "font_ui",
+      "type": "font",
+      "path": "fonts/FusionPixel12.ttf",
+      "license_id": "LIC-0301",
+      "tags": [
+        "placeholder",
+        "pending"
+      ]
+    },
+    {
+      "id": "bgm_title",
+      "type": "music",
+      "path": "audio/bgm/title.ogg",
+      "license_id": "LIC-0401",
+      "loop": true,
+      "volume": 0.8,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "bgm_campus_day",
+      "type": "music",
+      "path": "audio/bgm/campus_day.ogg",
+      "license_id": "LIC-0401",
+      "loop": true,
+      "volume": 0.8,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "bgm_event",
+      "type": "music",
+      "path": "audio/bgm/event.ogg",
+      "license_id": "LIC-0401",
+      "loop": true,
+      "volume": 0.75,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "bgm_graduation",
+      "type": "music",
+      "path": "audio/bgm/graduation.ogg",
+      "license_id": "LIC-0401",
+      "loop": true,
+      "volume": 0.85,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_ui_move",
+      "type": "sound",
+      "path": "audio/sfx/ui_move.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_ui_confirm",
+      "type": "sound",
+      "path": "audio/sfx/ui_confirm.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_ui_cancel",
+      "type": "sound",
+      "path": "audio/sfx/ui_cancel.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_interact",
+      "type": "sound",
+      "path": "audio/sfx/interact.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_stat_up",
+      "type": "sound",
+      "path": "audio/sfx/stat_up.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_stat_down",
+      "type": "sound",
+      "path": "audio/sfx/stat_down.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_footstep_ground",
+      "type": "sound",
+      "path": "audio/sfx/footstep_ground.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_footstep_floor",
+      "type": "sound",
+      "path": "audio/sfx/footstep_floor.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_door",
+      "type": "sound",
+      "path": "audio/sfx/door.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_day_end",
+      "type": "sound",
+      "path": "audio/sfx/day_end.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_semester_end",
+      "type": "sound",
+      "path": "audio/sfx/semester_end.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    },
+    {
+      "id": "sfx_ending",
+      "type": "sound",
+      "path": "audio/sfx/ending.ogg",
+      "license_id": "LIC-0402",
+      "volume": 0.9,
+      "tags": [
+        "placeholder"
+      ]
+    }
+  ]
+}

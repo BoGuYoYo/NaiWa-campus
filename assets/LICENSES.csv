@@ -1,0 +1,10 @@
+license_id,asset_ids,author,source_url,license,commercial_ok,modified,date_added,notes
+LIC-0001,char_naiwan_walk;char_naiwan_idle;portrait_naiwan_*;cg_naiwan_*,开发者A（占位图由 tools/make_placeholders.py 程序生成）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,同尺寸占位图，正式素材按 A9 流程重绘后替换；三视图参考见 docs/art/naiwan_ref.png（AI 生成，仅参考，不进入发布包）
+LIC-0002,char_shadow,开发者A,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,no,2026-01-05,24×8 椭圆阴影，黑色 40% 不透明度
+LIC-0003,char_npc_*;portrait_npc_*,开发者A（占位图程序生成）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,NPC 待机与头像占位，正式素材替换前不得对外宣传
+LIC-0004,char_extra_*,开发者A（占位图程序生成）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,环境 NPC 单帧占位
+LIC-0101,ui_*;palette,开发者A（程序生成像素图）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,UI 占位与 32 色调色板，第 5 周替换为正式皮肤
+LIC-0201,model_*,开发者A（Panda3D 程序生成低模）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,白模占位，正式模型由 Blender 4.x 导出 glTF 后经 tools/gltf_to_bam.py 转换
+LIC-0301,font_ui,TakWolf / Fusion Pixel Font 社区,https://github.com/TakWolf/fusion-pixel-font,SIL OFL 1.1,yes,no,2026-01-05,待放入 assets/fonts/FusionPixel12.ttf；缺失时 TextDB 回退引擎默认字体并写 asset.missing
+LIC-0401,bgm_*,开发者A（numpy 程序合成占位音乐）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,占位循环音乐，正式作曲替换前仅内部测试使用
+LIC-0402,sfx_*,开发者A（numpy 程序合成占位音效）,internal://naiwa_campus/tools/make_placeholders.py,项目内部原创,yes,yes,2026-01-05,12 个占位音效，峰值控制在 -3 dBFS 以下

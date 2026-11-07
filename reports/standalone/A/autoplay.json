@@ -1,0 +1,42 @@
+{
+  "ok": true,
+  "steps": 57,
+  "phase_trail": [
+    "campus",
+    "event",
+    "campus",
+    "event",
+    "campus",
+    "event",
+    "campus",
+    "event",
+    "campus",
+    "event",
+    "campus",
+    "event",
+    "campus",
+    "event",
+    "campus",
+    "event",
+    "graduation"
+  ],
+  "activities": 48,
+  "events": [
+    "sem_1_placeholder:ok",
+    "sem_2_placeholder:ok",
+    "sem_3_placeholder:ok",
+    "sem_4_placeholder:ok",
+    "sem_5_placeholder:ok",
+    "sem_6_placeholder:ok",
+    "sem_7_placeholder:ok",
+    "sem_8_placeholder:ok"
+  ],
+  "ending_id": "ending_academic",
+  "day_index": 15,
+  "play_seconds": 0.08,
+  "errors": [],
+  "missing_assets": [],
+  "save_slots": [
+    "autosave"
+  ]
+}

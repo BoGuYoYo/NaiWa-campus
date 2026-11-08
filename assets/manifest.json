@@ -494,207 +494,230 @@
       "id": "model_dorm",
       "type": "model",
       "path": "campus/dorm.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_interior_dorm",
       "type": "model",
       "path": "campus/interior_dorm.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_teaching",
       "type": "model",
       "path": "campus/teaching.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_interior_teaching",
       "type": "model",
       "path": "campus/interior_teaching.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_library",
       "type": "model",
       "path": "campus/library.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_interior_library",
       "type": "model",
       "path": "campus/interior_library.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_club",
       "type": "model",
       "path": "campus/club.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_interior_club",
       "type": "model",
       "path": "campus/interior_club.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_canteen",
       "type": "model",
       "path": "campus/canteen.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_interior_canteen",
       "type": "model",
       "path": "campus/interior_canteen.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_ground",
       "type": "model",
       "path": "campus/ground.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_road",
       "type": "model",
       "path": "campus/props/road.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_tree",
       "type": "model",
       "path": "campus/props/tree.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_lamp",
       "type": "model",
       "path": "campus/props/lamp.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_bench",
       "type": "model",
       "path": "campus/props/bench.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_fence",
       "type": "model",
       "path": "campus/props/fence.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_sign",
       "type": "model",
       "path": "campus/props/sign.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_planter",
       "type": "model",
       "path": "campus/props/planter.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_bin",
       "type": "model",
       "path": "campus/props/bin.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_bike_rack",
       "type": "model",
       "path": "campus/props/bike_rack.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_flag_pole",
       "type": "model",
       "path": "campus/props/flag_pole.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_rock",
       "type": "model",
       "path": "campus/props/rock.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {
       "id": "model_prop_flower_bed",
       "type": "model",
       "path": "campus/props/flower_bed.bam",
-      "license_id": "LIC-0201",
+      "license_id": "LIC-0207",
       "tags": [
-        "placeholder"
+        "final",
+        "built_from_reference"
       ]
     },
     {

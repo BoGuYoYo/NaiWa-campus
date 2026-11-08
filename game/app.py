@@ -374,8 +374,37 @@ class StubCampus(StubScene):
         super().on_exit()
 
     # ------------------------------------------------------------------ #
+    # 校园布景：优先用 assets/campus/*.bam 正式模型，缺失时退回占位方块
+    # ------------------------------------------------------------------ #
+    BUILDINGS = (
+        # (asset 名, 中心 x, 中心 y, 占地宽, 占地深)
+        # 地面模型的路：南北向 x 38~44、东西向 y 6~11，出生点 (40,5) 在路口南侧广场
+        ("teaching", 26.0, 20.0, 20.0, 14.0),
+        ("dorm", 53.0, 20.0, 16.0, 12.0),
+        ("library", 24.0, -6.0, 18.0, 16.0),
+        ("club", 53.0, -3.0, 14.0, 12.0),
+        ("canteen", 52.0, -14.0, 16.0, 12.0),
+    )
+    PROPS = (
+        # (asset 名, x, y, 朝向 z 旋转) —— 都摆在广场四周，避开路面（x 38~44 / y 6~11）与建筑占地
+        ("tree", 33.0, 4.0, 0), ("tree", 48.0, 4.0, 0),
+        ("tree", 33.0, 12.5, 0), ("tree", 48.0, 12.5, 0), ("tree", 16.0, 4.0, 0),
+        ("lamp", 36.5, 4.5, 0), ("lamp", 45.5, 4.5, 180),
+        ("lamp", 36.5, 12.5, 180), ("lamp", 45.5, 12.5, 0),
+        ("bench", 35.5, 3.2, 90), ("bench", 46.5, 2.0, 90),
+        ("bin", 34.0, 2.4, 0), ("planter", 36.2, 2.4, 0),
+        ("flag_pole", 47.0, 13.4, 0), ("sign", 44.9, 12.2, 0),
+        ("flower_bed", 48.6, 2.0, 0), ("bike_rack", 46.2, 4.4, 0),
+        ("fence", 20.0, 12.0, 0), ("fence", 22.0, 12.0, 0),
+    )
+
     def _build_ground(self) -> None:
-        from panda3d.core import CardMaker, LineSegs
+        model = self.app.registry.load_model("model_ground")
+        if model is not None and not model.isEmpty():
+            model.reparentTo(self.root)
+            model.setPos(-20.0, -15.0, 0.0)
+            return
+        from panda3d.core import CardMaker
 
         maker = CardMaker("ground")
         maker.setFrame(-20, 60, -15, 30)
@@ -384,46 +413,42 @@ class StubCampus(StubScene):
         ground.setColorScale(0.24, 0.27, 0.32, 1)
         ground.setZ(-0.01)
 
-        segs = LineSegs("grid")
-        segs.setThickness(1.0)
-        for x in range(-20, 61, 2):
-            segs.setColor(0.32, 0.36, 0.42, 1)
-            segs.moveTo(x, -15, 0)
-            segs.drawTo(x, 30, 0)
-        for y in range(-15, 31, 2):
-            segs.setColor(0.32, 0.36, 0.42, 1)
-            segs.moveTo(-20, y, 0)
-            segs.drawTo(60, y, 0)
-        self.root.attachNewNode(segs.create())
-
     def _build_buildings(self) -> None:
         from panda3d.core import CardMaker, LineSegs
 
-        footprints = (
-            ("dorm", 46, 11, 8, 6),
-            ("teaching", 33, 12, 9, 6),
-            ("library", 47, -5, 8, 7),
-            ("club", 32, -6, 7, 6),
-            ("canteen", 39, -12, 8, 6),
-        )
         maker = CardMaker("block")
         maker.setFrame(-0.5, 0.5, -0.5, 0.5)
-        for name, x, y, w, h in footprints:
+        for name, cx, cy, width, depth in self.BUILDINGS:
+            model = self.app.registry.load_model(f"model_{name}")
+            if model is not None and not model.isEmpty():
+                # .bam 的原点在占地西南角，所以按中心点减去半个占地摆放
+                model.reparentTo(self.root)
+                model.setPos(cx - width / 2.0, cy - depth / 2.0, 0.0)
+                continue
+            # 退路：占位方块 + 金色占地框
             block = self.root.attachNewNode(maker.generate())
             block.setP(-90)
-            block.setScale(w, h, 1)
-            block.setPos(x, y, 0.02)
+            block.setScale(width, depth, 1)
+            block.setPos(cx, cy, 0.02)
             block.setColorScale(0.42, 0.47, 0.56, 1)
             seg = LineSegs(name + "_line")
             seg.setThickness(1.5)
             seg.setColor(0.86, 0.75, 0.45, 1)
-            x0, y0 = x - w / 2, y - h / 2
+            x0, y0 = cx - width / 2, cy - depth / 2
             seg.moveTo(x0, y0, 0.05)
-            seg.drawTo(x0 + w, y0, 0.05)
-            seg.drawTo(x0 + w, y0 + h, 0.05)
-            seg.drawTo(x0, y0 + h, 0.05)
+            seg.drawTo(x0 + width, y0, 0.05)
+            seg.drawTo(x0 + width, y0 + depth, 0.05)
+            seg.drawTo(x0, y0 + depth, 0.05)
             seg.drawTo(x0, y0, 0.05)
             self.root.attachNewNode(seg.create())
+
+        for asset_name, px, py, heading in self.PROPS:
+            prop = self.app.registry.load_model(f"model_prop_{asset_name}")
+            if prop is None or prop.isEmpty():
+                continue
+            prop.reparentTo(self.root)
+            prop.setPos(px, py, 0.0)
+            prop.setH(heading)
 
     # ------------------------------------------------------------------ #
     def on_update(self, dt: float) -> None:

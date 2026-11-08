@@ -420,7 +420,9 @@ class AssetRegistry:
             if self.loader is None or render_root is None:
                 self._mark_missing(asset_id, "no loader bound")
                 return self._spawn_gray_cube()
-            model = self.loader.loadModel(self._filename(self.root / "assets" / entry.path))
+            # ShowBase 1.10 不再有 loadModel 便捷方法，必须走 loader.Loader
+            source = getattr(self.loader, "loader", self.loader)
+            model = source.loadModel(self._filename(self.root / "assets" / entry.path))
             if model is None or model.isEmpty():
                 self._mark_missing(asset_id, "engine load failed")
                 return self._spawn_gray_cube()

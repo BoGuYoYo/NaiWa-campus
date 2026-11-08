@@ -101,8 +101,9 @@ FINAL_ASSETS = (
 )
 FINAL_ASSET_TAGS = ("final", "sliced_from_reference")
 FINAL_GENERATED_TAGS = ("final", "generated_from_user_art")
+FINAL_MODEL_TAGS = ("final", "built_from_reference")
 FINAL_ART_PATHS = ("characters/naiwan/walk.png", "characters/naiwan/idle.png")
-FINAL_ART_PREFIXES = ("art/cg/", "portraits/naiwan/")
+FINAL_ART_PREFIXES = ("art/cg/", "portraits/naiwan/", "campus/")
 # wf=身体宽度系数，face=脸部横向偏移，eyes=可见眼睛数量，back=是否背向
 DIR_PARAMS = {
     "s": {"wf": 1.00, "face": 0, "eyes": 2, "back": False},
@@ -629,13 +630,15 @@ def asset_specs() -> list[dict]:
             frame_w=48, frame_h=48, cols=1, rows=1, fps=1, pivot=[24, 46], tags=["placeholder"])
 
     for building in ("dorm", "teaching", "library", "club", "canteen"):
-        add(f"model_{building}", "model", f"campus/{building}.bam", "LIC-0201", tags=["placeholder"])
-        add(f"model_interior_{building}", "model", f"campus/interior_{building}.bam", "LIC-0201",
-            tags=["placeholder"])
-    add("model_ground", "model", "campus/ground.bam", "LIC-0201", tags=["placeholder"])
+        add(f"model_{building}", "model", f"campus/{building}.bam", "LIC-0207",
+            tags=list(FINAL_MODEL_TAGS))
+        add(f"model_interior_{building}", "model", f"campus/interior_{building}.bam", "LIC-0207",
+            tags=list(FINAL_MODEL_TAGS))
+    add("model_ground", "model", "campus/ground.bam", "LIC-0207", tags=list(FINAL_MODEL_TAGS))
     for prop in ("road", "tree", "lamp", "bench", "fence", "sign", "planter", "bin",
                  "bike_rack", "flag_pole", "rock", "flower_bed"):
-        add(f"model_prop_{prop}", "model", f"campus/props/{prop}.bam", "LIC-0201", tags=["placeholder"])
+        add(f"model_prop_{prop}", "model", f"campus/props/{prop}.bam", "LIC-0207",
+            tags=list(FINAL_MODEL_TAGS))
 
     add("ui_panel_9slice", "image", "ui/panel_9slice.png", "LIC-0101", tags=["placeholder"])
     for attribute in ("academic", "stamina", "mood", "social", "interest", "energy"):
@@ -731,6 +734,16 @@ LICENSE_ROWS = [
         "author": "开发者A（Panda3D 程序生成低模）", "source_url": "internal://naiwa_campus/tools/make_placeholders.py",
         "license": "项目内部原创", "commercial_ok": "yes", "modified": "yes",
         "date_added": "2026-01-05", "notes": "白模占位，正式模型由 Blender 4.x 导出 glTF 后经 tools/gltf_to_bam.py 转换",
+    },
+    {
+        "license_id": "LIC-0207", "asset_ids": "model_*",
+        "author": "开发者A（tools/build_campus_models.py 生成的低多边形几何）；造型参考用户生成的等距图",
+        "source_url": "素材/建筑/（宿舍楼、教学楼、图书馆、社团、饭堂、12 个道具、草地1 等距参考图）",
+        "license": "项目内部原创几何 + 用户提供的 AI 生成参考图",
+        "commercial_ok": "yes", "modified": "yes",
+        "date_added": "2026-11-08",
+        "notes": "纯顶点色、无贴图；单栋建筑 ≤800 三角面（实测 170~454），整场景 2,900 三角面；"
+                 "原点在占地西南角、Z 向上、1 单位=1 米；碰撞体不在模型里（由 C 的 map.json 提供）",
     },
     {
         "license_id": "LIC-0301", "asset_ids": "font_ui",
@@ -1079,6 +1092,9 @@ def generate_models() -> list[str]:
 
     def save(root: NodePath, relative: str) -> None:
         target = ASSETS / relative
+        if relative.startswith(FINAL_ART_PREFIXES):
+            print(f"  skip final: {relative}")
+            return
         target.parent.mkdir(parents=True, exist_ok=True)
         # 必须用 Filename.fromOsSpecific：直接传 str 会让 Panda3D 走 model-path 并丢失非 ASCII 字符
         ok = root.writeBamFile(Filename.fromOsSpecific(str(target)))

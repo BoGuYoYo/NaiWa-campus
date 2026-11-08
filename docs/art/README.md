@@ -19,17 +19,24 @@
 
 | 资源 | 状态 | 来源 |
 | --- | --- | --- |
-| `char_naiwan_walk` / `char_naiwan_idle` | **正式资源**（`LIC-0001`） | 用户提供的单方向序列帧（8 张，每张 8 帧），经 `tools/slice_reference_sheets.py` 自动切片 |
+| `char_naiwan_walk` / `char_naiwan_idle` | **正式**（`LIC-0001`） | 用户提供的单方向序列帧 + `待机图.jfif`，经 `tools/slice_reference_sheets.py` 切片 |
+| `portrait_naiwan_*`（8 张） | **正式**（`LIC-0006`） | 用户提供的 `素材/小表情/`，经 `tools/import_generated_art.py` 落位 |
+| `cg_naiwan_*`（9 张） | **正式**（`LIC-0006`） | 用户提供的 `素材/场景/`，同一工具落位 |
 | 其余全部美术与音频 | 同尺寸占位资源 | `tools/make_placeholders.py` 程序生成 |
 
-## 2.1 当前角色规格（2026-11-07 素材更新）
+## 2.1 当前角色规格（2026-11-08 素材更新后）
 
 | 项 | 值 |
 | --- | --- |
 | 行走表 | `walk.png` 384×384：**8 帧** × 8 方向，8 fps |
-| 待机表 | `idle.png` 144×384：3 帧 × 8 方向，3 fps |
+| 待机表 | `idle.png` 144×384：3 帧 × 8 方向，3 fps（来自 `素材/待机图.jfif`） |
 | 单帧 | 48×48，脚点 (24,46)，实测身高 39～42 像素 |
-| 素材来源 | 素材目录 8 张单方向图：向前走 / 右前前进 / 向右走 / 右后行走 / 向后行走 / 左后行走 / 向左走 / 左前前进 |
+| 头像 | `portraits/naiwan/<表情>.png` 96×96：neutral happy sad **angry** surprised **speechless** shy proud |
+| 活动插图 | `art/cg/naiwan_<活动>.png` 160×90，9 个活动各一张 |
+
+> 表情 ID 在 2026-11-08 调整：用户实际交付的是 `生气/无语`，因此
+> `portrait_naiwan_tired` → `portrait_naiwan_angry`、`portrait_naiwan_determined` →
+> `portrait_naiwan_speechless`（旧 ID 已从 manifest 移除，`game/core` 无任何硬编码引用）。
 
 `walk.png` 从 A8 表的 4 帧（192×384）升级到 8 帧（384×384）：新素材本身就是 8 帧循环，
 丢掉一半会破坏接触—经过的节奏。行宽由 `manifest.json` 的 `cols` 驱动，App/渲染层不做硬编码。
@@ -55,6 +62,21 @@ python tools/slice_reference_sheets.py --idle-source "..\素材\待机.jfif"   #
    透明像素 RGB 置 0；
 6. 待机：没有待机素材时用各方向行走首帧 + 1 像素呼吸位移（3 帧）；有 `--idle-source` 就用它。
 
+### 头像与活动插图的落位（`tools/import_generated_art.py`）
+
+```powershell
+python tools/import_generated_art.py --all --verify   # 只出核对图 build/_cg_final.png / _portraits_final.png
+python tools/import_generated_art.py --all            # 写入 assets/art/cg 与 assets/portraits/naiwan
+```
+
+- **场景**：2752×1536 居中裁成 16:9 → 面积缩放到 160×90 → 自适应量化 64 色（插图细节多，
+  不套用 32 色角色板）；
+- **表情**：1024×1024 抠灰底（边界洪水填充 + 最大连通域）→ 按**肩宽**归一裁剪成半身像
+  （8 张站姿不同，按 bbox 高度裁会让头像忽大忽小）→ 缩到 96×96 → 量化 32 色 → 透明像素 RGB 置 0。
+
+游戏里已经接上：`game/app.py` 的替身 `ResultPanel` 会按 `cg_naiwan_<activity_id>` 显示活动插图
+（缺失时 registry 自动回退占位图），文本与插图分居左下 / 中上，互不遮挡。
+
 注意：`tools/make_placeholders.py art` 会跳过 `FINAL_ASSETS`（`walk.png`、`idle.png`），
 不会被占位图覆盖回去。要恢复占位图必须先手动删除这两张正式资源。
 
@@ -67,8 +89,8 @@ python tools/slice_reference_sheets.py --idle-source "..\素材\待机.jfif"   #
 | `char_naiwan_walk` | 1 | 384×384，8 帧 × 8 方向，8 fps | 正式（切片） |
 | `char_naiwan_idle` | 1 | 144×384，3 帧 × 8 方向，3 fps | 正式（切片） |
 | `char_shadow` | 1 | 24×8 | 占位 |
-| `portrait_naiwan_*` | 8 | 96×96（neutral happy sad tired surprised determined shy proud） | 占位 |
-| `cg_naiwan_*` | 9 | 160×90（9 个活动插图） | 占位 |
+| `portrait_naiwan_*` | 8 | 96×96（neutral happy sad angry surprised speechless shy proud） | 正式（生成落位） |
+| `cg_naiwan_*` | 9 | 160×90（9 个活动插图） | 正式（生成落位） |
 | `char_npc_*_idle` | 3 | 96×192，2 帧 × 4 方向（s e n w），2 fps | 占位 |
 | `portrait_npc_*` | 12 | 96×96，每人 4 个表情 | 占位 |
 | `char_extra_*` | 4 | 48×48 单帧 s 方向 | 占位 |

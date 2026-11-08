@@ -303,12 +303,14 @@ class StubScene:
     def on_update(self, dt: float) -> None:
         pass
 
-    def _panel(self, text: str):
+    def _panel(self, text: str, pos: tuple[float, float] = (0.0, 0.0)):
         from direct.gui.OnscreenText import OnscreenText
 
+        # mayChange=False 会建 StaticTextNode，之后不能再 setPos，所以位置必须在这里给
         return OnscreenText(
             text=text,
             parent=self.app.aspect2d,
+            pos=pos,
             scale=0.06,
             fg=(0.95, 0.95, 0.95, 1),
             bg=(0.05, 0.06, 0.09, 0.75),
@@ -554,11 +556,38 @@ class StubResultPanel(StubScene):
             text = f"ACTIVITY {result.activity_id}\n" + "\n".join(
                 f"{k} {v:+d}" for k, v in result.deltas.items()
             )
-        self.label = self._panel(text or "结果")
+        self.label = self._panel(text or "结果", pos=(-0.72, -0.52))
+        self.cg = None
+        if isinstance(result, ActivityResult):
+            self.cg = self._show_cg(result.activity_id)
         self.app.accept("enter", self._close)
+
+    def _show_cg(self, activity_id: str):
+        """活动结果配图：cg_naiwan_<activity>，缺失时 registry 会自动回退占位图。"""
+        from direct.gui.OnscreenImage import OnscreenImage
+        from panda3d.core import SamplerState
+
+        asset_id = f"cg_naiwan_{activity_id}"
+        try:
+            texture = self.app.registry.load_texture(asset_id)
+        except Exception as exc:
+            self.log.warning("[UI] cg %s failed: %s", asset_id, exc)
+            return None
+        if texture is None:
+            return None
+        image = OnscreenImage(image=texture, parent=self.app.aspect2d,
+                              pos=(0.0, 0.0, 0.30), scale=(0.46, 1.0, 0.259))
+        image.setTransparency(True)
+        for tex in image.findAllTextures():
+            tex.setMagfilter(SamplerState.FT_nearest)
+            tex.setMinfilter(SamplerState.FT_nearest)
+        return image
 
     def on_exit(self) -> None:
         self.app.ignore("enter")
+        if self.cg is not None:
+            self.cg.destroy()
+            self.cg = None
         super().on_exit()
 
     def _close(self) -> None:
@@ -839,5 +868,6 @@ def run(options: config.Options) -> int:
     app = NaiwaApp(options)
     app.run()
     return int(getattr(app, "exit_code", 0))
+
 
 

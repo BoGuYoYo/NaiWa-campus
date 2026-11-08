@@ -88,11 +88,21 @@ SCHEMES = {
 
 DIRECTIONS = ("s", "se", "e", "ne", "n", "nw", "w", "sw")
 
-# 已由 tools/slice_reference_sheets.py 从用户提供的序列帧切出的正式资源：
-# generate_art() 不得覆盖它们，manifest 里也不再标 placeholder。
-FINAL_ASSETS = ("char_naiwan_walk", "char_naiwan_idle")
+# 已由正式素材替换的资源：generate_art() 不得覆盖它们，manifest 里也不再标 placeholder。
+# 角色精灵表来自 tools/slice_reference_sheets.py，头像与活动插图来自 tools/import_generated_art.py。
+FINAL_ASSETS = (
+    "char_naiwan_walk", "char_naiwan_idle",
+    "portrait_naiwan_neutral", "portrait_naiwan_happy", "portrait_naiwan_sad",
+    "portrait_naiwan_angry", "portrait_naiwan_surprised", "portrait_naiwan_speechless",
+    "portrait_naiwan_shy", "portrait_naiwan_proud",
+    "cg_naiwan_attend_class", "cg_naiwan_library_study", "cg_naiwan_play_games",
+    "cg_naiwan_create_work", "cg_naiwan_join_club", "cg_naiwan_exercise",
+    "cg_naiwan_eat_canteen", "cg_naiwan_rest_dorm", "cg_naiwan_campus_walk",
+)
 FINAL_ASSET_TAGS = ("final", "sliced_from_reference")
+FINAL_GENERATED_TAGS = ("final", "generated_from_user_art")
 FINAL_ART_PATHS = ("characters/naiwan/walk.png", "characters/naiwan/idle.png")
+FINAL_ART_PREFIXES = ("art/cg/", "portraits/naiwan/")
 # wf=身体宽度系数，face=脸部横向偏移，eyes=可见眼睛数量，back=是否背向
 DIR_PARAMS = {
     "s": {"wf": 1.00, "face": 0, "eyes": 2, "back": False},
@@ -230,7 +240,7 @@ def build_sheet(rows: tuple[str, ...], cols: int, frame_fn, frame_size=(48, 48))
 # --------------------------------------------------------------------------- #
 # 头像与插图
 # --------------------------------------------------------------------------- #
-EXPRESSIONS = ("neutral", "happy", "sad", "tired", "surprised", "determined", "shy", "proud")
+EXPRESSIONS = ("neutral", "happy", "sad", "angry", "surprised", "speechless", "shy", "proud")
 NPC_EXPRESSIONS = ("neutral", "happy", "sad", "surprised")
 
 
@@ -257,21 +267,23 @@ def draw_portrait(scheme: str, expression: str, size: int = 96):
         draw.line([left - 6, eye_y - 8, left + 4, eye_y - 4], fill=rgba("limb_shade"), width=2)
         draw.line([right + 6, eye_y - 8, right - 4, eye_y - 4], fill=rgba("limb_shade"), width=2)
         mouth = "frown"
-    elif expression == "tired":
+    elif expression == "angry":
         for x in (left, right):
-            draw.line([x - 5, eye_y + 2, x + 5, eye_y + 2], fill=rgba("eye_dark"), width=2)
-        mouth = "small"
+            draw.ellipse([x - 4, eye_y - 1, x + 4, eye_y + 5], fill=rgba("eye_dark"))
+        draw.line([left - 6, eye_y - 2, left + 4, eye_y - 7], fill=rgba("limb_shade"), width=2)
+        draw.line([right + 6, eye_y - 2, right - 4, eye_y - 7], fill=rgba("limb_shade"), width=2)
+        mouth = "flat"
     elif expression == "surprised":
         for x in (left, right):
             draw.ellipse([x - 6, eye_y - 6, x + 6, eye_y + 6], fill=rgba("eye_light"), outline=rgba("eye_dark"))
             draw.ellipse([x - 2, eye_y - 2, x + 2, eye_y + 2], fill=rgba("eye_dark"))
         mouth = "o"
-    elif expression == "determined":
+    elif expression == "speechless":
         for x in (left, right):
-            draw.ellipse([x - 4, eye_y - 2, x + 4, eye_y + 6], fill=rgba("eye_dark"))
-        draw.line([left - 6, eye_y - 6, left + 4, eye_y - 2], fill=rgba("limb_shade"), width=2)
-        draw.line([right + 6, eye_y - 6, right - 4, eye_y - 2], fill=rgba("limb_shade"), width=2)
-        mouth = "flat"
+            draw.line([x - 5, eye_y + 1, x + 5, eye_y + 1], fill=rgba("eye_dark"), width=2)
+            draw.point((x - 3, eye_y + 3), fill=rgba("eye_dark"))
+        draw.rectangle([left + 8, eye_y + 12, left + 10, eye_y + 17], fill=rgba("blue_light"))
+        mouth = "small"
     elif expression == "shy":
         draw.arc([left - 5, eye_y - 2, left + 5, eye_y + 4], start=20, end=160, fill=rgba("eye_dark"), width=2)
         draw.arc([right - 5, eye_y - 2, right + 5, eye_y + 4], start=20, end=160, fill=rgba("eye_dark"), width=2)
@@ -596,12 +608,12 @@ def asset_specs() -> list[dict]:
     add("char_shadow", "image", "characters/common/shadow.png", "LIC-0002", tags=["placeholder"])
 
     for expression in EXPRESSIONS:
-        add(f"portrait_naiwan_{expression}", "image", f"portraits/naiwan/{expression}.png", "LIC-0005",
-            tags=["placeholder"])
+        add(f"portrait_naiwan_{expression}", "image", f"portraits/naiwan/{expression}.png", "LIC-0006",
+            tags=list(FINAL_GENERATED_TAGS))
 
     for activity in CG_ACTIVITIES:
-        add(f"cg_naiwan_{activity}", "image", f"art/cg/naiwan_{activity}.png", "LIC-0005",
-            tags=["placeholder"])
+        add(f"cg_naiwan_{activity}", "image", f"art/cg/naiwan_{activity}.png", "LIC-0006",
+            tags=list(FINAL_GENERATED_TAGS))
 
     for npc in ("npc_sumo", "npc_chenlang", "npc_xiaoyou"):
         short = npc.split("_")[1]
@@ -668,8 +680,19 @@ LICENSE_ROWS = [
         "date_added": "2026-11-07",
         "notes": "由 tools/slice_reference_sheets.py 自动切片：每个方向一张 4 列 × 2 排的序列帧，"
                  "取 FRAME 01～08 八帧循环；抠背景、面积缩放统一到身高 38 像素、脚点 24,46、"
-                 "1 像素描边、量化到 32 色；待机表用行走首帧做呼吸（可传入 --idle-source 替换）；"
-                 "商用范围以用户提供的生成条款为准，对外发布前需再确认一次",
+                 "1 像素描边、量化到 32 色；待机表来自 素材/待机图.jfif（同一流程，"
+                 "`--idle-source` 指定）；商用范围以用户提供的生成条款为准，对外发布前需再确认一次",
+    },
+    {
+        "license_id": "LIC-0006", "asset_ids": "portrait_naiwan_*;cg_naiwan_*",
+        "author": "开发者A（规格落位与调色板量化）；原图由用户生成",
+        "source_url": "素材/小表情/（8 张表情）；素材/场景/（9 张活动插图）",
+        "license": "用户提供的 AI 生成素材（生成工具与条款版本见素材来源说明）",
+        "commercial_ok": "yes", "modified": "yes",
+        "date_added": "2026-11-08",
+        "notes": "由 tools/import_generated_art.py 落位：活动插图 2752×1536 居中裁 16:9 后 "
+                 "面积缩放到 160×90、自适应量化 64 色；表情 1024×1024 抠灰底、按肩宽归一裁成"
+                 "半身像后缩到 96×96、量化到项目 32 色、透明像素 RGB 置 0",
     },
     {
         "license_id": "LIC-0005", "asset_ids": "portrait_naiwan_*;cg_naiwan_*",
@@ -743,7 +766,7 @@ def generate_art(keep_final: bool = True) -> list[str]:
 
     def save(img, relative: str) -> None:
         target = ASSETS / relative
-        if keep_final and relative in FINAL_ART_PATHS:
+        if keep_final and (relative in FINAL_ART_PATHS or relative.startswith(FINAL_ART_PREFIXES)):
             print(f"  skip final: {relative}")
             return
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -1189,5 +1212,6 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 
 

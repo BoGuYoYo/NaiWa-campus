@@ -8,7 +8,7 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-build/_*/
+build/_*
 build/*.log
 build/_audio_tmp/
 dist/
@@ -30,3 +30,4 @@ desktop.ini
 # 根目录下的临时截图（脚本调试产物）
 /build_*.png
 /build_*.py
+

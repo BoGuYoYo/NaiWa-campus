@@ -103,6 +103,15 @@ A 只注册 `flow_tick(45)`、`offscreen_capture(60)`、`autoplay(70)`。其他�
   - manifest 里 `tags` 为 `["final", "sliced_from_reference"]`，许可记录 `LIC-0001`；
   - `tools/make_placeholders.py art` 已把这两张列入 `FINAL_ASSETS`，不会被占位图覆盖。
 
+### 8. 内容变更登记（2026-11-07）
+
+| 项 | 变更 | 影响方 | 说明 |
+| --- | --- | --- | --- |
+| 活动 `create_work` | 显示名「创作」→「**敲代码**」；插图 `cg_naiwan_create_work` 改为双屏写代码场景；图标 `ui_icon_create_work` 由画笔改为终端 + 代码行 | B（activities.json 文案）、D（文本/图标使用） | 活动 **ID 不变**（`create_work`，按 ID 冻结原则）；属性效果仍走 `interest`，具体数值由 B 定义 |
+| 结局 `ending_creator` | 建议文案口径改为「独立开发者」，与上面的活动语义对齐 | B（endings.json）、D（结局文本） | 只改文案，ID 与判定条件不动 |
+
+改内容 JSON 时不需要动 `game/core`：活动、文本、结局全部由 B/D 的 JSON 驱动，A 只提供 `asset_id`。
+
 ---
 
 ## 待办接口（尚未提供，先登记）

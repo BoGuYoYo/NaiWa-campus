@@ -320,7 +320,7 @@ CG_THEME = {
     "attend_class": ("bg_mid", "blue_light"),
     "library_study": ("bg_soft", "gold_light"),
     "play_games": ("purple", "teal"),
-    "create_work": ("brown", "cream_light"),
+    "create_work": ("bg_deep", "teal"),
     "join_club": ("green", "cream_main"),
     "exercise": ("blue", "green_light"),
     "eat_canteen": ("orange", "cream_light"),
@@ -357,8 +357,25 @@ def draw_cg(activity: str, size=(160, 90)):
         draw.rectangle([106, 52, 138, 70], fill=rgba("bg_deep"))
         draw.rectangle([112, 56, 132, 66], fill=rgba("teal"))
     elif activity == "create_work":
-        draw.rectangle([108, 46, 140, 62], fill=rgba("cream_light"))
-        draw.line([124, 62, 124, 74], fill=rgba("limb_main"), width=2)
+        # 敲代码：左侧改成第二块代码屏，右边笔记本 + 代码行 + 咖啡
+        draw.ellipse([100, 4, 152, 56], fill=rgba("bg_mid"))  # 盖掉通用光斑，改成夜里写代码的墙面
+        draw.rectangle([16, 12, 62, 44], fill=rgba("bg_deep"), outline=rgba("teal"))
+        draw.line([16, 16, 62, 16], fill=rgba("bg_mid"))
+        for index, (y, color, x2) in enumerate((
+                (20, "green_light", 44), (23, "blue_light", 38),
+                (26, "cream_main", 50), (29, "teal", 34),
+                (32, "gold_light", 46), (35, "blue_light", 30), (38, "green_light", 42))):
+            draw.line([20, y, x2 + index, y], fill=rgba(color))
+        draw.rectangle([104, 46, 146, 68], fill=rgba("bg_deep"), outline=rgba("teal"))
+        draw.line([104, 50, 146, 50], fill=rgba("bg_mid"))
+        for index, (y, color, x2) in enumerate((
+                (54, "green_light", 130), (57, "blue_light", 122),
+                (60, "cream_main", 136), (63, "teal", 116), (66, "gold_light", 128))):
+            draw.line([108, y, x2 + index * 2, y], fill=rgba(color))
+        draw.rectangle([132, 64, 134, 66], fill=rgba("white"))   # 光标
+        draw.polygon([(100, 68), (150, 68), (144, 74), (106, 74)], fill=rgba("grey_dark"))
+        draw.rectangle([150, 56, 156, 63], fill=rgba("cream_main"))  # 咖啡杯
+        draw.rectangle([151, 53, 155, 56], fill=rgba("brown"))
     elif activity == "join_club":
         draw.rectangle([112, 40, 116, 74], fill=rgba("limb_main"))
         draw.rectangle([116, 40, 140, 54], fill=rgba("red"))
@@ -431,9 +448,18 @@ def draw_icon(kind: str, size: int = 16):
         draw.line([12, 3, 3, 12], fill=rgba("red"), width=3)
     elif kind == "play":
         draw.polygon([(5, 2), (13, 8), (5, 14)], fill=rgba("white"), outline=OUTLINE)
-    elif kind == "create":
-        draw.rectangle([4, 3, 7, 13], fill=rgba("cream_light"), outline=OUTLINE)
-        draw.polygon([(4, 13), (7, 13), (5, 15)], fill=rgba("brown"))
+    elif kind == "code":
+        # 敲代码：终端窗口 + 提示符 > + 代码行 + 光标
+        draw.rectangle([1, 3, 14, 12], fill=rgba("bg_deep"), outline=rgba("teal"))
+        draw.rectangle([1, 3, 14, 5], fill=rgba("bg_mid"))
+        draw.point((3, 4), fill=rgba("red"))
+        draw.point((5, 4), fill=rgba("yellow_main"))
+        draw.point((7, 4), fill=rgba("green_light"))
+        draw.line([3, 7, 4, 8], fill=rgba("teal"))          # 提示符 >
+        draw.line([4, 8, 3, 9], fill=rgba("teal"))
+        draw.line([6, 8, 12, 8], fill=rgba("green_light"))
+        draw.line([6, 10, 10, 10], fill=rgba("blue_light"))
+        draw.line([11, 10, 11, 12], fill=rgba("white"))     # 光标
     elif kind == "club":
         draw.rectangle([4, 2, 5, 14], fill=rgba("limb_main"))
         draw.rectangle([5, 3, 13, 8], fill=rgba("red"))
@@ -753,7 +779,7 @@ def generate_art(keep_final: bool = True) -> list[str]:
         save(draw_icon(icon), f"ui/icons/{attribute}.png")
     activity_icons = {
         "attend_class": "academic", "library_study": "academic", "play_games": "play",
-        "create_work": "create", "join_club": "club", "exercise": "exercise",
+        "create_work": "code", "join_club": "club", "exercise": "exercise",
         "eat_canteen": "eat", "rest_dorm": "rest", "campus_walk": "walk",
     }
     for activity, icon in activity_icons.items():
@@ -1163,4 +1189,5 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
 

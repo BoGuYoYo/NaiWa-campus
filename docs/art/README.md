@@ -78,6 +78,25 @@ python tools/slice_reference_sheets.py --idle-source "..\素材\待机.jfif"   #
 | `font_ui` | 1 | Fusion Pixel 12px（**待放入**，见下） | 待补 |
 | `bgm_*` / `sfx_*` | 4 / 12 | OGG Vorbis | 合成占位 |
 
+### 9 张活动插图与活动名对照（`cg_naiwan_*`，160×90）
+
+| asset_id | 活动 ID | 显示名 | 画面内容 |
+| --- | --- | --- | --- |
+| `cg_naiwan_attend_class` | `attend_class` | 上课 | 教室、黑板、课桌 |
+| `cg_naiwan_library_study` | `library_study` | 图书馆学习 | 书架、台灯、书 |
+| `cg_naiwan_play_games` | `play_games` | 打游戏 | 显示器、手柄 |
+| `cg_naiwan_create_work` | `create_work` | **敲代码** | 双屏代码窗口、笔记本、咖啡 |
+| `cg_naiwan_join_club` | `join_club` | 参加社团 | 横幅、活动室 |
+| `cg_naiwan_exercise` | `exercise` | 锻炼 | 跑道、球 |
+| `cg_naiwan_eat_canteen` | `eat_canteen` | 食堂用餐 | 餐盘、饭桌 |
+| `cg_naiwan_rest_dorm` | `rest_dorm` | 宿舍休息 | 床铺、被子 |
+| `cg_naiwan_campus_walk` | `campus_walk` | 校园闲逛 | 林荫道、路灯 |
+
+> 2026-11-07 变更：`create_work` 的语义由「创作（画画）」调整为「敲代码」。
+> 活动 ID 保持不变（ID 冻结原则，文件仍叫 `create_work`），只改显示名、插图与图标
+> （`ui/icons/activity_create_work.png` 从画笔改为终端 + 代码行）。
+> 结局 `ending_creator` 的文案建议一并改成「独立开发者」口径，由 B/D 在内容 JSON 里落实。
+
 ## 3. 正式素材替换流程（每人只需覆盖同名文件）
 
 1. 在 `docs/art/frames/<asset>/` 下画单帧，命名 `<方向>_<序号>.png`（例如 `ne_3.png`）；

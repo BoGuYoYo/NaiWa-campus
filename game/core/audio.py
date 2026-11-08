@@ -98,6 +98,19 @@ class AudioManager:
         self._music_obj = None
         self.current_music = None
 
+    def stop_all(self) -> None:
+        """停止音乐与全部音效，并把管理器置为静默（退出流程调用）。"""
+        self.stop_music()
+        for sound in self._sfx_objects.values():
+            try:
+                sound.stop()
+            except Exception:
+                pass
+        self._sfx_objects.clear()
+        if self.enabled:
+            self.log.info("[AUDIO] stopped all sounds")
+        self.enabled = False
+
     def play_sfx(self, asset_id: str, volume: float = 1.0) -> None:
         if not self.enabled:
             return

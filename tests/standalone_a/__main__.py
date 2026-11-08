@@ -296,8 +296,56 @@ def check_render() -> None:
         finally:
             app.destroy()
 
+    def close_stops_audio() -> None:
+        """A-ST-06：窗口关闭时必须先停音频再退出（否则 BGM 会在窗口消失后继续响）。
+
+        回归点：1.10.16 的 WindowProperties 没有 getCloseRequested()，关闭判据是 getOpen() == False；
+        早期版本在这个 handler 里调用不存在的 API，异常会把 ShowBase 的 windowEvent 一起带崩。
+        """
+        try:
+            import panda3d  # noqa: F401
+        except ImportError:
+            print("      (跳过：未安装 panda3d)")
+            return
+        from panda3d.core import loadPrcFileData
+
+        loadPrcFileData("", "window-type offscreen")
+        loadPrcFileData("", "win-size 1280 720")
+        loadPrcFileData("", "audio-library-name null")
+        loadPrcFileData("", "textures-power-2 none")
+        from game.app import NaiwaApp
+
+        options = config.parse_args(["--scene", "CampusScene", "--skip-intro", "--offscreen",
+                                     "--frames", "999999", "--seed", "42"])
+        config.setup_logging(options)
+        app = NaiwaApp(options)
+
+        class FakeProperties:
+            def getOpen(self):        # ShowBase 用的判据
+                return False
+
+        class FakeWindow:
+            def getProperties(self):
+                return FakeProperties()
+
+        try:
+            for _ in range(3):
+                app.taskMgr.step()
+            app.audio.play_music("bgm_campus_day")
+            assert app.audio.current_music == "bgm_campus_day"
+            try:
+                app._on_window_event(FakeWindow())
+            except SystemExit:
+                pass                      # userExit() 在非 run() 环境里会抛 SystemExit
+            assert app._shutdown_done is True, "关闭请求没有走 quit_game()"
+            assert app.audio.current_music is None, "音乐没有被停止"
+            assert app.audio.enabled is False, "音频管理器没有置为静默"
+        finally:
+            app.destroy()
+
     check("A-ST-04a 缩放规则与网格对齐", viewport_rule)
     check("A-ST-04b 6 帧离屏渲染生成 480×270 截图", offscreen_frames)
+    check("A-ST-06 窗口关闭时停止音乐并走统一退出", close_stops_audio)
 
 
 # --------------------------------------------------------------------------- #

@@ -186,6 +186,23 @@ class NaiwaApp(ShowBase):
         return card
 
     def _on_window_event(self, window) -> None:
+        """窗口事件：自己处理关闭请求，不依赖 ShowBase 的默认分支。
+
+    两个关键点（都在 1.10.16 上实测过）：
+    1. 判断关闭用的是 ``WindowProperties.getOpen()`` 变 False；
+       ``getCloseRequested()`` 在这个版本的 WindowProperties 上根本不存在，
+       直接在 handler 里调用会抛异常，把 ShowBase 自己的 windowEvent 也一起带崩，
+       表现就是“点了 X 窗口关不掉、BGM 还在响”。
+    2. 退出前必须显式停音频：否则窗口先销毁、OpenAL 的循环 BGM 会继续播到进程结束。
+    """
+        try:
+            props = window.getProperties()
+            if not props.getOpen():
+                self.log.info("[APP] window closed by user")
+                self.quit_game(exit_code=0)
+                return
+        except Exception as exc:
+            self.log.debug("[APP] window-event props unavailable: %s", exc)
         try:
             self.pipeline.resize(int(window.getXSize()), int(window.getYSize()))
         except Exception as exc:
@@ -256,12 +273,26 @@ class NaiwaApp(ShowBase):
         return task.cont
 
     # ------------------------------------------------------------------ #
+    def stop_audio(self) -> None:
+        """关掉所有声音（音乐 + 音效 + 引擎侧 sfx manager），退出前必须调用。"""
+        try:
+            self.audio.stop_all()
+        except Exception as exc:
+            self.log.warning("[APP] audio stop failed: %s", exc)
+        for manager in getattr(self, "sfxManagerList", []) or []:
+            try:
+                manager.disableAllSounds()
+            except Exception:
+                pass
+
     def quit_game(self, exit_code: int = 0) -> None:
         """请求退出：ShowBase.shutdown() 是引擎生命周期方法，不能覆盖，故另起名字。"""
         if self._shutdown_done:
             return
         self._shutdown_done = True
         self.exit_code = int(exit_code)
+        # 先停声音再拆场景：否则窗口先没了、OpenAL 的循环 BGM 还会继续播到进程结束
+        self.stop_audio()
         self.flow.back_to_main_menu()
         self.log.info("[APP] quit exit_code=%d frames=%d", exit_code, self._frame_count)
         self.userExit()
@@ -635,11 +666,18 @@ class StubEventScene(StubScene):
             pages = [f"evt.{self.event_id}.body.1"]
             self.choices = []
         self.root = self.app.render2d.attachNewNode("stub_event")
-        self.label = self._panel(f"[EVENT] {self.event_id}\n" + "\n".join(pages) + "\n\nEnter: continue")
-        self.app.accept("enter", self._choose)
+        self.label = self._panel(
+            f"[EVENT] {self.event_id}\n" + "\n".join(pages)
+            + "\n\nEnter / Space / Click: continue"
+        )
+        # The overlay intentionally locks walking. Accept the common movement keys too,
+        # so a player who tries WASD is taken through the opening instead of feeling stuck.
+        for event in ("enter", "space", "mouse1", "w", "a", "s", "d"):
+            self.app.accept(event, self._choose)
 
     def on_exit(self) -> None:
-        self.app.ignore("enter")
+        for event in ("enter", "space", "mouse1", "w", "a", "s", "d"):
+            self.app.ignore(event)
         super().on_exit()
 
     def _choose(self) -> None:
@@ -700,6 +738,16 @@ class StubPauseMenu(StubScene):
     def _save(self) -> None:
         ok = self.app.flow.request_save("slot_1")
         self.label.setText(f"SAVED {'ok' if ok else 'failed'}\nEnter: resume")
+
+    def _load(self) -> None:
+        """Load the first save slot without leaving the pause overlay half-open."""
+        try:
+            self.app.flow.load_game("slot_1")
+        except (SaveLoadError, RuntimeError) as exc:
+            self.label.setText(f"LOAD FAILED\n{type(exc).__name__}\nEnter: resume")
+            return
+        self.app.scenes.pop_all()
+        self.app.flow.set_paused(False)
 
 
 class StubTabPanel(StubScene):
@@ -891,7 +939,15 @@ STUB_SCENES = {
 def run(options: config.Options) -> int:
     apply_prc(options, config.Settings.load())
     app = NaiwaApp(options)
-    app.run()
+    try:
+        app.run()
+    finally:
+        # 无论从哪条路径退出（窗口关闭 / Esc / 截图完成 / 异常），都先停声音再销毁引擎
+        app.stop_audio()
+        try:
+            app.destroy()
+        except Exception:
+            pass
     return int(getattr(app, "exit_code", 0))
 
 

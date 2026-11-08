@@ -111,8 +111,9 @@ A 只注册 `flow_tick(45)`、`offscreen_capture(60)`、`autoplay(70)`。其他�
 | 结局 `ending_creator` | 建议文案口径改为「独立开发者」，与上面的活动语义对齐 | B（endings.json）、D（结局文本） | 只改文案，ID 与判定条件不动 |
 | 头像表情 ID | `portrait_naiwan_tired` → `portrait_naiwan_angry`；`portrait_naiwan_determined` → `portrait_naiwan_speechless`（用户实际交付的是「生气 / 无语」） | D（对话框、状态面板选表情） | 旧 ID 已从 manifest 移除；`game/core` 无硬编码，D 按 manifest 取即可 |
 | 新增资源工具 | `tools/import_generated_art.py`（活动插图 160×90、头像 96×96 落位）；`tools/slice_reference_sheets.py` 新增 `--idle-source`；`tools/build_campus_models.py`（低多边形校园模型） | A/E（校验脚本可复用） | 头像、9 张插图、23 个模型均已转正式资源（`LIC-0006` / `LIC-0207`），`make_placeholders.py` 不再覆盖它们 |
-| 校园模型转正式 | 5 栋建筑 + 5 个室内 + 地面 + 12 道具，按用户等距参考图程序化建模（纯顶点色、无贴图、单栋 ≤454 三角面） | C（场景摆放 / 占地对齐）、E（打包体积） | 占地是 A 的布景值，必须与 C 的 `content/world/map.json` 对齐后才算定稿 |
+| 校园模型转正式 | 5 栋建筑 + 5 个室内 + 地面 + 12 道具，按用户等距参考图程序化建模（纯顶点色、无贴图、单栋 ≤720 三角面） | C（场景摆放 / 占地对齐）、E（打包体积） | 当前室外 4,822 三角面、含室内共 5,518 三角面；占地是 A 的布景值，必须与 C 的 `content/world/map.json` 对齐后才算定稿 |
 | 引擎坑（Panda3D 1.10） | `ShowBase` 已移除 `loadModel` 便捷方法 | 全员 | `AssetRegistry.load_model()` 改为 `getattr(loader, "loader", loader).loadModel(...)` |
+| 缺陷修复（2026-11-08） | 关窗口后 BGM 还在响 | 全员（尤其 D 的菜单） | 三个原因一起修：① 1.10.16 的 `WindowProperties` **没有** `getCloseRequested()`，关闭判据是 `getOpen() == False`，`game/app.py::_on_window_event` 里调错 API 会让 ShowBase 的 `windowEvent` 一起崩 → 窗口关不掉；② `quit_game()` 退出前显式 `stop_audio()`（`AudioManager.stop_all()` 停音乐+音效并置静默）；③ `run()` 的 `finally` 再兜一次 `stop_audio()` + `destroy()`，任何退出路径都先停声音 |
 
 改内容 JSON 时不需要动 `game/core`：活动、文本、结局全部由 B/D 的 JSON 驱动，A 只提供 `asset_id`。
 

@@ -141,7 +141,13 @@ class WorldSceneBase:
         self._state: GameState | None = None
 
     # ------------------------------------------------------------------ 生命周期
-    def on_enter(self, spawn: str | None = None, state: GameState | None = None, **kwargs: Any) -> None:
+    def on_enter(
+        self,
+        spawn: str | None = None,
+        state: GameState | None = None,
+        position: tuple[float, float, str] | None = None,
+        **kwargs: Any,
+    ) -> None:
         from game.world.camera_controller import CameraRig
         from game.world.interaction_service import InteractionService
         from game.world.trigger_zone import PromptTracker, make_candidates
@@ -168,6 +174,19 @@ class WorldSceneBase:
             key_down=self._key_down,
         )
         self.player.set_scene(self.scene_id, reset=False)
+        if position is not None:
+            # 从室内退出时由调用方给出落点（门外 1 米、朝向背离建筑）。
+            # 必须走参数而不是"场景建好之后再 teleport"：淡入回调在 fade=0 时
+            # 同步执行，事后注册的钩子根本不会被调用。
+            exit_x, exit_y, facing = position
+            self.player.teleport(exit_x, exit_y, facing)
+            if self._state is not None:
+                self._state.world.x = exit_x
+                self._state.world.y = exit_y
+                self._state.world.facing = facing
+                # 落点决定所在地点：从室内出来时必须回到室外的区域 id，
+                # 否则 scene_of() 会认为玩家还在室内，户外交互点全部查不到。
+                self._state.world.location_id = self.md.area_at(exit_x, exit_y) or self._state.world.location_id
         self._apply_scene_camera()
 
         self.hud = HUD(self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry)
@@ -346,7 +365,9 @@ class InteriorSceneAdapter(WorldSceneBase):
                  **kwargs: Any) -> None:
         self.scene_id = building_id or kwargs.get("scene") or "loc_dorm"
         super().on_enter(spawn=None, state=state)
-        # 室内：出生点由 map.json 的小地垫出生点决定
+        # 室内：location_id 必须切到建筑 id，交互点查询才会命中室内那一批
+        if self._state is not None:
+            self._state.world.location_id = self.scene_id
         entry_x, entry_y, facing = self.md.interior_entry(self.scene_id)
         ox, oy = self.md.interior(self.scene_id).origin
         self.player.teleport(ox + entry_x, oy + entry_y, facing)
@@ -379,17 +400,13 @@ class InteriorSceneAdapter(WorldSceneBase):
         building_id = self.scene_id
         state = self._state
         LOG.info("[WORLD] 离开 %s -> (%.1f, %.1f) %s", building_id, exit_x, exit_y, facing)
-
-        def _place() -> None:
-            campus = self.app.scenes.base_scene
-            if campus is None or getattr(campus, "player", None) is None:
-                return
-            campus.player.teleport(exit_x, exit_y, facing)
-            state.world.x, state.world.y, state.world.facing = exit_x, exit_y, facing
-            state.world.location_id = self.md.area_at(exit_x, exit_y) or "loc_gate"
-
-        self.app.scenes.change("CampusScene", spawn=building_id, state=state)
-        self.app.scenes._on_ready = _place  # 淡入结束后落点，避免被出生点覆盖
+        state.world.location_id = self.md.area_at(exit_x, exit_y) or "loc_gate"
+        self.app.scenes.change(
+            "CampusScene",
+            spawn=building_id,
+            state=state,
+            position=(exit_x, exit_y, facing),
+        )
 
 
 # --------------------------------------------------------------------------- #

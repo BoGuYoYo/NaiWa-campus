@@ -29,7 +29,7 @@
   `ui_panel_9slice`（48×48，边距 16）、`palette`（32 色）、4 首 BGM + 12 个音效（OGG）
 - 全部为同尺寸资源；`char_naiwan_walk`（384×384，8 帧 × 8 方向）/ `char_naiwan_idle`（144×384，3 帧）
   已是从用户提供的单方向序列帧切出的**正式资源**（`tools/slice_reference_sheets.py`，见 `docs/art/README.md`），
-  其余为占位/白模/合成音频，替换流程见 `docs/art/README.md`
+  其余为占位美术/合成音频；校园模型已按用户等距参考图重构，替换流程见 `docs/art/README.md`
 
 ## 3. 测试入口
 
@@ -60,6 +60,8 @@ python -m game --dev --autoplay --offscreen --seed 42             # 通关冒烟
 | A-ST-03 | 损坏 JSON 存档 | ✅ `.bak` 回退或返回 `E_SAVE_CORRUPT`，不覆盖备份（`A-ST-03b/c`） |
 | A-ST-04 | 6 帧离屏渲染 | ✅ 480×270 PNG，magfilter=`FT_nearest`（`A-ST-04b`） |
 | A-ST-05 | 场景切换 + Esc 暂停 | ✅ `MainMenu→CampusScene→PauseMenu→CampusScene`，`GameState` 完整保留（`A-ST-05`） |
+| A-07 | 合入 C/D 后 `--dev --autoplay --offscreen --seed 42` 跑完一周目 | ✅ 48 次活动、8 个学期事件、`ending_academic`、`errors=[]`（`reports/standalone/A/autoplay.json`）；校园/室内/结果面板/状态面板截图见 `reports/review/C+D/` |
+| A-08 | 主菜单→进宿舍→床（活动）→踩地垫回室外→存档 | ✅ 室内出生 (208.0, 1.6)、退出落点 (19.8, 17.0)、`location_id` 反查 `road_east_west`、`slot_1.json` 写出 |
 
 ## 5. 已知缺陷
 
@@ -67,12 +69,13 @@ python -m game --dev --autoplay --offscreen --seed 42             # 通关冒烟
    `No definition ... for character`）。A 的替身场景已改 ASCII 标签规避，D 接入后必须补字体。
 2. **替身服务**：`game/systems/*`、`game/world/*`、`game/ui/*` 未合入时，`GameFlow` 使用
    `Fallback*Service`（数值仅用于跑通流程，不代表平衡），`SceneManager` 使用替身场景。
-3. **模型为白模**：23 个 `.bam` 由程序生成（立方体/盒子），只保证尺寸、命名与三角面预算，
-   正式模型需按 `tools/gltf_to_bam.py` 流程替换。
+3. **模型为 Blender 低多边形重构**：建筑与道具由 `blender_reconstructed_campus.blend` 生成，
+   经 `tools/export_blender_game_assets.py` 和 `tools/gltf_to_bam.py` 导入游戏；颜色已烘焙为 ColorAttrib，
+   室外 7,120 三角面，含室内共 7,816 三角面。
 4. **头像与插图仍是占位**：`portrait_naiwan_*`（8 张）与 `cg_naiwan_*`（9 张）标记 `LIC-0005`，
    需要用现有角色的正式帧放大派生或重新绘制后再解除占位。
-4. **`tools/gltf_to_bam.py` 未用真实 glTF 验证**（仓库内暂无 Blender 导出物），代码路径与
-   错误提示已就绪。
+4. **`tools/gltf_to_bam.py` 已用 Blender 导出的 glTF 验证**；转换器会把 Panda3D glTF 材质颜色烘焙到 ColorAttrib，
+   以适配当前无光照的像素渲染管线。
 5. **音频为合成占位**：BGM 为 numpy 合成循环，响度按 -16 dBFS 归一，正式作曲替换前仅内部使用。
 6. 窗口模式在无显示器环境无法启动（Panda3D 需要 GL 上下文），CI 请用 `--offscreen`。
 

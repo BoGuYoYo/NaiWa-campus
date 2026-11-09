@@ -16,7 +16,6 @@ import pytest
 from game.world.collision import make_rect
 from game.world.input_map import DT_MAX, RUN_SPEED, WALK_SPEED
 from game.world.player_controller import (
-    FACING_HEADING,
     IDLE_ASSET,
     IDLE_FPS,
     PlayerController,
@@ -239,7 +238,8 @@ def test_controller_writes_world_and_transform(map_data):
     assert state.world.y == pytest.approx(ctrl.motion.y)
     assert state.world.facing == "e"
     assert node.pos == (ctrl.motion.x, ctrl.motion.y, 0.0)
-    assert node.h == FACING_HEADING["e"]
+    # 2.5D：角色卡片始终正对相机，朝向由精灵行表达，不按 heading 旋转
+    assert node.h == 0.0
 
 
 def test_controller_locked_ignores_input(map_data):
@@ -259,6 +259,25 @@ def test_controller_animation_switches_asset_and_fps(map_data):
     idle_ctrl, _s, _n, idle_anim, _a = _controller(map_data, key_down=_key_down_for())
     idle_ctrl.update(DT)
     assert idle_anim.calls[-1] == (IDLE_ASSET, "n", IDLE_FPS)
+
+
+@pytest.mark.parametrize(
+    ("keys", "facing"),
+    [
+        (("w",), "n"), (("d",), "e"), (("s",), "s"), (("a",), "w"),
+        (("w", "d"), "ne"), (("w", "a"), "nw"),
+        (("s", "d"), "se"), (("s", "a"), "sw"),
+    ],
+)
+def test_controller_preserves_all_eight_walk_rows(map_data, keys, facing):
+    pressed = set(keys)
+    ctrl, _state, _node, animator, _audio = _controller(
+        map_data, key_down=lambda key: key in pressed
+    )
+    for _ in range(10):
+        ctrl.update(DT)
+    assert ctrl.motion.facing == facing
+    assert animator.calls[-1] == (WALK_ASSET, facing, WALK_FPS)
 
 
 def test_controller_footstep_uses_ground_outdoors(map_data):
@@ -301,6 +320,18 @@ def test_controller_interior_scene_translates_colliders(map_data):
     )
 
 
+def test_controller_apply_pose_places_card_before_first_update(map_data):
+    """场景刚建好、输入还锁着时：卡片必须立刻落在出生点并贴待机帧。
+
+    否则玩家节点停在 (0,0,0)、卡片 UV 也没裁剪，镜头里看不到人（"人物消失"）。
+    """
+    ctrl, _state, node, animator, _audio = _controller(map_data, key_down=_key_down_for())
+    assert node.pos is None  # 还没摆过
+    ctrl.apply_pose()
+    assert node.pos == (40.0, 5.0, 0.0)
+    assert animator.calls[-1] == (IDLE_ASSET, "n", IDLE_FPS)
+
+
 def test_controller_read_input_ignores_unknown_keys(map_data):
     ctrl, _state, _node, _animator, _audio = _controller(
         map_data, key_down=_key_down_for("w", "shift", "z")
@@ -308,3 +339,29 @@ def test_controller_read_input_ignores_unknown_keys(map_data):
     pressed, running = ctrl.read_input()
     assert pressed == {"w"}
     assert running is True
+
+
+def test_panda_key_reader_maps_movement_keys(map_data):
+    from game.world.player_controller import key_down
+
+    class Watcher:
+        def is_button_down(self, button):
+            return button.get_name() in {"w", "arrow_right", "shift"}
+
+    watcher = Watcher()
+    ctrl, _state, _node, _animator, _audio = _controller(
+        map_data, key_down=lambda key: key_down(watcher, key)
+    )
+    assert ctrl.read_input() == ({"w", "right"}, True)
+    ctrl.update(DT)
+    assert ctrl.motion.x > 40.0 and ctrl.motion.y > 5.0
+    assert key_down(None, "w") is False
+
+
+def test_panda_key_reader_accepts_real_mouse_watcher():
+    from panda3d.core import MouseWatcher
+    from game.world.player_controller import key_down
+
+    assert key_down(MouseWatcher("test"), "w") is False
+
+

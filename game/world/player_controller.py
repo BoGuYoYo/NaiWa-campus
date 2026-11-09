@@ -47,7 +47,6 @@ IDLE_FPS = 3.0
 SFX_FOOTSTEP_GROUND = "sfx_footstep_ground"
 SFX_FOOTSTEP_FLOOR = "sfx_footstep_floor"
 
-
 class _Vec:
     __slots__ = ("x", "y")
 
@@ -169,6 +168,16 @@ class PlayerController:
         if self.camera is not None:
             self.camera.update((self.motion.x, self.motion.y), 1.0)
 
+    def apply_pose(self) -> None:
+        """把当前运动状态立刻落到节点与动画上。
+
+        场景刚建好、或覆盖层打开（update 被锁定）时也要有正确画面：
+        否则玩家节点会停在原点、卡片的 UV 也没裁剪，镜头里看不到人。
+        """
+        self._apply_transform()
+        if self.animator is not None:
+            self.animator.play(IDLE_ASSET, row=self.motion.facing, fps=IDLE_FPS)
+
     # ------------------------------------------------------------------ 输入
     def read_input(self, keys=("w", "a", "s", "d", "up", "down", "left", "right", "shift")):
         pressed = {k for k in keys if k != "shift" and self._key_down(k)}
@@ -202,7 +211,11 @@ class PlayerController:
     # ------------------------------------------------------------------ 内部
     def _apply_transform(self) -> None:
         self.player.setPos(self.motion.x, self.motion.y, 0.0)
-        self.player.setH(FACING_HEADING.get(self.motion.facing, 0.0))
+        # 2.5D 约定：角色是"始终正对相机的一张卡片"，八个方向由精灵表的行表达。
+        # 卡片自带 -40° 俯仰补偿（render_pipeline.CHARACTER_CARD_PITCH），
+        # 这里再按 heading 转它，90°/270° 就只能看到纸片侧边（变成一条线），
+        # 45° 系列被斜向压扁 —— 表现就是"八向移动的动作显示错误"。
+        self.player.setH(0.0)
 
     def _update_footstep(self, dt: float, moving: bool, running: bool) -> None:
         if self.audio is None:
@@ -228,7 +241,14 @@ def _default_key_down(key: str) -> bool:
     """默认从 Panda3D 的 mouseWatcherNode 读取按键状态。"""
     from direct.showbase.ShowBaseGlobal import base
 
-    watcher = getattr(base, "mouseWatcherNode", None)
+    return key_down(getattr(base, "mouseWatcherNode", None), key)
+
+
+def key_down(watcher, key: str) -> bool:
+    """读取 Panda3D 按键状态，兼容移动代码使用的方向键名称。"""
     if watcher is None:
         return False
-    return bool(watcher.isKeyDown(key))
+    from panda3d.core import ButtonRegistry
+
+    name = f"arrow_{key}" if key in ("up", "down", "left", "right") else key
+    return bool(watcher.is_button_down(ButtonRegistry.ptr().find_button(name)))

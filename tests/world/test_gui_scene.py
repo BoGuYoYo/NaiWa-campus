@@ -249,7 +249,7 @@ def test_camera_controller_sets_ortho_lens_and_fixed_hpr(base):
 
 
 def test_player_controller_moves_real_node(base, map_data):
-    from game.world.player_controller import FACING_HEADING, PlayerController
+    from game.world.player_controller import PlayerController
 
     from fixtures.fake_state import FakeState
 
@@ -261,7 +261,7 @@ def test_player_controller_moves_real_node(base, map_data):
             ctrl.update(1.0 / 60.0)
         assert node.getX() > 40.0
         assert node.getY() == pytest.approx(5.0)
-        assert node.getH() == pytest.approx(FACING_HEADING["e"])
+        assert node.getH() == pytest.approx(0.0)  # 卡片不按朝向旋转
         assert state.world.x == pytest.approx(node.getX())
     finally:
         node.removeNode()

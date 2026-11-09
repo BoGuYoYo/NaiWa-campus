@@ -243,6 +243,33 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 
 ---
 
+### 11. 修八向移动的动作显示（2026-11-09）
+
+**现象**：角色按住方向键移动时，精灵会被"压扁/斜切"，走到正东、正西时几乎变成一条线；
+只有正南（面朝镜头）看起来正常。
+
+**根因**：`game/world/player_controller.py` 的 `_apply_transform()` 按 `FACING_HEADING`
+给角色**卡片**做了 `setH()`。但本作是 2.5D：角色是"始终正对相机的一张卡"
+（`render_pipeline.make_character_card` 已经用 `setP(CHARACTER_CARD_PITCH = -40°)`
+做了俯仰补偿），八个方向由**精灵表的行**表达。再叠一层 yaw，卡片就会转离相机平面：
+90°/270° 看到纸片侧边（一条线），45° 系列被斜向压缩。
+
+**修复**：
+
+| 文件 | 变更 |
+| --- | --- |
+| `game/world/player_controller.py` | `_apply_transform()` 固定 `setH(0.0)`，并注明"方向由精灵行表达、卡片不旋转" |
+| `tests/world/test_player_motion.py` | `assert node.h == FACING_HEADING["e"]` → `assert node.h == 0.0` |
+| `tests/world/test_gui_scene.py` | 同上（真实节点 `getH() == 0`） |
+
+`FACING_HEADING` 常量保留（将来接 3D 模型还会用到），只是不再作用在 2.5D 卡片上。
+
+**证据**：`reports/review/B/facing_before_slanted.png`（修复前：东向被压成斜条）与
+`reports/review/B/facing_after_eight.png`（修复后：8 个方向都是直立卡片，
+行序 s / se / e / ne / n / nw / w / sw 与美术一致）。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

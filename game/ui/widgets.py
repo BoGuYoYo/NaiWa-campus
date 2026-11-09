@@ -4,7 +4,7 @@
   UITransform 换算到 aspect2d；
 - **文本按「左上角」定位**：字号 12 时文字占 y .. y+12，避免所有标题
   上溢到面板边框外（旧版按基线定位，每个标题都高出一行）；
-- 面板统一使用 ui_panel_9slice 资源（AssetRegistry），缺资源时
+- 面板走**真九宫格**（ui_panel_9slice 切 9 块分别摆放），缺资源时
   退化为纯色面板并记录 asset.missing；
 - 数值条使用 ui_bar_frame / ui_bar_fill，图标使用 ui_icon_*；
 - 本模块依赖 panda3d，独立测试只 import theme / text_db。
@@ -13,9 +13,17 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Callable, Iterable
 
-from panda3d.core import CardMaker, NodePath, TextFont, TextNode, TransparencyAttrib
+from panda3d.core import (
+    CardMaker,
+    NodePath,
+    Point2,
+    TextFont,
+    TextNode,
+    TransparencyAttrib,
+)
 
 from game.ui import theme
 
@@ -203,8 +211,118 @@ class MultilineLabel(UIWidget):
         super().destroy()
 
 
+# ----------------------------------------------------------------------
+# 九宫格皮肤几何
+# ----------------------------------------------------------------------
+#: 面板边框着色：皮肤本身是「奶油底 + 金边」的横幅，原色直接贴会白得刺眼。
+#: 压到 0.72 后金边仍清楚、奶油底色偏暖白，正好当描边；内部另外用
+#: theme.PANEL_SOLID 兜底，所以正文/图标的对比度不受皮肤影响。
+PANEL_FRAME_TINT = (0.72, 0.72, 0.74, 1.0)
+
+#: 四角切边占皮肤内容框的比例（用比例而不是写死像素，换皮后自动跟着变）
+_CUT_RATIO_X = 0.17
+_CUT_RATIO_Y = 0.24
+_CUT_MAX = 16
+
+#: (路径, mtime) -> (内容框, 切边, 文件尺寸)；皮肤换了文件会自动失效
+_skin_cache: dict[
+    tuple[str, int], tuple[tuple[int, int, int, int], tuple[int, int], tuple[int, int]]
+] = {}
+
+
+def _as_filename(path: Path):
+    from panda3d.core import Filename
+
+    maker = getattr(Filename, "from_os_specific", None) or Filename.fromOsSpecific
+    return maker(str(path))
+
+
+def _alpha_content_box(image) -> tuple[int, int, int, int]:
+    """皮肤里 alpha>0 的像素范围（左上原点，(x, y, w, h)）。"""
+    width, height = image.get_x_size(), image.get_y_size()
+    x0, y0, x1, y1 = width, height, 0, 0
+    for y in range(height):
+        for x in range(width):
+            if image.get_alpha(x, y) > 0.0:
+                x0 = min(x0, x)
+                x1 = max(x1, x + 1)
+                y0 = min(y0, y)
+                y1 = max(y1, y + 1)
+    if x1 <= x0 or y1 <= y0:
+        return (0, 0, width, height)
+    return (x0, y0, x1 - x0, y1 - y0)
+
+
+def _clamp_cut(value: float, span: int) -> int:
+    """切边限制在 1..16，并保证中间至少留 1px 可拉伸区。"""
+    cut = max(1, min(int(round(value)), _CUT_MAX))
+    while cut > 1 and span - 2 * cut < 1:
+        cut -= 1
+    return cut
+
+
+def _panel_geometry(
+    path: "Path | None", texture
+) -> tuple[tuple[int, int, int, int], tuple[int, int], tuple[int, int]]:
+    """算出皮肤的 (内容框, 切边, 文件尺寸)，单位都是源图像素。
+
+    皮肤 png 常带一圈全透明留白（我们现在这张 48×48 的面板，真实画面只占
+    中间 26 行），按整张图切会把透明留白当成边框，等于白切；所以先用 alpha
+    求内容框，再按比例定四角切边。
+
+    归一化一律用**文件尺寸**而不是 texture.getXSize()：引擎可能把纹理重采样成
+    2 的幂（textures-power-2 默认 down），此时内容框与贴图尺寸对不上，
+    用文件尺寸算出来的 uv 比例反而仍然正确。
+    """
+    width = texture.get_x_size() if texture is not None else 48
+    height = texture.get_y_size() if texture is not None else 48
+    size = (width, height)
+    box = (0, 0, width, height)
+    if path is not None:
+        try:
+            key = (str(path), int(path.stat().st_mtime))
+            cached = _skin_cache.get(key)
+            if cached is None:
+                from panda3d.core import PNMImage
+
+                image = PNMImage()
+                if image.read(_as_filename(path)):
+                    size = (image.get_x_size(), image.get_y_size())
+                    box = _alpha_content_box(image)
+                _skin_cache[key] = (box, (0, 0), size)
+                cached = _skin_cache[key]
+            box = cached[0]
+            size = cached[2]
+        except Exception as exc:  # 读不到就按整张图切，绝不能因此起不来
+            _log.debug("panel skin geometry fallback（%s: %s）", type(exc).__name__, exc)
+    cut = (_clamp_cut(box[2] * _CUT_RATIO_X, box[2]), _clamp_cut(box[3] * _CUT_RATIO_Y, box[3]))
+    return box, cut, size
+
+
+def _slice_cells(box, cut) -> list[tuple[int, int, tuple[int, int, int, int]]]:
+    """把内容框切成 9 块，返回 [(col, row, (x, y, w, h))]，跳过零尺寸块。"""
+    bx, by, bw, bh = box
+    cx, cy = cut
+    xs = ((bx, cx), (bx + cx, bw - 2 * cx), (bx + bw - cx, cx))
+    ys = ((by, cy), (by + cy, bh - 2 * cy), (by + bh - cy, cy))
+    cells: list[tuple[int, int, tuple[int, int, int, int]]] = []
+    for row, (sy, sh) in enumerate(ys):
+        for col, (sx, sw) in enumerate(xs):
+            if sw > 0 and sh > 0:
+                cells.append((col, row, (sx, sy, sw, sh)))
+    return cells
+
+
 class UIPanel(UIWidget):
-    """9-slice 面板；assets 缺失时退化为纯色卡。"""
+    """真九宫格面板；皮肤缺失时退化为纯色卡。
+
+    旧实现把整张 48×48 皮肤拉伸铺满矩形，再用 3px 内衬盖住中间，结果小面板
+    （HUD 156×36）的金边被拉成一片拖影。现在按源图切成 9 块分别摆放：
+
+    - 角块按源图 1:1 摆，金饰不变形；
+    - 边块只沿一个方向拉伸（顶/底横向、左/右纵向）；
+    - 中心块不贴皮肤，直接铺 theme.PANEL_SOLID，白字和图标对比度可控。
+    """
 
     def __init__(
         self,
@@ -213,53 +331,114 @@ class UIPanel(UIWidget):
         rect: tuple[int, int, int, int],
         asset_registry=None,
         alpha: float = theme.PANEL_ALPHA,
+        border: "float | tuple[float, float] | None" = None,
     ) -> None:
         x, y, w, h = rect
+        self.transform = transform
+        self.rect = rect
         node = parent.attach_new_node("ui_panel")
         ax, ay = transform.to_aspect2d(x, y)
         node.set_pos(ax, 0, ay)
-        tex = None
+        # 子卡片都按「面板左上角」为原点摆放，这里记下它的 aspect2d 坐标
+        self._origin = (ax, ay)
+        texture = None
+        path = None
         if asset_registry is not None:
             try:
-                tex = asset_registry.load_texture("ui_panel_9slice")
-            except Exception:
-                tex = None
-        cm = CardMaker("panel_card")
-        cm.set_frame(0, 1, -1, 0)
-        card = node.attach_new_node(cm.generate())
-        if tex is not None:
-            # 占位皮肤的中心是浅灰，直接贴上去会把白字洗掉；先着色压暗，
-            # 再盖一层内衬，让文字区的底色均匀（9-slice 的边框仍然保留）。
-            card.set_texture(tex)
-            card.set_color(*theme.PANEL_TINT)
+                texture = asset_registry.load_texture("ui_panel_9slice")
+            except Exception as exc:
+                _log.debug("ui_panel_9slice 读取失败（%s: %s）", type(exc).__name__, exc)
+                texture = None
+            if texture is not None:
+                # 测试夹具的假 registry 没有 resolve_path，取不到就按贴图尺寸切
+                try:
+                    path = asset_registry.resolve_path("ui_panel_9slice")
+                except Exception:
+                    path = None
+        box, cut, source_size = _panel_geometry(path, texture)
+        # 边框默认按皮肤切边 1:1 摆；窄面板（HUD 36 高）传 border= 收窄，
+        # 但两侧合计不能吃掉面板：最多占短边 34%
+        if border is None:
+            border_x, border_y = float(cut[0]), float(cut[1])
+        elif isinstance(border, (int, float)):
+            border_x = border_y = float(border)
         else:
+            border_x, border_y = float(border[0]), float(border[1])
+        border_x = min(border_x, max(1.0, w * 0.34))
+        border_y = min(border_y, max(1.0, h * 0.34))
+        self.border = (border_x, border_y)
+        self.pieces: list[NodePath] = []
+        self.card = None  # 旧版整张拉伸的底板；现在只有缺皮肤时才有
+        if texture is None:
             _log.warning("asset.missing asset_id=ui_panel_9slice（使用纯色面板）")
-            card.set_color(*theme.PANEL_TINT)
+            card = self._make_card(node, transform, x, y, w, h, theme.PANEL_TINT, bin_index=40)
+            self.card = card
+        else:
+            self._build_frame(node, texture, source_size, box, cut, x, y, w, h, border_x, border_y)
+        inner_w = max(1.0, w - 2 * border_x) if texture is not None else float(w)
+        inner_h = max(1.0, h - 2 * border_y) if texture is not None else float(h)
+        inner_x = x + (border_x if texture is not None else 0)
+        inner_y = y + (border_y if texture is not None else 0)
+        # 显式指定透明层的绘制顺序：边框(40) → 内衬(41) → 文本(default bin 之后)
+        self.inner = self._make_card(
+            node, transform, inner_x, inner_y, inner_w, inner_h, theme.PANEL_SOLID, bin_index=41
+        )
+        super().__init__(node)
+
+    # ------------------------------------------------------------------ #
+    # 构造
+    # ------------------------------------------------------------------ #
+    def _make_card(
+        self, parent: NodePath, transform: UITransform, x: float, y: float,
+        w: float, h: float, color, bin_index: int,
+    ) -> NodePath:
+        maker = CardMaker("panel_card")
+        maker.set_frame(0, 1, -1, 0)
+        card = parent.attach_new_node(maker.generate())
+        card.set_color(*color)
         card.set_transparency(TransparencyAttrib.M_alpha)
-        card.set_scale(transform.px(w), 1, transform.px(h))
-        # 显式指定透明层的绘制顺序：外壳(40) → 内衬(41) → 文本(default bin 之后)
-        card.set_bin("fixed", 40)
+        card.set_bin("fixed", bin_index)
         card.set_depth_test(False)
         card.set_depth_write(False)
-        if tex is not None:
-            inset = min(3, max(1, min(w, h) // 8))
-            inner_maker = CardMaker("panel_inner")
-            inner_maker.set_frame(0, 1, -1, 0)
-            inner = node.attach_new_node(inner_maker.generate())
-            inner.set_color(*theme.PANEL_SOLID)
-            inner.set_transparency(TransparencyAttrib.M_alpha)
-            inner.set_bin("fixed", 41)
-            inner.set_depth_test(False)
-            inner.set_depth_write(False)
-            inner.set_scale(
-                transform.px(max(1, w - inset * 2)), 1, transform.px(max(1, h - inset * 2))
+        card.set_scale(transform.px(max(w, 0.001)), 1, transform.px(max(h, 0.001)))
+        px_x, px_y = transform.to_aspect2d(x, y)
+        card.set_pos(px_x - self._origin[0], 0, px_y - self._origin[1])
+        return card
+
+    def _build_frame(
+        self, node: NodePath, texture, source_size: tuple[int, int],
+        box, cut, x: float, y: float, w: float, h: float,
+        border_x: float, border_y: float,
+    ) -> None:
+        widths = (border_x, max(1.0, w - 2 * border_x), border_x)
+        heights = (border_y, max(1.0, h - 2 * border_y), border_y)
+        tex_w = float(source_size[0])
+        tex_h = float(source_size[1])
+        for col, row, (sx, sy, sw, sh) in _slice_cells(box, cut):
+            if col == 1 and row == 1:
+                continue  # 中心交给 PANEL_SOLID
+            maker = CardMaker("panel_piece")
+            maker.set_frame(0, 1, -1, 0)
+            # 图像行号自上而下，纹理 v 自下而上，所以 v 要翻过来
+            maker.set_uv_range(
+                Point2(sx / tex_w, 1.0 - (sy + sh) / tex_h),
+                Point2((sx + sw) / tex_w, 1.0 - sy / tex_h),
             )
-            ix, iy = transform.to_aspect2d(x + inset, y + inset)
-            inner.set_pos(ix - ax, 0, iy - ay)
-            self.inner = inner
-        self.card = card
-        self.rect = rect
-        super().__init__(node)
+            piece = node.attach_new_node(maker.generate())
+            piece.set_texture(texture)
+            piece.set_color(*PANEL_FRAME_TINT)
+            piece.set_transparency(TransparencyAttrib.M_alpha)
+            piece.set_bin("fixed", 40)
+            piece.set_depth_test(False)
+            piece.set_depth_write(False)
+            piece.set_scale(
+                self.transform.px(widths[col]), 1, self.transform.px(heights[row])
+            )
+            dest_x = x + (0.0 if col == 0 else (border_x if col == 1 else w - border_x))
+            dest_y = y + (0.0 if row == 0 else (border_y if row == 1 else h - border_y))
+            px_x, px_y = self.transform.to_aspect2d(dest_x, dest_y)
+            piece.set_pos(px_x - self._origin[0], 0, px_y - self._origin[1])
+            self.pieces.append(piece)
 
 
 class UIIcon(UIWidget):

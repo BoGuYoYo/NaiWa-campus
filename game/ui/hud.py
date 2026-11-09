@@ -15,7 +15,7 @@ import logging
 from panda3d.core import CardMaker, TransparencyAttrib
 
 from game.ui import theme
-from game.ui.widgets import UILabel, StatBar, UIIcon, UITransform, UIWidget
+from game.ui.widgets import UILabel, StatBar, UIIcon, UIPanel, UITransform, UIWidget
 
 _log = logging.getLogger("naiwa.ui.hud")
 
@@ -24,6 +24,10 @@ SEM_IDS = {1: "ui.hud.semester.1", 2: "ui.hud.semester.2"}
 
 LOW_ENERGY = 20
 BLINK_INTERVAL = 0.5
+
+#: HUD 底板边框（逻辑像素）：36 高的面板放不下 8×6 的标准边框
+HUD_PANEL_BORDER_X = 4.0
+HUD_PANEL_BORDER_Y = 3.0
 
 
 class HUD(UIWidget):
@@ -76,27 +80,14 @@ class HUD(UIWidget):
 
     # ------------------------------------------------------------------
     def _make_panel(self, parent, rect):
-        """HUD 的底板：用同一张 9-slice，缺资源时退化为半透明纯色。"""
-        x, y, w, h = rect
-        cm = CardMaker("hud_panel")
-        cm.set_frame(0, 1, -1, 0)
-        node = parent.attach_new_node(cm.generate())
-        tex = None
-        if self.assets is not None:
-            try:
-                tex = self.assets.load_texture("ui_panel_9slice")
-            except Exception:
-                tex = None
-        if tex is not None:
-            node.set_texture(tex)
-            node.set_color(*theme.PANEL_TINT)
-        else:
-            node.set_color(*theme.PANEL_TINT)
-        node.set_transparency(TransparencyAttrib.M_alpha)
-        node.set_scale(self.transform.px(w), 1, self.transform.px(h))
-        ax, ay = self.transform.to_aspect2d(x, y)
-        node.set_pos(ax, 0, ay)
-        return node
+        """HUD 的底板：跟其他界面共用 UIPanel 的真九宫格。
+
+        HUD 面板只有 36 高，内容（日期行 / 两条数值槽）一直排到 y+34，
+        所以边框收窄到 4×3：金饰仍然完整，中间 28 行留给内容。
+        """
+        panel = UIPanel(parent, self.transform, rect, self.assets,
+                        border=(HUD_PANEL_BORDER_X, HUD_PANEL_BORDER_Y))
+        return panel.root
 
     # ------------------------------------------------------------------
     def update(self, state) -> None:

@@ -43,7 +43,10 @@ class _FakeText:
         self.calls = []
 
     def has(self, text_id: str) -> bool:
-        return text_id == "evt.sem_1_club_fair.lock.fair_lab"
+        return text_id in {
+            "evt.sem_1_club_fair.lock.fair_lab",
+            "evt.sem_5_club_election.lock.run_election",
+        }
 
     def get_raw(self, text_id: str) -> str:
         return f"hint:{text_id}"

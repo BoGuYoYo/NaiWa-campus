@@ -7,7 +7,6 @@ from types import SimpleNamespace
 from game.core.results import EventResult
 from game.core.state import GameState
 from game.core.world_scene import EventSceneAdapter
-from game.systems.content_db import ContentError
 from game.systems.event_service import EventService
 
 
@@ -147,8 +146,35 @@ def test_content_error_is_shown_without_bubbling():
     assert state.event_log == ["sem_1_club_fair:fair_lab"]
 
 
+def test_unknown_event_error_formats_id_without_placeholder():
+    state = GameState()
+    adapter, _, _ = _adapter(state)
+
+    adapter._choose("missing_event", "missing_choice")
+
+    assert adapter.widget.hints == ["内容缺失：missing_event"]
+    assert ("err.unknown_id", {"id": "missing_event"}) in adapter.app.text.calls
+    assert "{" not in adapter.widget.hints[0]
+
+
+def test_locked_error_uses_choice_locked_text():
+    state = GameState()
+    state.day_index = 8
+    adapter, _, _ = _adapter(state)
+
+    adapter._choose("sem_5_club_election", "run_election")
+
+    assert adapter.widget.hints == ["hint:evt.sem_5_club_election.lock.run_election"]
+
+
 def test_adapter_finish_forwards_real_result_once():
     state = GameState()
     adapter, handled, popped = _adapter(state)
 
-    adapter._choose("sem_1_club
+    adapter._choose("sem_1_club_fair", "fair_lab")
+    adapter._finished("sem_1_club_fair")
+
+    assert len(handled) == 1
+    assert isinstance(handled[0], EventResult)
+    assert len(popped) == 1
+    assert handled[0].choice_id == "fair_lab"

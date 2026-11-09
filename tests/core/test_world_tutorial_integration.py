@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 
 from game.core.state import GameState
@@ -75,6 +76,8 @@ def test_world_scene_wires_movement_result_and_day_tutorial_steps():
         audio=SimpleNamespace(play_sfx=lambda _asset: None),
     )
     scene._state = state
+    # 这个夹具绕过了 __init__（直接 __new__），要补齐 _on_interact 用到的 log
+    scene.log = logging.getLogger("test.world_tutorial")
     scene.player = _FakePlayer()
     scene.animator = _FakeAnimator()
     scene.hud = _FakeHud()

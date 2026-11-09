@@ -77,10 +77,73 @@ python tools/import_generated_art.py --all            # 写入 assets/art/cg 与
 游戏里已经接上：`game/app.py` 的替身 `ResultPanel` 会按 `cg_naiwan_<activity_id>` 显示活动插图
 （缺失时 registry 自动回退占位图），文本与插图分居左下 / 中上，互不遮挡。
 
-### 校园模型（`tools/build_campus_models.py`）
+### 建筑正面贴图（2026-11-09）
+
+当前游戏优先使用用户生成的 5 张正面建筑图（`LIC-0208`），建筑按原图比例绘制，和角色卡片
+以相同俯角朝向正交摄像机，避免正面图再次受到透视压缩。原有 BAM 建筑保留为资源缺失时的回退。
+
+```powershell
+python tools/process_building_textures.py
+# 也可指定源目录：
+python tools/process_building_textures.py --source "..\素材\建筑"
+```
+
+| 原图 | 透明输出 | 注册 ID |
+| --- | --- | --- |
+| 教学楼.jfif | campus/textures/teaching_front.png | campus_texture_teaching |
+| 宿舍楼.jfif | campus/textures/dorm_front.png | campus_texture_dorm |
+| 图书馆.jfif | campus/textures/library_front.png | campus_texture_library |
+| 社团中心.jfif | campus/textures/club_front.png | campus_texture_club |
+| 食堂.jfif | campus/textures/canteen_front.png | campus_texture_canteen |
+
+- 这批原图实际为 2752×1536 RGB JPEG，棋盘格已烘焙在图片中。工具使用为当前五张图描好的
+  外轮廓生成 Alpha，保留灰色墙面、阳台和台阶，裁去多余边距，透明像素 RGB 置 0。
+  若新图改变构图，需要重描工具中的轮廓坐标；原始素材不改写。
+- 这些立面图保留原图色彩与裁切后的分辨率，是上方 512 像素模型贴图限制的例外。
+  缩小时使用线性 mipmap 过滤，进入 480×270 游戏画布后仍按全局最近邻规则放大。
+- 卡片底边对齐原占地南沿，使用 `MBinary` 和深度写入：角色在前方可见、在后方被遮挡，
+  图像透明角落不会挡住角色；实机检查覆盖全部 5 栋。
+- 保留加大的建筑横向间距与 1.25 倍相机视野；食堂向南再移 8 米，避免遮住社团入口。
+  外围草地和南北道路已延伸覆盖新的布局。
+
+### 草坪贴图与道具立牌（2026-11-09，`LIC-0209`）
+
+用户在 `素材/建筑/` 追加了 1 张草坪贴图和 4 张道具正面图，由
+`tools/import_campus_props.py` 接入（白底泛洪去背 → 去掉烘焙的地面投影 →
+按内容裁切缩放 → PNG）：
+
+```powershell
+python tools/import_campus_props.py            # 草坪 + 4 个道具
+python tools/import_campus_props.py --props    # 只处理道具
+```
+
+| 原图 | 输出 | 注册 ID | 用途 |
+| --- | --- | --- | --- |
+| 草坪贴图.jfif | campus/textures/ground_grass.png（512²，64 色） | campus_texture_ground | 地面平铺贴图，4 米一循环 |
+| 树.jfif | campus/textures/props/tree.png（191×256） | campus_texture_prop_tree | 行道树/景观树立牌，4.5 米高 |
+| 路灯.jfif | campus/textures/props/lamp.png（43×256） | campus_texture_prop_lamp | 路灯立牌，4.0 米高 |
+| 垃圾桶.jfif | campus/textures/props/bin.png（113×160） | campus_texture_prop_bin | 垃圾桶立牌，1.0 米高 |
+| 告示牌.jfif | campus/textures/props/sign.png（94×200） | campus_texture_prop_sign | 校门告示牌立牌，2.4 米高 |
+
+处理细节（踩过的坑）：
+
+- **不能用全局颜色键**：路灯灯罩、告示牌板面本身就接近白色，全局抠会把它们打穿；
+  改成「从四边泛洪」只吃掉与边界连通的白色。
+- 原图底部烧了一块灰色地面投影，贴到草地上会变成灰斑：在内容包围盒下半部，
+  把「低饱和 + 中亮」的像素一并去掉（树干棕色、灯座深灰、轮子近黑都不在区间内）。
+- 树根之间还有与背景不连通的纯白空隙，同样按「底部区域 + 纯白」二次清理。
+- 道具用 `MBinary`（alpha 测试）而不是 `MAlpha`，这样能正常写深度，树与树之间不穿插。
+- 草地靠 UV>1 平铺，**必须显式 `set_wrap_u/v(WM_repeat)`**：TexturePool 默认 clamp，
+  否则整片草地只会采样到贴图边缘，看起来是一块纯色。
+
+`content/world/map.json` 里的 `props` 已登记 25 个阻挡物（长椅、告示牌、13 棵树、
+5 盏路灯、5 个垃圾桶），布置规则写在文件头的 `notes` 里；移动或改名后要重跑
+`tests.standalone_c --route C-R1`（C-R1 的直行走廊在 x=44.5，道具不能压线）。
+
+### 校园模型（`tools/build_campus_models.py`；建筑为回退资源）
 
 用户提供的等距参考图（`素材/建筑/`：宿舍楼、教学楼、图书馆、社团、饭堂、12 个道具、草地1）
-已经转成可运行的低多边形模型，**纯顶点色、无贴图**：
+已经在 Blender 4.5.11 中重构，并通过 glTF 2.0 → `.bam` 导入游戏；游戏资源使用烘焙后的 ColorAttrib，**无贴图**：
 
 ```powershell
 python tools/build_campus_models.py          # 写入 assets/campus/*.bam
@@ -88,15 +151,15 @@ python tools/build_campus_models.py          # 写入 assets/campus/*.bam
 
 | 模型 | 三角面 | 造型要点（对照参考图） |
 | --- | --- | --- |
-| `dorm` | 454 | 三层冷灰墙、砖红双坡屋顶 + 3 个老虎窗、屋顶水箱（8 边）+ 天线 + 小烟囱、阳台/晾衣杆、雨棚台阶 |
-| `teaching` | 388 | 四层 U 形、奶油墙 + 横向窗带、红色女儿墙、中央钟塔 + 圆钟、旗杆红旗、屋顶空调箱 |
-| `library` | 252 | 三层方体 + 转角石块、四坡屋顶 + 采光脊、通高中央窗、四柱门廊 + 宽台阶 |
-| `club` | 170 | 两层灰绿、红女儿墙、屋顶招牌（双柱）、彩虹雨棚、底层大玻璃 |
-| `canteen` | 270 | 单层赭黄、非对称双坡屋顶、三根不锈钢排烟管、四柱深挑檐、外侧售餐台 |
-| `ground` | 84 | 80×45 草地 + 南北主路（世界 x 38~44）+ 东西支路（世界 y 6~11）+ 4 块深色草斑 |
-| 12 个道具 | 24~84 | 树/路灯/长椅/围栏/告示牌/花坛/垃圾桶/车架/旗杆/石头/花圃/路面 |
+| `dorm` | 1,040 | 四层冷灰墙、砖红双坡屋顶 + 3 个老虎窗、四腿水塔 + 天线 + 烟囱、阳台/晾衣杆、雨棚台阶 |
+| `teaching` | 824 | 四层 U 形、奶油墙 + 分格窗带、红色女儿墙、中央钟塔 + 圆钟、旗杆红旗、屋顶空调箱 |
+| `library` | 1,710 | 三层方体 + 分层转角石块、四坡屋顶 + 采光脊、通高中央窗、四柱门廊 + 宽台阶 |
+| `club` | 684 | 两层灰绿、红女儿墙、屋顶招牌（双柱）、六段彩色雨棚、底层大玻璃 |
+| `canteen` | 716 | 单层赭黄、非对称双坡屋顶、三根排烟管、四柱深挑檐、外侧售餐台 |
+| `ground` | 468 | 80×45 草地 + 分层土壤、南北主路（世界 x 38~44）+ 东西支路（世界 y 6~11）、深色草斑与草簇 |
+| 12 个道具 | 30~348 | 圆树冠/路灯/分木条长椅/围栏/告示牌/带灌木花坛/垃圾桶/弧形车架/旗杆/石头/花圃/路面 |
 
-合计 **2,900 三角面**（室外预算 30,000），单栋最大 454（预算 800）。
+室外模型合计 **7,120 三角面**（建筑、地面与道具，预算 30,000）；含 5 个室内模型共 **7,816 三角面**。Blender 导出模型保留更多窗框与屋顶细节，单栋面数以最终 BAM 为准。
 
 - 命名 `mesh_*`、原点在占地西南角、Z 向上、1 单位 = 1 米；
 - 没有法线（= 引擎不参与光照，颜色直出），符合像素风平涂；
@@ -109,7 +172,7 @@ python tools/build_campus_models.py          # 写入 assets/campus/*.bam
 
 占位资源清单（其余部分仍需按 A9 重绘）：
 
-清单（与 `assets/manifest.json` 一致，共 109 条）：
+清单（与 `assets/manifest.json` 一致，共 114 条）：
 
 | 类别 | 数量 | 规格 | 状态 |
 | --- | --- | --- | --- |
@@ -122,6 +185,7 @@ python tools/build_campus_models.py          # 写入 assets/campus/*.bam
 | `portrait_npc_*` | 12 | 96×96，每人 4 个表情 | 占位 |
 | `char_extra_*` | 4 | 48×48 单帧 s 方向 | 占位 |
 | `model_*` | 5 + 5 + 1 + 12 | 5 栋建筑、5 个室内、地面、12 种道具 | 正式（程序建模，`LIC-0207`） |
+| `campus_texture_*` | 5 + 5 | 5 张建筑正面立面图（`LIC-0208`）+ 草坪贴图与 4 个道具立牌（`LIC-0209`） | 正式（用户生成图） |
 | `ui_*` | 29 | 九宫格面板 48×48（边距 16）×1、属性图标 16×16 ×6、活动图标 16×16 ×9、按键提示 16×16 ×8、时段点 8×8 ×2、血条框/填充 100×8 ×2、光标 8×8 ×1 | 占位 |
 | `palette` | 1 | 128×64（32 色 × 16px） | 定稿 |
 | `font_ui` | 1 | Fusion Pixel 12px（**待放入**，见下） | 待补 |

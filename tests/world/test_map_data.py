@@ -189,9 +189,12 @@ def test_interior_center(map_data):
 
 def test_campus_colliders_include_walls_buildings_and_props(map_data):
     rects = map_data.colliders_for(CAMPUS_SCENE)
-    assert len(rects) == 4 + 5 + 2
+    # 4 面外墙 + 全部建筑 + 全部登记的道具（数量随 map.json 变化，不写死）
+    assert len(rects) == 4 + len(map_data.buildings) + len(map_data.props)
     assert len(map_data.outdoor_walls()) == 4
-    assert len(map_data.props) == 2
+    assert len(map_data.props) >= 2  # 至少保留长椅与告示牌
+    ids = [prop.id for prop in map_data.props]
+    assert len(ids) == len(set(ids)), "道具 id 不能重复"
 
 
 def test_interior_colliders_are_local(map_data):

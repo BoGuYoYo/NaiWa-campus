@@ -2,6 +2,61 @@
   "version": 1,
   "assets": [
     {
+      "id": "campus_texture_teaching",
+      "type": "image",
+      "path": "campus/textures/teaching_front.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "front_elevation",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_dorm",
+      "type": "image",
+      "path": "campus/textures/dorm_front.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "front_elevation",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_library",
+      "type": "image",
+      "path": "campus/textures/library_front.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "front_elevation",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_club",
+      "type": "image",
+      "path": "campus/textures/club_front.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "front_elevation",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_canteen",
+      "type": "image",
+      "path": "campus/textures/canteen_front.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "front_elevation",
+        "generated_texture"
+      ]
+    },
+    {
       "id": "char_naiwan_walk",
       "type": "sprite_sheet",
       "path": "characters/naiwan/walk.png",
@@ -1162,6 +1217,61 @@
       "volume": 0.9,
       "tags": [
         "placeholder"
+      ]
+    },
+    {
+      "id": "campus_texture_ground",
+      "type": "image",
+      "path": "campus/textures/ground_grass.png",
+      "license_id": "LIC-0209",
+      "tags": [
+        "final",
+        "tileable",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_prop_tree",
+      "type": "image",
+      "path": "campus/textures/props/tree.png",
+      "license_id": "LIC-0209",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_prop_lamp",
+      "type": "image",
+      "path": "campus/textures/props/lamp.png",
+      "license_id": "LIC-0209",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_prop_bin",
+      "type": "image",
+      "path": "campus/textures/props/bin.png",
+      "license_id": "LIC-0209",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_prop_sign",
+      "type": "image",
+      "path": "campus/textures/props/sign.png",
+      "license_id": "LIC-0209",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_texture"
       ]
     }
   ]

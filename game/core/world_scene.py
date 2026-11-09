@@ -356,10 +356,66 @@ class WorldSceneBase:
 class CampusSceneAdapter(WorldSceneBase):
     scene_id = "campus"
 
+    #: 道具 id 前缀 -> (贴图 asset_id, 世界高度米)。没登记的道具继续用方块白模。
+    PROP_ART = (
+        ("prop_tree", "campus_texture_prop_tree", 4.5),
+        ("prop_lamp", "campus_texture_prop_lamp", 4.0),
+        ("prop_bin", "campus_texture_prop_bin", 1.0),
+        ("prop_gate_notice", "campus_texture_prop_sign", 2.4),
+    )
+
+    def _texture(self, asset_id: str):
+        """缺资源时返回 None（而不是品红占位图），让场景退回白模。"""
+        registry = self.app.registry
+        if asset_id not in registry or not registry.file_exists(asset_id):
+            LOG.warning("[WORLD] 贴图缺失，跳过：%s", asset_id)
+            return None
+        try:
+            return registry.load_texture(asset_id)
+        except Exception as exc:  # pragma: no cover
+            LOG.warning("[WORLD] 贴图加载失败 %s: %s", asset_id, exc)
+            return None
+
+    def _prop_art(self, prop_id: str):
+        for prefix, asset_id, height in self.PROP_ART:
+            if prop_id.startswith(prefix):
+                texture = self._texture(asset_id)
+                return None if texture is None else (texture, height)
+        return None
+
+    #: 建筑 id -> 正面图 asset_id（A 的 manifest 里已有）
+    BUILDING_ART = {
+        "loc_dorm": "campus_texture_dorm",
+        "loc_classroom": "campus_texture_teaching",
+        "loc_library": "campus_texture_library",
+        "loc_clubroom": "campus_texture_club",
+        "loc_canteen": "campus_texture_canteen",
+    }
+
+    def _building_art(self, building_id: str):
+        asset_id = self.BUILDING_ART.get(building_id)
+        if asset_id is None:
+            return None
+        texture = self._texture(asset_id)
+        if texture is None:
+            return None
+        from panda3d.core import SamplerState
+
+        # 正面图是 2~3 MB 的大图，缩到游戏里必须开 mipmap，否则远处会闪
+        texture.set_minfilter(SamplerState.FT_linear_mipmap_linear)
+        texture.set_magfilter(SamplerState.FT_linear)
+        return texture
+
     def build_scene(self, parent):
         from game.world.campus_scene import CampusScene
 
-        return CampusScene(self.md, parent, dev=bool(self.app.options.dev))
+        return CampusScene(
+            self.md, parent,
+            dev=bool(self.app.options.dev),
+            ground_texture=self._texture("campus_texture_ground"),
+            prop_art=self._prop_art,
+            building_art=self._building_art,
+        )
 
     def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:
         """按 A 的渲染管线 film 尺寸钳制镜头目标，保证画面不露出地图外。"""

@@ -114,6 +114,7 @@ A 只注册 `flow_tick(45)`、`offscreen_capture(60)`、`autoplay(70)`。其他�
 | 校园模型转正式 | 5 栋建筑 + 5 个室内 + 地面 + 12 道具，按用户等距参考图在 Blender 中重构后转 BAM（ColorAttrib、无贴图） | C（场景摆放 / 占地对齐）、E（打包体积） | 当前室外 7,120 三角面、含室内共 7,816 三角面；占地是 A 的布景值，必须与 C 的 `content/world/map.json` 对齐后才算定稿 |
 | 引擎坑（Panda3D 1.10） | `ShowBase` 已移除 `loadModel` 便捷方法 | 全员 | `AssetRegistry.load_model()` 改为 `getattr(loader, "loader", loader).loadModel(...)` |
 | 缺陷修复（2026-11-08） | 关窗口后 BGM 还在响 | 全员（尤其 D 的菜单） | 三个原因一起修：① 1.10.16 的 `WindowProperties` **没有** `getCloseRequested()`，关闭判据是 `getOpen() == False`，`game/app.py::_on_window_event` 里调错 API 会让 ShowBase 的 `windowEvent` 一起崩 → 窗口关不掉；② `quit_game()` 退出前显式 `stop_audio()`（`AudioManager.stop_all()` 停音乐+音效并置静默）；③ `run()` 的 `finally` 再兜一次 `stop_audio()` + `destroy()`，任何退出路径都先停声音 |
+| 校园贴图与道具（2026-11-09） | 新增草坪平铺贴图 + 树 / 路灯 / 垃圾桶 / 告示牌 4 张道具立牌；`map.json` 的 `props` 从 2 个扩到 25 个 | C（碰撞与路线）、E（打包体积） | 资源 `campus_texture_ground` 与 `campus_texture_prop_*`，许可 `LIC-0209`，由 `tools/import_campus_props.py` 生成；`CampusScene(ground_texture=, prop_art=, building_art=)` 支持贴图与立牌，不传时保持白模；建筑改用正面图后门从红色立块改成地面地垫 |
 
 改内容 JSON 时不需要动 `game/core`：活动、文本、结局全部由 B/D 的 JSON 驱动，A 只提供 `asset_id`。
 

@@ -24,7 +24,7 @@
 | 状态 | 检查项 | 实际位置 |
 |---|---|---|
 | [x] | `game/world/` 全部文件 | `game/world/`（10 个模块） |
-| [x] | `content/world/map.json`、`interactables.json` | `content/world/`（5 建筑 · 6 区域 · 2 props · 5 室内；18 交互点 + 5 门） |
+| [x] | `content/world/map.json`、`interactables.json` | `content/world/`（5 建筑 · 6 区域 · 25 props · 5 室内；18 交互点 + 5 门） |
 | [x] | `tests/world/`（≥ 15 个测试） | `tests/world/`（11 个测试文件，共 **182** 项，其中 `-m 'not gui'` 为 **171** 项） |
 | [x] | `docs/world/route_C-R1.md` 人工烟测路线 | `docs/world/route_C-R1.md` |
 | [x] | 地图总览图 `docs/world/map.png`（F1+F2 截图） | `docs/world/map.png`（960×720 离屏渲染，含碰撞线框与交互点圆） |
@@ -125,7 +125,7 @@ game/world/
 - 玩家碰撞体 0.7×0.7 米（半宽 0.35），以脚点为中心；出口位置 = 门外触发点再向外 1 米、朝向背离建筑。
 
 ### 待补内容
-- `props` 目前仅登记广场长椅、校门告示牌 2 个；**树木与路灯待 A 交付模型后由 C 在 `props` 中逐一登记（每棵 0.6×0.6）**。
+- `props` 已按 A 交付的正面图登记 25 个：长椅、校门告示牌、13 棵树（0.6×0.6）、5 盏路灯（0.4×0.4）、5 个垃圾桶（0.5×0.5）；布置规则见 `map.json` 头部的 `notes`，`prop_gate_notice` / `prop_plaza_bench` 同时是交互点载体。
 - 室内 `npc_marks` 当前仅 `loc_library`（苏墨、管理员）、`loc_clubroom`（陈朗）、`loc_canteen`（小柚、阿姨）；`loc_classroom` 的 2 名环境 NPC 位置待正式模型阶段确定。
 - 正式角色动画（`char_naiwan_walk` / `char_naiwan_idle`）、音效（`sfx_footstep_ground` / `sfx_footstep_floor`）由 A 提供；C 已按 8 fps / 3 fps、0.35 s / 0.25 s 的规格调用，素材缺失时仅空调用不报错。
 

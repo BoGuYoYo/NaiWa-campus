@@ -55,7 +55,7 @@ game --dev --autoplay --offscreen             → 48 次活动、8 学期事件�
 | --- | --- | --- |
 | P0 | `assets/fonts/FusionPixel12.ttf`（LIC-0301）未交付，现靠系统 msyh 兜底，换机器会退回方框 | A（release blocker） |
 | P0 | B 的服务全部是替身：活动数值、日历、事件、结局判定都不代表正式平衡 | B |
-| P1 | `props` 只有 2 个，树与路灯的碰撞待登记 | C |
+| — | `props` 已扩到 25 个（13 树 / 5 路灯 / 5 桶 + 长椅 + 告示牌），草坪与道具贴图已接入 | C / A（已闭环） |
 | P1 | 室内 `npc_marks` 与交互点坐标差 1 米 | C |
 | P1 | UI 皮肤仍是 A 的占位图（28 个 `ui_*` 里 D 已接 22 个） | A / D |
 | P2 | `EventSceneAdapter` 目前直接从 `TextDB` 组事件视图，B 交付后应改为调用 `EventService.get_view` | A / B |

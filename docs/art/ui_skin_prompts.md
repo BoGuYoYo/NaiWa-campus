@@ -73,41 +73,288 @@ no decoration crossing the middle, no text, seamless when stretched in the cente
 
 ---
 
-## 3. 属性图标 6 个（16×16，建议一张 4×4 图标表一次出）
+## 3. 属性图标 6 个（严格框定版，16×16）
 
-**推荐做法**：一次生成 512×512 的图标表（4 列 × 4 行，每格 128），再按格切图——
-风格统一，比逐个生成稳。
+这一版把每个图标都钉死在**同一个 16×16 网格**上：位置、尺寸、4 个色值、描边、明暗方向、
+留白全部写死，6 个图标除了"形状"和"主色"之外没有任何自由度，所以出来的东西风格必然一致。
 
-```text
-[风格前缀] + a 4x4 sprite sheet of 16 pixel-art game UI icons on transparent background,
-each icon inside its own equal cell with 8px padding, consistent 1px #2B2235 outline,
-flat two-tone shading using only the palette,
-icons in reading order:
-row1: open book, dumbbell, heart, speech bubble with two dots, four-point sparkle, lightning bolt
-row2: blackboard with chalk, stack of three books, game controller, computer terminal with code lines,
-       waving flag, running track lane
-row3: rice bowl with chopsticks, bed with pillow, two footprints on a path,
-       coin purse, clock, map pin
-row4: (repeat simple shapes: star, arrow, plus, check mark) as filler
-no text, no letters, no numbers, no grid lines, no background
-```
+### 3.0 严格模板（6 条都套这个）
 
-单图版（逐个替换后缀即可）：
+| 约束 | 值 |
+| --- | --- |
+| 逻辑画布 | **16×16**；出图 **512×512**（1 逻辑像素 = 32 设备像素），交付时最近邻缩到 16×16 |
+| 安全区 | 图形必须落在 **x = 2..13、y = 3..12**（12 宽 × 10 高），四周各留 2 逻辑像素透明边 |
+| 描边 | 外轮廓 **1 逻辑像素 = 32 设备像素**，闭合不断线，颜色固定 `#2B2235` |
+| 用色 | **每个图标只用 4 色**：描边 `#2B2235` + 主色 + 亮色 + 暗色（见 3.1~3.6） |
+| 明暗 | 平涂，最多两级；光源固定**左上**，暗面只出现在右下 |
+| 网格 | 所有边缘对齐 16×16 网格；不许抗锯齿、不许抖动（dithering）、不许半透明 |
+| 背景 | 真透明 PNG；不许白底、棋盘底、投影、外发光 |
+| 构图 | 单主体、居中、不裁切；左右对称（闪电这种几何本身不对称的除外） |
+| 禁止 | 文字/字母/数字、边框、外框、圆角超过 1 像素、3D 斜面、透视、多个物体 |
 
-| # | asset_id | 主体（英文） | 说明 |
-| --- | --- | --- | --- |
-| 1 | `ui_icon_academic` | `an open book with a bookmark` | 学业 |
-| 2 | `ui_icon_stamina` | `a dumbbell, side view` | 体力 |
-| 3 | `ui_icon_mood` | `a rounded heart with a small highlight pixel` | 心情（不要用红心，用暖金/珊瑚） |
-| 4 | `ui_icon_social` | `a speech bubble with two dots` | 社交 |
-| 5 | `ui_icon_interest` | `a four-point sparkle / star` | 兴趣 |
-| 6 | `ui_icon_energy` | `a lightning bolt` | 精力 |
+**通用提示词骨架**（把 `<形状>` `<主色>` `<亮色>` `<暗色>` 换掉即可，其余一个字都别改）：
 
 ```text
-[风格前缀] + a single 16x16 pixel-art icon of <主体>, thick 1px #2B2235 outline,
-warm gold #F7C81E as the main color, paper white #FFF6DF accent, dark navy background removed,
-icon fills 90% of the canvas, centered, no text
+pixel art game UI icon, 16x16 logical grid rendered at 512x512, 1 logical pixel = 32 device pixels,
+single object only: <形状>, occupying x = 2..13 and y = 3..12 of the 16x16 grid, perfectly centered,
+1-logical-pixel closed outline #2B2235 on every edge with no gaps,
+exactly 4 colors: outline #2B2235, main <主色>, light <亮色>, shade <暗色>,
+flat two-tone shading, light source from the top-left, shade only on the bottom-right,
+hard pixel edges snapped to the 16x16 grid, no anti-aliasing, no dithering, no semi-transparent pixels,
+transparent background, 2-logical-pixel empty margin on all four sides,
+no text, no letters, no numbers, no border, no frame, no drop shadow, no glow, no 3D bevel, no perspective
 ```
+
+图例：`.` 透明 · `#` 描边 `#2B2235` · `W` `#FFF6DF` · `w` `#E3CE9E` · `T` `#C0A15F` ·
+`S` `#B8BFC9` · `s` `#7A828F` · `P` `#E091B0` · `p` `#F4D2B0` · `r` `#C0483F` ·
+`V` `#7A5AA8` · `X` `#FFFBEE` · `G` `#F7C81E` · `B` `#3F6EA8`
+
+参考预览（按下面 6 个 16×16 布局实际渲染，10 倍最近邻放大）：`docs/art/preview/ui_attr_icons.png`
+
+### 3.1 `ui_icon_academic` 学业 —— 学士帽
+
+| 项 | 值 |
+| --- | --- |
+| 形状 | 一顶正面朝镜头的学士帽：上方菱形帽板 + 下方向外张开的梯形帽身，**不画流苏**（16 px 内会糊） |
+| 几何 | 帽板为菱形：顶点 y3（x7..8）→ 最宽 y6（x2..13）→ 收口 y8（x7..8）；帽身 y9..12 由 6 宽张开到 8 宽 |
+| 4 色 | 描边 `#2B2235` / 帽板 `#FFF6DF` / 帽板暗面 `#E3CE9E` / 帽身 `#C0A15F` |
+| 参考布局 | 见下方 16×16 |
+
+```text
+y3 .......##.......
+y4 ......#WW#......
+y5 ....#WWWWWW#....
+y6 ..#WWWWWWWWWW#..
+y7 ....#wwwwww#....
+y8 ......#ww#......
+y9 .....#TTTT#.....
+y10 ....#TTTTTT#....
+y11 ....#TTTTTT#....
+y12 ....########....
+```
+
+提示词（`<形状>` 已填）：
+
+```text
+pixel art game UI icon, 16x16 logical grid rendered at 512x512, 1 logical pixel = 32 device pixels,
+single object only: a graduation mortarboard seen from the front, a flat diamond cap board on top of
+a short trapezoid cap body that widens toward the bottom, symmetrical, no tassel,
+occupying x = 2..13 and y = 3..12 of the 16x16 grid, perfectly centered,
+1-logical-pixel closed outline #2B2235 on every edge with no gaps,
+exactly 4 colors: outline #2B2235, main #FFF6DF, shade #E3CE9E, cap body #C0A15F,
+flat two-tone shading, light source from the top-left, shade only on the bottom-right,
+hard pixel edges snapped to the 16x16 grid, no anti-aliasing, no dithering, no semi-transparent pixels,
+transparent background, 2-logical-pixel empty margin on all four sides,
+no text, no letters, no numbers, no border, no frame, no drop shadow, no glow, no 3D bevel, no perspective
+```
+
+不要画成：一本书（那是"三本书"活动图标）、博士服、带流苏的帽子、学士帽侧视。
+
+### 3.2 `ui_icon_stamina` 体力 —— 哑铃（正视，左右对称）
+
+| 项 | 值 |
+| --- | --- |
+| 形状 | 一个横向哑铃：左右两块配重片 + 中间一根短握杆，正视，完全左右对称 |
+| 几何 | 左片 x2..5、右片 x10..13，均为 y4..11（4×8）；握杆 x6..9，只占 y7..8（4×2） |
+| 4 色 | `#2B2235` / 主 `#B8BFC9` / 亮 `#F2F2F2` / 暗 `#7A828F` |
+| 参考布局 | 见下方 16×16 |
+
+```text
+y5 ..####....####..
+y6 ..#SS#....#SS#..
+y7 ..#SS#ssss#SS#..
+y8 ..#Ss#ssss#Ss#..
+y9 ..#Ss#....#Ss#..
+y10 ..####....####..
+```
+
+```text
+pixel art game UI icon, 16x16 logical grid rendered at 512x512, 1 logical pixel = 32 device pixels,
+single object only: a horizontal dumbbell seen from the front, two rectangular weight plates of equal
+size on the left and right with a short thin handle bar between them, perfectly left-right symmetric,
+occupying x = 2..13 and y = 3..12 of the 16x16 grid, centered vertically on y = 7.5,
+1-logical-pixel closed outline #2B2235 on every edge with no gaps,
+exactly 4 colors: outline #2B2235, main #B8BFC9, light #F2F2F2, shade #7A828F,
+flat two-tone shading, light source from the top-left, shade only on the bottom-right,
+hard pixel edges snapped to the 16x16 grid, no anti-aliasing, no dithering, no semi-transparent pixels,
+transparent background, 2-logical-pixel empty margin on all four sides,
+no text, no letters, no numbers, no border, no frame, no drop shadow, no glow, no 3D bevel, no perspective
+```
+
+不要画成：俯卧撑姿势、杠铃（杆更长）、健身器械、单独一块铁片、带反光的金属渐变。
+
+### 3.3 `ui_icon_mood` 心情 —— 心形
+
+| 项 | 值 |
+| --- | --- |
+| 形状 | 经典 8-bit 圆润心形：两个圆弧顶 + 一个向下的尖角，左右完全对称 |
+| 几何 | 最宽 y5..y7 满宽 x2..13；尖角收在 y12（x7..8）；总高 y3..y12 |
+| 4 色 | 描边 `#2B2235` / 主 `#E091B0` / 亮面 `#F4D2B0` / 暗面 `#C0483F`（**不要正红**，是"心情"不是血量） |
+| 参考布局 | 见下方 16×16 |
+
+```text
+y3 ....##....##....
+y4 ...#PP#..#PP#...
+y5 ..#PPPPPPPPPP#..
+y6 ..#PPPPPPPPPP#..
+y7 ..#PPPPPPPPPP#..
+y8 ...#PPPPPPPP#...
+y9 ....#PPPPPP#....
+y10 .....#PPPP#.....
+y11 ......#rr#......
+y12 .......##.......
+```
+
+```text
+pixel art game UI icon, 16x16 logical grid rendered at 512x512, 1 logical pixel = 32 device pixels,
+single object only: a classic rounded pixel-art heart with two round lobes on top and a tapered point
+at the bottom, perfectly left-right symmetric, flat fill with no gloss,
+occupying x = 2..13 and y = 3..12 of the 16x16 grid, perfectly centered,
+1-logical-pixel closed outline #2B2235 on every edge with no gaps,
+exactly 4 colors: outline #2B2235, main #E091B0, light #F4D2B0, shade #C0483F,
+flat two-tone shading, light source from the top-left, shade only on the bottom-right,
+hard pixel edges snapped to the 16x16 grid, no anti-aliasing, no dithering, no semi-transparent pixels,
+transparent background, 2-logical-pixel empty margin on all four sides,
+no text, no letters, no numbers, no border, no frame, no drop shadow, no glow, no 3D bevel, no perspective
+```
+
+不要画成：写实心脏、红心带白色高光、心电波形、两个心叠在一起、带脸部表情的爱心。
+
+### 3.4 `ui_icon_social` 社交 —— 双点对话气泡
+
+| 项 | 值 |
+| --- | --- |
+| 形状 | 一个圆角对话气泡 + 左下角一小截尾巴 + 气泡内两个方点（表示"两个人在说话"） |
+| 几何 | 气泡 x2..13、y3..9（12×7）；尾巴在 y10..11（x4..6，两行收窄）；两个方点各 2×2，位置 x5..6 与 x9..10，y5..6 |
+| 4 色 | `#2B2235` / 主 `#FFF6DF` / 亮 `#FFFBEE` / 暗 `#E3CE9E`；两个点用 `#3F6EA8` |
+| 参考布局 | 见下方 16×16 |
+
+```text
+y3 ...##########...
+y4 ..#WWWWWWWWWW#..
+y5 ..#WWBBWWBBWW#..
+y6 ..#WWBBWWBBWW#..
+y7 ..#WWWWWWWWWW#..
+y8 ..#WWWWWWWWWW#..
+y9 ...##########...
+y10 .....####.......
+y11 ......##........
+```
+
+```text
+pixel art game UI icon, 16x16 logical grid rendered at 512x512, 1 logical pixel = 32 device pixels,
+single object only: a rounded speech bubble with a short pointed tail at the bottom-left and exactly
+two small square dots inside it, no other marks,
+occupying x = 2..13 and y = 3..11 of the 16x16 grid, centered,
+1-logical-pixel closed outline #2B2235 on every edge with no gaps,
+exactly 4 colors: outline #2B2235, main #FFF6DF, light #FFFBEE, shade #E3CE9E, the two dots #3F6EA8,
+flat two-tone shading, light source from the top-left, shade only on the bottom-right,
+hard pixel edges snapped to the 16x16 grid, no anti-aliasing, no dithering, no semi-transparent pixels,
+transparent background, 2-logical-pixel empty margin on all four sides,
+no text, no letters, no numbers, no border, no frame, no drop shadow, no glow, no 3D bevel, no perspective
+```
+
+不要画成：三个点（省略号）、对话气泡里写字、两个气泡、云朵形气泡、方形直角气泡。
+
+### 3.5 `ui_icon_interest` 兴趣 —— 四角星（闪光）
+
+| 项 | 值 |
+| --- | --- |
+| 形状 | 一枚四角星：上下两个尖角 + 左右两个尖角，中心 2×2 亮块；**四角对称** |
+| 几何 | 竖向尖 y2..y9（x7..8），横向满宽 y5..y6（x2..13），中心高光 2×2 在 (7,5) |
+| 4 色 | 描边 `#2B2235` / 主 `#7A5AA8`（紫）/ 亮面 `#B79AD6`≈`#E091B0` 只在上臂 1 px / 暗面 `#4A505C` |
+| 参考布局 | 见下方 16×16 |
+
+```text
+y2 .......##.......
+y3 ......#VV#......
+y4 .....#VVVV#.....
+y5 ..#VVVVVVVVVV#..
+y6 ..#VVVVVVVVVV#..
+y7 .....#VVVV#.....
+y8 ......#VV#......
+y9 .......##.......
+```
+
+```text
+pixel art game UI icon, 16x16 logical grid rendered at 512x512, 1 logical pixel = 32 device pixels,
+single object only: a four-pointed sparkle star with one vertical and one horizontal pair of tapered
+points meeting at the center, a 2x2 light pixel in the middle, four-fold symmetric,
+occupying x = 2..13 and y = 2..9 of the 16x16 grid, perfectly centered,
+1-logical-pixel closed outline #2B2235 on every edge with no gaps,
+exactly 4 colors: outline #2B2235, main #7A5AA8, light #E091B0 only as a 1-pixel top-left edge, shade #4A505C,
+flat two-tone shading, light source from the top-left, shade only on the bottom-right,
+hard pixel edges snapped to the 16x16 grid, no anti-aliasing, no dithering, no semi-transparent pixels,
+transparent background, 2-logical-pixel empty margin on all four sides,
+no text, no letters, no numbers, no border, no frame, no drop shadow, no glow, no 3D bevel, no perspective
+```
+
+不要画成：五角星、六芒星、三颗星散落、发光勋章、灯泡（那是"灵感"的常见画法但和精力撞色）。
+
+### 3.6 `ui_icon_energy` 精力 —— 闪电
+
+| 项 | 值 |
+| --- | --- |
+| 形状 | 经典折线闪电：上宽下尖，中间有一个向右的横向台阶；**允许左右不对称**（几何本身不对称） |
+| 几何 | 顶部 y2（x6..8）向左下延伸，台阶在 y6（x2..10），尖端收在 y12（x2..4） |
+| 4 色 | `#2B2235` / 主 `#F7C81E` / 亮 `#FFDD5C` / 暗 `#D9A417` |
+| 参考布局 | 见下方 16×16 |
+
+```text
+y2 ......###.......
+y3 .....#GGG#......
+y4 ....#GGG#.......
+y5 ...#GGG#........
+y6 ..#GGGGGGG#.....
+y7 .......#GGG#....
+y8 ......#GGG#.....
+y9 .....#GGG#......
+y10 ....#GGG#.......
+y11 ...#GGG#........
+y12 ..###...........
+```
+
+```text
+pixel art game UI icon, 16x16 logical grid rendered at 512x512, 1 logical pixel = 32 device pixels,
+single object only: a classic zigzag lightning bolt, wide at the top, narrowing to a sharp point at the
+bottom, with one horizontal step jutting to the right in the middle, asymmetric silhouette allowed,
+occupying x = 2..13 and y = 2..12 of the 16x16 grid, centered,
+1-logical-pixel closed outline #2B2235 on every edge with no gaps,
+exactly 4 colors: outline #2B2235, main #F7C81E, light #FFDD5C, shade #D9A417,
+flat two-tone shading, light source from the top-left, shade only on the bottom-right,
+hard pixel edges snapped to the 16x16 grid, no anti-aliasing, no dithering, no semi-transparent pixels,
+transparent background, 2-logical-pixel empty margin on all four sides,
+no text, no letters, no numbers, no border, no frame, no drop shadow, no glow, no 3D bevel, no perspective
+```
+
+不要画成：带发光光环的闪电、云中闪电、双闪电、闪电符号字母 "S"、金色描边闪电。
+
+### 3.7 强化负面提示词（6 条都加）
+
+```text
+--no text, letters, numbers, glyphs, badge, frame, border, rounded square background,
+drop shadow, outer glow, bloom, gradient, dithering, anti-aliasing, semi-transparent pixels,
+3D bevel, emboss, glossy highlight, photo, realistic, chrome, glass, brush stroke,
+multiple objects, collage, sprite sheet grid lines, watermark, signature, jpeg artifacts
+```
+
+### 3.8 一次出 6 个的替代做法（不推荐但可用）
+
+要求模型出 **3 列 × 2 行**、每格 256 的图标表，六个格子的顺序写死：
+`学业(学士帽) | 体力(哑铃) | 心情(心)` / `社交(气泡) | 兴趣(四角星) | 精力(闪电)`，
+并强调"六格共用同一套 4 色与同一描边粗细"。切图时按格裁 256×256 再缩到 16×16。
+**注意**：图标表最容易出现"风格漂移"（有的格描边 2px、有的没描边），验收要逐格查。
+
+### 3.9 逐项验收（6 个都过一遍）
+
+- [ ] 尺寸 16×16，四周至少有 1 像素透明边（安全区没被撑破）
+- [ ] 只有 4 种颜色（量一下：≤ 5 种，抗锯齿会带出中间色）
+- [ ] 外轮廓闭合、厚度 1 像素，颜色 `#2B2235`
+- [ ] 明暗方向一致：亮在左上、暗在右下
+- [ ] 左右对称（学士帽 / 哑铃 / 心 / 气泡 / 四角星）；闪电允许不对称
+- [ ] 没有文字、没有外框、没有投影
+- [ ] 缩到 16×16 后仍能认出是什么（把它们并排贴到深色 `#1B1F2A` 上看一眼）
+
 
 ---
 

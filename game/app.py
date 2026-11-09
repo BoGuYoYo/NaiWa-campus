@@ -40,19 +40,20 @@ SORT_MIN_OTHER = 50
 
 LOG = logging.getLogger("naiwa.app")
 
-# 场景 ID -> (模块, 类名)。D/C 合入正式实现后自动优先使用，否则退到 A 的替身场景。
+# 场景 ID -> (模块, 类名)。C/D 的正式实现由 game/core/world_scene.py 的适配层装配；
+# 适配层本身导入失败时退回 A 的替身场景。
 SCENE_MODULES: dict[str, tuple[str, str]] = {
-    "MainMenu": ("game.ui.main_menu", "MainMenuScene"),
-    "CampusScene": ("game.world.campus_scene", "CampusScene"),
-    "InteriorScene": ("game.world.interior_scene", "InteriorScene"),
-    "EventScene": ("game.ui.event_scene", "EventScene"),
-    "ResultPanel": ("game.ui.result_panel", "ResultPanel"),
-    "DaySummary": ("game.ui.day_summary", "DaySummary"),
-    "TabPanel": ("game.ui.tab_panel", "TabPanel"),
-    "PauseMenu": ("game.ui.pause_menu", "PauseMenu"),
-    "SettingsMenu": ("game.ui.settings_menu", "SettingsMenu"),
-    "SaveMenu": ("game.ui.save_menu", "SaveMenu"),
-    "GraduationScene": ("game.ui.graduation_scene", "GraduationScene"),
+    "MainMenu": ("game.core.world_scene", "MainMenuSceneAdapter"),
+    "CampusScene": ("game.core.world_scene", "CampusSceneAdapter"),
+    "InteriorScene": ("game.core.world_scene", "InteriorSceneAdapter"),
+    "EventScene": ("game.core.world_scene", "EventSceneAdapter"),
+    "ResultPanel": ("game.core.world_scene", "ResultPanelSceneAdapter"),
+    "DaySummary": ("game.core.world_scene", "DaySummarySceneAdapter"),
+    "TabPanel": ("game.core.world_scene", "TabPanelSceneAdapter"),
+    "PauseMenu": ("game.core.world_scene", "PauseMenuSceneAdapter"),
+    "SettingsMenu": ("game.core.world_scene", "SettingsMenuSceneAdapter"),
+    "SaveMenu": ("game.core.world_scene", "SaveMenuSceneAdapter"),
+    "GraduationScene": ("game.core.world_scene", "GraduationSceneAdapter"),
 }
 
 
@@ -92,6 +93,25 @@ class NaiwaApp(ShowBase):
         self.saves = SaveManager()
         self.scenes = SceneManager(self, factory=self.make_scene, bus=self.bus)
         self.services = resolve_services()
+
+        # D 的文本库与 UI 坐标系：界面全部画在 aspect2d 之上，与 480×270 同比例
+        from .ui.text_db import TextDB
+        from .ui.widgets import UITransform, set_default_font
+
+        self.text = TextDB.load(str(config.resource_root() / "content"))
+        set_default_font(self.registry.load_ui_font())
+        self.ui_root = self.aspect2d.attach_new_node("ui_root")
+        self.ui_transform = UITransform.from_base(self)
+
+        # C 的地图数据：缺失时 C 的适配层装配失败，自动退回 A 的替身场景
+        from .world.map_data import MapData
+
+        try:
+            self.map_data = MapData.from_content_root(config.resource_root() / "content")
+        except Exception as exc:
+            self.map_data = None
+            self.log.warning("[APP] content/world 加载失败（%s），校园退到替身场景", exc)
+
         self.flow = GameFlow(self, self.scenes, self.saves, self.bus,
                              services=self.services, registry=self.registry)
         self._fade_card = self._build_fade_overlay()
@@ -204,7 +224,12 @@ class NaiwaApp(ShowBase):
         except Exception as exc:
             self.log.debug("[APP] window-event props unavailable: %s", exc)
         try:
-            self.pipeline.resize(int(window.getXSize()), int(window.getYSize()))
+            width, height = int(window.getXSize()), int(window.getYSize())
+            self.pipeline.resize(width, height)
+            from .ui.widgets import UITransform
+
+            self.ui_transform = UITransform.from_base(self)
+            self.log.debug("[APP] resize %dx%d ui_scale=%.3f", width, height, self.ui_transform.scale)
         except Exception as exc:
             self.log.warning("[APP] resize failed: %s", exc)
 
@@ -219,8 +244,10 @@ class NaiwaApp(ShowBase):
                 module = importlib.import_module(module_name)
                 cls = getattr(module, class_name)
                 return cls(self, **kwargs)
-            except (ImportError, AttributeError):
-                self.log.info("[SCENE] %s 未合入，使用 A 的替身场景", scene_id)
+            except Exception as exc:  # 装配失败绝不能让主循环崩
+                self.log.warning("[SCENE] %s 装配失败（%s: %s），退到替身场景",
+                                 scene_id, type(exc).__name__, exc)
+                self.log.debug("[SCENE] traceback", exc_info=True)
         stub = STUB_SCENES.get(scene_id)
         if stub is None:
             raise KeyError(f"unknown scene id: {scene_id}")
@@ -367,7 +394,7 @@ class StubMainMenu(StubScene):
 
 
 class StubCampus(StubScene):
-    """测试地面：1 米网格 + 5 建筑占位框 + 奶娃行走卡片 + 固定俯角跟随相机。"""
+    """校园：正面建筑贴图、立体地面和道具、角色卡片与跟随相机。"""
 
     SPEED = 4.0  # 米/秒
 
@@ -405,17 +432,24 @@ class StubCampus(StubScene):
         super().on_exit()
 
     # ------------------------------------------------------------------ #
-    # 校园布景：优先用 assets/campus/*.bam 正式模型，缺失时退回占位方块
+    # 校园布景：建筑优先用透明正面图，缺失时回退 BAM；道具仍使用模型。
     # ------------------------------------------------------------------ #
     BUILDINGS = (
         # (asset 名, 中心 x, 中心 y, 占地宽, 占地深)
         # 地面模型的路：南北向 x 38~44、东西向 y 6~11，出生点 (40,5) 在路口南侧广场
-        ("teaching", 26.0, 20.0, 20.0, 14.0),
-        ("dorm", 53.0, 20.0, 16.0, 12.0),
-        ("library", 24.0, -6.0, 18.0, 16.0),
-        ("club", 53.0, -3.0, 14.0, 12.0),
-        ("canteen", 52.0, -14.0, 16.0, 12.0),
+        ("teaching", 23.0, 23.0, 20.0, 14.0),
+        ("dorm", 56.0, 23.0, 16.0, 12.0),
+        ("library", 21.0, -8.0, 18.0, 16.0),
+        ("club", 56.0, -5.0, 14.0, 12.0),
+        ("canteen", 54.0, -25.0, 16.0, 12.0),
     )
+    BUILDING_TEXTURES = {
+        "teaching": "campus_texture_teaching",
+        "dorm": "campus_texture_dorm",
+        "library": "campus_texture_library",
+        "club": "campus_texture_club",
+        "canteen": "campus_texture_canteen",
+    }
     PROPS = (
         # (asset 名, x, y, 朝向 z 旋转) —— 都摆在广场四周，避开路面（x 38~44 / y 6~11）与建筑占地
         ("tree", 33.0, 4.0, 0), ("tree", 48.0, 4.0, 0),
@@ -430,26 +464,62 @@ class StubCampus(StubScene):
     )
 
     def _build_ground(self) -> None:
+        from panda3d.core import CardMaker
+
+        # Keep grass under the wider campus layout. The original ground BAM
+        # covers x=-20..60, y=-15..30; the southern/eastern facades extend past it.
+        x0 = min(-20.0, min(cx - width / 2 for _, cx, _, width, _ in self.BUILDINGS)) - 16.0
+        x1 = max(60.0, max(cx + width / 2 for _, cx, _, width, _ in self.BUILDINGS)) + 16.0
+        y0 = min(-15.0, min(cy - depth / 2 for _, _, cy, _, depth in self.BUILDINGS)) - 12.0
+        y1 = max(30.0, max(cy + depth / 2 for _, _, cy, _, depth in self.BUILDINGS)) + 18.0
+        for name, frame, color, z in (
+            ("campus_grass_extension", (x0, x1, y0, y1), (0.32, 0.51, 0.31, 1), -0.03),
+            ("campus_main_road_extension", (38, 44, y0, y1), (0.62, 0.60, 0.56, 1), -0.02),
+            ("campus_cross_road_extension", (x0, x1, 6, 11), (0.62, 0.60, 0.56, 1), -0.02),
+        ):
+            maker = CardMaker(name)
+            maker.setFrame(*frame)
+            ground = self.root.attachNewNode(maker.generate())
+            ground.setP(-90)
+            ground.setZ(z)
+            ground.setColor(*color)
+            ground.setLightOff()
+
         model = self.app.registry.load_model("model_ground")
         if model is not None and not model.isEmpty():
             model.reparentTo(self.root)
             model.setPos(-20.0, -15.0, 0.0)
-            return
-        from panda3d.core import CardMaker
-
-        maker = CardMaker("ground")
-        maker.setFrame(-20, 60, -15, 30)
-        ground = self.root.attachNewNode(maker.generate())
-        ground.setP(-90)
-        ground.setColorScale(0.24, 0.27, 0.32, 1)
-        ground.setZ(-0.01)
 
     def _build_buildings(self) -> None:
-        from panda3d.core import CardMaker, LineSegs
+        from panda3d.core import CardMaker, LineSegs, SamplerState, TransparencyAttrib
 
         maker = CardMaker("block")
         maker.setFrame(-0.5, 0.5, -0.5, 0.5)
         for name, cx, cy, width, depth in self.BUILDINGS:
+            texture_id = self.BUILDING_TEXTURES.get(name)
+            texture = self.app.registry.load_texture(texture_id) if texture_id else None
+            if texture_id and texture is not None and texture_id not in self.app.registry.missing:
+                # The generated art is a front elevation. Match the character
+                # card pitch so the facade faces the moving orthographic camera.
+                image_ratio = texture.getYSize() / max(1, texture.getXSize())
+                card_height = width * image_ratio
+                # Average fine facade details when shrinking the large source
+                # art into the game canvas, avoiding nearest-sampling shimmer.
+                texture.setMinfilter(SamplerState.FT_linear_mipmap_linear)
+                texture.setMagfilter(SamplerState.FT_linear)
+                texture_maker = CardMaker(f"{name}_front_texture")
+                texture_maker.setFrame(-width / 2.0, width / 2.0, 0.0, card_height)
+                card = self.root.attachNewNode(texture_maker.generate())
+                card.setTexture(texture, 1)
+                # Cutout depth lets a character walk both in front of and
+                # behind a facade, without transparent corners hiding it.
+                card.setTransparency(TransparencyAttrib.MBinary)
+                card.setP(config.CAMERA_TILT_DEGREES)
+                card.setPos(cx, cy - depth / 2.0, 0.0)
+                card.setLightOff()
+                card.setDepthTest(True)
+                card.setDepthWrite(True)
+                continue
             model = self.app.registry.load_model(f"model_{name}")
             if model is not None and not model.isEmpty():
                 # .bam 的原点在占地西南角，所以按中心点减去半个占地摆放

@@ -1,0 +1,41 @@
+{
+  "_comment": "FakeEventView 夹具：驱动事件选项（D-ST-04：3 个选项、1 个锁定项）。",
+  "event_fixture_01": {
+    "event_id": "event_fixture_01",
+    "kind": "semester",
+    "speaker": "npc_chenlang",
+    "page_text_ids": [
+      "evt.fixture.page.1",
+      "evt.fixture.page.2"
+    ],
+    "choices": [
+      { "choice_id": "a", "text_id": "evt.test_event.choice.a", "enabled": true, "lock_reason_id": null },
+      { "choice_id": "b", "text_id": "evt.test_event.choice.b", "enabled": true, "lock_reason_id": null },
+      { "choice_id": "c", "text_id": "evt.test_event.choice.c", "enabled": false, "lock_reason_id": "c" }
+    ],
+    "fixture_text": {
+      "evt.fixture.page.1": { "speaker": "npc_chenlang", "portrait": null, "lines": ["夹具第一页。", "用于屏幕截图测试。"] },
+      "evt.fixture.page.2": { "speaker": null, "portrait": null, "lines": ["夹具第二页。"] }
+    }
+  },
+  "event_fixture_long": {
+    "event_id": "event_fixture_long",
+    "kind": "daily",
+    "speaker": null,
+    "page_text_ids": ["evt.fixture.page.long"],
+    "choices": [],
+    "fixture_text": {
+      "evt.fixture.page.long": {
+        "speaker": null,
+        "portrait": null,
+        "lines": [
+          "第一行文本。",
+          "第二行文本。",
+          "第三行文本。",
+          "第四行文本。",
+          "第五行文本，超出单页。"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,62 @@
+== 任务 C 独立命令验证日志 ==
+生成时间: 2026-11-09 08:27:14
+Python: 3.12.14
+
+[1] python -m pytest tests/world -m 'not gui' -q
+........................................................................ [ 42%]
+........................................................................ [ 84%]
+...........................                                              [100%]
+171 passed, 11 deselected in 0.34s
+
+[2] python -m pytest tests/world -q
+........................................................................ [ 39%]
+........................................................................ [ 79%]
+......................................                                   [100%]
+182 passed in 0.52s
+
+[3] python -m tests.standalone_c --route C-R1 --fake-services
+[route] C-R1: 通过
+  E  ia_door_dorm         -> door（loc_dorm）
+  E  ia_bed               -> activity（rest_dorm）
+  退出 loc_dorm -> (19.8, 17.0)
+  E  ia_track_start       -> activity（exercise）
+  E  ia_plaza_bench       -> activity（campus_walk）
+  E  ia_door_classroom    -> door（loc_classroom）
+  E  ia_class_desk        -> activity（attend_class）
+  退出 loc_classroom -> (21.8, 40.0)
+  E  ia_door_library      -> door（loc_library）
+  E  ia_reading_desk      -> activity（library_study）
+  退出 loc_library -> (58.2, 40.0)
+  E  ia_door_clubroom     -> door（loc_clubroom）
+  E  ia_game_pc           -> activity（play_games）
+  退出 loc_clubroom -> (60.2, 17.0)
+  E  ia_door_canteen      -> door（loc_canteen）
+  E  ia_food_window       -> activity（eat_canteen）
+  退出 loc_canteen -> (40.0, 46.2)
+  E  ia_gate_notice       -> inspect（inspect.gate_notice）
+[route] 报告写入 C:\Users\baba\Documents\Trae\temp_20261108_01\naiwa_campus\reports\standalone\C\route_C-R1.json
+
+[4] python -m tests.standalone_c --collision-fuzz 3000 --out reports/standalone/C/collision.json
+[collision-fuzz] 3000 步，阻挡 55 步，失败 0：通过
+[collision-fuzz] 报告写入 reports\standalone\C\collision.json
+
+[5] python -m tests.standalone_c --camera-check --map content/world/map.json
+[camera-check] 通过
+  [ok] film_is_24_px_per_meter film=(20.0, 11.25)
+  [ok] camera_hpr_is_fixed (0.0, -40.0, 0.0)
+  [ok] camera_offset_matches_spec offset=(-22.9813, 19.2836)
+  [ok] deadzone_holds_inside
+  [ok] deadzone_pushes_to_edge_x
+  [ok] deadzone_pushes_to_edge_y
+  [ok] smooth_is_frame_rate_independent one_shot=0.9817 stepwise=0.9817
+  [ok] clamp_low (10.0, 8.75)
+  [ok] clamp_high (70.0, 51.25)
+  [ok] pixel_align_to_1_over_24 align(3.14159)
+  [ok] corner_view_inside_map_0_0 target=(10.000, 8.750)
+  [ok] corner_view_inside_map_80_0 target=(70.000, 8.750)
+  [ok] corner_view_inside_map_0_60 target=(10.000, 51.250)
+  [ok] corner_view_inside_map_80_60 target=(70.000, 51.250)
+  [ok] camera_position_pixel_aligned camera=(43.5000, -12.5417)
+[camera-check] 报告写入 C:\Users\baba\Documents\Trae\temp_20261108_01\naiwa_campus\reports\standalone\C\camera_check.json
+
+完成。

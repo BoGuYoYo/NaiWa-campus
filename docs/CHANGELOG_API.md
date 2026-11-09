@@ -111,11 +111,61 @@ A 只注册 `flow_tick(45)`、`offscreen_capture(60)`、`autoplay(70)`。其他�
 | 结局 `ending_creator` | 建议文案口径改为「独立开发者」，与上面的活动语义对齐 | B（endings.json）、D（结局文本） | 只改文案，ID 与判定条件不动 |
 | 头像表情 ID | `portrait_naiwan_tired` → `portrait_naiwan_angry`；`portrait_naiwan_determined` → `portrait_naiwan_speechless`（用户实际交付的是「生气 / 无语」） | D（对话框、状态面板选表情） | 旧 ID 已从 manifest 移除；`game/core` 无硬编码，D 按 manifest 取即可 |
 | 新增资源工具 | `tools/import_generated_art.py`（活动插图 160×90、头像 96×96 落位）；`tools/slice_reference_sheets.py` 新增 `--idle-source`；`tools/build_campus_models.py`（低多边形校园模型） | A/E（校验脚本可复用） | 头像、9 张插图、23 个模型均已转正式资源（`LIC-0006` / `LIC-0207`），`make_placeholders.py` 不再覆盖它们 |
-| 校园模型转正式 | 5 栋建筑 + 5 个室内 + 地面 + 12 道具，按用户等距参考图程序化建模（纯顶点色、无贴图、单栋 ≤720 三角面） | C（场景摆放 / 占地对齐）、E（打包体积） | 当前室外 4,822 三角面、含室内共 5,518 三角面；占地是 A 的布景值，必须与 C 的 `content/world/map.json` 对齐后才算定稿 |
+| 校园模型转正式 | 5 栋建筑 + 5 个室内 + 地面 + 12 道具，按用户等距参考图在 Blender 中重构后转 BAM（ColorAttrib、无贴图） | C（场景摆放 / 占地对齐）、E（打包体积） | 当前室外 7,120 三角面、含室内共 7,816 三角面；占地是 A 的布景值，必须与 C 的 `content/world/map.json` 对齐后才算定稿 |
 | 引擎坑（Panda3D 1.10） | `ShowBase` 已移除 `loadModel` 便捷方法 | 全员 | `AssetRegistry.load_model()` 改为 `getattr(loader, "loader", loader).loadModel(...)` |
 | 缺陷修复（2026-11-08） | 关窗口后 BGM 还在响 | 全员（尤其 D 的菜单） | 三个原因一起修：① 1.10.16 的 `WindowProperties` **没有** `getCloseRequested()`，关闭判据是 `getOpen() == False`，`game/app.py::_on_window_event` 里调错 API 会让 ShowBase 的 `windowEvent` 一起崩 → 窗口关不掉；② `quit_game()` 退出前显式 `stop_audio()`（`AudioManager.stop_all()` 停音乐+音效并置静默）；③ `run()` 的 `finally` 再兜一次 `stop_audio()` + `destroy()`，任何退出路径都先停声音 |
 
 改内容 JSON 时不需要动 `game/core`：活动、文本、结局全部由 B/D 的 JSON 驱动，A 只提供 `asset_id`。
+
+### 9. 整合 C / D 时对交付物做的修正（2026-11-09）
+
+这一节记录 A 在把 C、D 的交付包合入 `develop` 时**按共用规格改掉的契约偏差**，
+用于回溯"为什么和当初交付的版本不一样"。全部改动都可在 git 里逐条对照。
+
+#### 9.1 接口契约（A 侧新增装配层）
+
+| 项 | 变更 | 说明 |
+| --- | --- | --- |
+| 新增 `game/core/world_scene.py` | 场景适配层 | 规范里"场景协议"（`__init__(app, **kw)` / `on_enter` / `on_exit` / `on_update` / `is_overlay`）属于 A 的装配职责。C 交的是几何构建器、D 交的是 widget，都不是协议类；本文件把他们包成 `CampusSceneAdapter` / `InteriorSceneAdapter` / 9 个界面适配器 |
+| `SCENE_MODULES` | 全部指向适配层 | 类名与构造约定统一由 A 维护；`game/world`、`game/ui` 里的类名今后不再被 `app.py` 直接引用 |
+| `make_scene` 异常处理 | `except (ImportError, AttributeError)` → `except Exception` | 装配失败一律降级到 A 的替身场景并记 warning。旧写法下"类存在但构造参数不对"会直接冒到主循环，表现为合并即崩 |
+| `AssetRegistry.load_font` | 改用 `loader.loadFont()` | Panda3D 1.10.16 的 `TextFont()` 是抽象类（实例化抛 `TypeError`），且 `loadFont` 只接受 Panda 风格 unix 路径（`/c/...`），传 Windows 路径或 `Filename` 都会失败 |
+| 新增 `AssetRegistry.load_ui_font()` | 界面字体兜底 | manifest 的 `font_ui`（`assets/fonts/FusionPixel12.ttf`）仍未交付，缺失时按 `msyh.ttc` → `simhei.ttf` → … 顺序回退系统中文黑体，并写 `[FONT]` 日志。**打包前必须补正式字体**，否则换机器会退回方框 |
+| `GameFlow.today_activities` | 新增 | 记录当天已完成的活动 id，供日结算面板显示「今天的 3 次行动」；`_begin_next_day` 时清空 |
+| `FallbackRelationshipService` | 新增替身 | B 未合入时交谈要有反馈：`can_talk` / `preview` / `talk`（消耗 5 精力、社交 +2、占 1 个行动位）。正式版由 B 覆盖 |
+
+#### 9.2 任务 C 的修正
+
+| 项 | 变更 | 原因 |
+| --- | --- | --- |
+| `make_circle_lines` / `make_rect_lines` | `GeomLinestrips` → `GeomLines` | 1.10.16 下 `GeomLinestrips` 既不渲染（像素计数为 0），又会让 `flattenStrong()` 踩内存断言——`loc_library` / `loc_canteen` 构造即崩。改用逐段 `GeomLines` 后地垫红圈、NPC 站位圈、F1 碰撞线框、F2 交互点圆全部可见 |
+| 区域分层 | 新增 `AREA_Z` 表 | 三条道路彼此相交、道路又与广场/操场重叠，原先统一 `z=0.02` 导致整屏 z-fighting 条纹；改为道路 0.010/0.012/0.014、区域 0.020/0.022/0.024 |
+| `interaction_service.py` | 去掉 `state.energy` 读取与 `NPC_TALK_ENERGY_COST` | 共用规格要求 `game/world` 不读写属性字段；交谈能否进行改由 `RelationshipService.can_talk()` 判定，C 只透传错误码与 `preview` |
+| NPC 提示文案 ID | `npc.npc_sumo.talk` → `npc.sumo.talk` | `target` 已带 `npc_` 前缀，旧写法在 D 的 strings.json 里没有对应键，提示框会显示 `#npc.npc_sumo.talk` |
+| `tests/world/test_gui_scene.py` | 新增 5 栋室内参数化用例 | 原先只造 `loc_dorm`，所以 2/5 室内崩溃漏检 |
+
+#### 9.3 任务 D 的修正
+
+| 项 | 变更 | 原因 |
+| --- | --- | --- |
+| `tutorial.py` | `TutorialOverlay` 不再继承 `UIWidget` | 模块级继承需要 import `widgets`，而 `widgets` 依赖 panda3d，导致 `tests/ui` 收集阶段 `NameError` 全挂 |
+| `widgets.MultilineLabel` | `set_lines()` 支持按需补行 | 旧实现只遍历构造时建好的行，而所有调用点都传 `[]` → 对话正文、结果文本、毕业正文永远空白 |
+| `widgets.UIWidget` | 每个界面自建容器节点，子控件挂在容器下 | 旧版子控件挂在公共 parent 上，`hide()`/`destroy()` 收不干净，关掉的界面会留在屏幕上（`--screen all` 渲出来是七层叠影） |
+| `UILabel` | 以「左上角」为锚点 | 旧版按基线定位，所有标题比面板上沿高出一行 |
+| `UIPanel` | 9-slice 着色 + 内衬 + 固定绘制顺序 | 占位皮肤中心偏亮，会把白字洗掉；不透明度提到 1.0，避免 3D 场景透出来影响阅读 |
+| 活动 ID | `studio_practice/dorm_rest/campus_stroll/gym_train` → `create_work/rest_dorm/campus_walk/exercise` | 规范 §A8 与 `manifest.json` 冻结的 9 个活动 ID；旧名导致 4 个活动共 16 个文本键永不命中 |
+| `create_work` 文案 | 「画室练习 / 速写 / 调色」→「敲代码 / 跑通 / 重构」；`ending_creator` →「独立开发者」 | 与 §8 的内容变更（插图改成双屏写代码）对齐 |
+| 头像 ID | `normal/smile/shy/worried/excited/touched/serious` → `neutral/happy/sad/surprised` | 旧 ID 在 manifest 里不存在，9 处对话头像 8 处显示品红黑格 |
+| 文本速度 | `instant/normal/slow`（10/20 字每秒）→ `slow20/normal40/fast80/instant` | 与 `config.TEXT_SPEED_TABLE` 一致；旧值整体慢一倍且缺 `fast` 档 |
+| 音量键名 | `volume_master/music/sfx` → `master_volume/bgm_volume/sfx_volume` | 直接读写 A 的 `config.Settings`，旧键名导致三个滑块完全无效 |
+| 存读档 | 槽位 `"0"/"1"/"2"` + `dict.items()` → `slot_1..3` / `autosave` + `list[SaveSummary]` | 与 `SaveManager` 对齐；旧版 `list_slots()` 直接 `AttributeError`（被 except 吞掉，永远显示"空"），`save(None, "0")` 会抛 `ValueError` |
+| 结果面板 | 按 `cg_naiwan_<activity_id>` 加载活动插图；有 registry 时不再隐藏占位 | 旧逻辑恰好相反：有 registry 就把插图藏掉且永不换图，9 张 CG 一张都显示不出来 |
+| 查看点文案 | `insp.gate_board/lake_bank/billboard/statue/oak_tree` → `insp.gate_notice/course_board/bookshelf/librarian/canteen_aunt` | 与 C 的 `interactables.json` 的 5 个 inspect 点对齐；旧键名两边完全不重合 |
+| 新增文案 | `ui.prompt.enter` / `ui.prompt.save` | C 的门与存档点提示用这两个 ID，D 原先没有，提示框显示 `#ui.prompt.enter` |
+| `TextDB` | 新增 `get_raw()`；`get()` 变严格 | 文本里带 `{...}` 但参数没给齐时记 error 并返回原文（D-ST-05）；需要原样模板的调用点改走 `get_raw()` |
+| `tests/standalone_d.py` | 离屏尺寸改用 `loadPrcFileData` | 离屏缓冲不可 `set_size()`（踩 `BF_resizeable` 断言），原截图命令一条也跑不起来 |
+| `tests/ui/fixtures/strings.json` | 补齐断言用到的键 | 原夹具只有 11 条，4 个测试因此交付即红 |
+
 
 ---
 

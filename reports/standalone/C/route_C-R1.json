@@ -1,0 +1,212 @@
+{
+  "agent": "C",
+  "check": "route",
+  "route": "C-R1",
+  "ok": true,
+  "steps": [
+    {
+      "interactable": "ia_door_dorm",
+      "type": "door",
+      "target": "loc_dorm",
+      "kind": "door"
+    },
+    {
+      "interactable": "ia_bed",
+      "type": "activity",
+      "target": "rest_dorm",
+      "kind": "activity"
+    },
+    {
+      "exit": "loc_dorm",
+      "to": [
+        19.8,
+        17.0
+      ],
+      "facing": "e"
+    },
+    {
+      "interactable": "ia_track_start",
+      "type": "activity",
+      "target": "exercise",
+      "kind": "activity"
+    },
+    {
+      "interactable": "ia_plaza_bench",
+      "type": "activity",
+      "target": "campus_walk",
+      "kind": "activity"
+    },
+    {
+      "interactable": "ia_door_classroom",
+      "type": "door",
+      "target": "loc_classroom",
+      "kind": "door"
+    },
+    {
+      "interactable": "ia_class_desk",
+      "type": "activity",
+      "target": "attend_class",
+      "kind": "activity"
+    },
+    {
+      "exit": "loc_classroom",
+      "to": [
+        21.8,
+        40.0
+      ],
+      "facing": "e"
+    },
+    {
+      "interactable": "ia_door_library",
+      "type": "door",
+      "target": "loc_library",
+      "kind": "door"
+    },
+    {
+      "interactable": "ia_reading_desk",
+      "type": "activity",
+      "target": "library_study",
+      "kind": "activity"
+    },
+    {
+      "exit": "loc_library",
+      "to": [
+        58.2,
+        40.0
+      ],
+      "facing": "w"
+    },
+    {
+      "interactable": "ia_door_clubroom",
+      "type": "door",
+      "target": "loc_clubroom",
+      "kind": "door"
+    },
+    {
+      "interactable": "ia_game_pc",
+      "type": "activity",
+      "target": "play_games",
+      "kind": "activity"
+    },
+    {
+      "exit": "loc_clubroom",
+      "to": [
+        60.2,
+        17.0
+      ],
+      "facing": "w"
+    },
+    {
+      "interactable": "ia_door_canteen",
+      "type": "door",
+      "target": "loc_canteen",
+      "kind": "door"
+    },
+    {
+      "interactable": "ia_food_window",
+      "type": "activity",
+      "target": "eat_canteen",
+      "kind": "activity"
+    },
+    {
+      "exit": "loc_canteen",
+      "to": [
+        40.0,
+        46.2
+      ],
+      "facing": "s"
+    },
+    {
+      "interactable": "ia_gate_notice",
+      "type": "inspect",
+      "target": "inspect.gate_notice",
+      "kind": "inspect"
+    }
+  ],
+  "activity_calls": [
+    [
+      "loc_dorm",
+      "rest_dorm"
+    ],
+    [
+      "road_east_west",
+      "exercise"
+    ],
+    [
+      "road_east_west",
+      "campus_walk"
+    ],
+    [
+      "loc_classroom",
+      "attend_class"
+    ],
+    [
+      "loc_library",
+      "library_study"
+    ],
+    [
+      "loc_clubroom",
+      "play_games"
+    ],
+    [
+      "loc_canteen",
+      "eat_canteen"
+    ]
+  ],
+  "scene_changes": [
+    [
+      "InteriorScene",
+      {
+        "building_id": "loc_dorm"
+      }
+    ],
+    [
+      "InteriorScene",
+      {
+        "building_id": "loc_classroom"
+      }
+    ],
+    [
+      "InteriorScene",
+      {
+        "building_id": "loc_library"
+      }
+    ],
+    [
+      "InteriorScene",
+      {
+        "building_id": "loc_clubroom"
+      }
+    ],
+    [
+      "InteriorScene",
+      {
+        "building_id": "loc_canteen"
+      }
+    ]
+  ],
+  "scene_pushes": [
+    [
+      "EventScene",
+      {
+        "event_id": null,
+        "text_id": "insp.gate_notice.body"
+      }
+    ]
+  ],
+  "events": [
+    "activity.done",
+    "activity.done",
+    "activity.done",
+    "activity.done",
+    "activity.done",
+    "activity.done",
+    "activity.done"
+  ],
+  "final_position": [
+    43.03,
+    3.96
+  ],
+  "final_scene": "campus",
+  "problems": []
+}

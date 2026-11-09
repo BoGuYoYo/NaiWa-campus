@@ -1,0 +1,18 @@
+{
+  "agent": "C",
+  "check": "collision-fuzz",
+  "ok": true,
+  "iterations": 3000,
+  "seed": 20261109,
+  "blocked_steps": 55,
+  "max_step_distance": 0.199932,
+  "bounds": [
+    0.0,
+    0.0,
+    80.0,
+    60.0
+  ],
+  "obstacle_count": 11,
+  "failures": [],
+  "failure_count": 0
+}

@@ -1,0 +1,33 @@
+{
+  "_comment": "FakeActivityResult 夹具：固定 deltas / text_ids，驱动结果面板（D-ST-02）。",
+  "result_library": {
+    "ok": true,
+    "activity_id": "library_study",
+    "error_code": null,
+    "deltas": { "academic": 5, "energy": -20 },
+    "added_flags": [],
+    "text_ids": ["ui.test.act.result.1"],
+    "triggered_event_id": null,
+    "day_finished": false
+  },
+  "result_talk": {
+    "ok": true,
+    "activity_id": "talk.npc_sumo",
+    "error_code": null,
+    "deltas": { "social": 3, "mood": 2, "rel_npc_sumo": 1 },
+    "added_flags": ["talked_npc_sumo"],
+    "text_ids": ["ui.test.act.result.1"],
+    "triggered_event_id": "rel_npc_sumo_1",
+    "day_finished": false
+  },
+  "result_blocked": {
+    "ok": false,
+    "activity_id": "library_study",
+    "error_code": "E_LOW_ENERGY",
+    "deltas": {},
+    "added_flags": [],
+    "text_ids": ["err.low_energy"],
+    "triggered_event_id": null,
+    "day_finished": false
+  }
+}

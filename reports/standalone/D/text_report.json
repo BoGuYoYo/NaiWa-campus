@@ -1,0 +1,13 @@
+{
+  "locale": "zh_CN",
+  "counts": {
+    "strings_total": 283,
+    "dialogues_total": 52,
+    "activities": 9,
+    "semester_events": 8,
+    "relationship_events": 9,
+    "daily_events": 12,
+    "endings": 6
+  },
+  "problems": []
+}

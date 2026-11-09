@@ -166,6 +166,46 @@ class FallbackEventService:
         return EventResult(event_id=event_id, choice_id=choice_id)
 
 
+class FallbackRelationshipService:
+    """B 未合入时的交谈替身：只保证"能聊、有反馈、占一次行动"。
+
+    规则与数值都来自 A 的替身表，不代表正式平衡；正式版由 B 覆盖。
+    """
+
+    NPC_TALK_ENERGY = 5
+    NPC_TALK_SOCIAL = 2
+
+    def can_talk(self, state: GameState, npc_id: str) -> tuple[bool, str | None]:
+        if npc_id in state.talked_today:
+            return False, "E_ALREADY_TALKED"
+        if state.energy < self.NPC_TALK_ENERGY:
+            return False, "E_LOW_ENERGY"
+        if state.day_finished:
+            return False, "E_NO_SLOT"
+        return True, None
+
+    def preview(self, state: GameState, npc_id: str) -> dict[str, int]:
+        return {"energy": -self.NPC_TALK_ENERGY, "social": self.NPC_TALK_SOCIAL}
+
+    def talk(self, state: GameState, npc_id: str) -> ActivityResult:
+        ok, code = self.can_talk(state, npc_id)
+        if not ok:
+            return ActivityResult(ok=False, activity_id=f"talk.{npc_id}", error_code=code)
+        state.energy = max(0, state.energy - self.NPC_TALK_ENERGY)
+        state.stats["social"] = min(100, state.stats.get("social", 0) + self.NPC_TALK_SOCIAL)
+        state.talked_today.add(npc_id)
+        state.relationships[npc_id] = min(100, state.relationships.get(npc_id, 0) + 1)
+        state.action_slot = min(config.ACTIONS_PER_DAY, state.action_slot + 1)
+        short = npc_id.replace("npc_", "")
+        return ActivityResult(
+            ok=True,
+            activity_id=f"talk.{npc_id}",
+            deltas={"energy": -self.NPC_TALK_ENERGY, "social": self.NPC_TALK_SOCIAL},
+            text_ids=[f"npc.{short}.greet.1"],
+            day_finished=state.day_finished,
+        )
+
+
 # --------------------------------------------------------------------------- #
 @dataclass
 class Services:
@@ -187,7 +227,7 @@ def resolve_services(log: logging.Logger | None = None) -> Services:
         "calendar": ("game.systems.calendar_service", "CalendarService", FallbackCalendarService),
         "event": ("game.systems.event_service", "EventService", FallbackEventService),
         "ending": ("game.systems.ending_service", "EndingService", FallbackEndingService),
-        "relationship": ("game.systems.relationship_service", "RelationshipService", None),
+        "relationship": ("game.systems.relationship_service", "RelationshipService", FallbackRelationshipService),
         "interaction": ("game.world.interaction_service", "InteractionService", None),
     }
     for attr, (module_name, class_name, fallback) in plan.items():
@@ -236,6 +276,7 @@ class GameFlow:
         self.paused = False
         self.story_opening_id = "story_opening"
         self.last_activity_result: ActivityResult | None = None
+        self.today_activities: list[str] = []   # 当天已完成的行动（日结算面板用）
         self._day_start_emitted_for: int | None = None
         self._pending_day_start = False
         self._pending_graduation = False
@@ -302,10 +343,16 @@ class GameFlow:
         state = self.require_state()
         self.last_activity_result = result
         self.bus.emit(TOPIC_ACTIVITY_DONE, result=result)
+        if result.ok and result.activity_id:
+            self.today_activities.append(result.activity_id)
         LOG.info("[FLOW] activity %s ok=%s deltas=%s slot=%d",
                  result.activity_id, result.ok, result.deltas, state.action_slot)
         if result.ok and result.triggered_event_id:
             state.pending_event_id = result.triggered_event_id
+
+    def activity_log_today(self) -> list[str]:
+        """当天已完成的 action_id 列表（顺序即执行顺序），供日结算面板显示。"""
+        return list(self.today_activities)
 
     def close_result_panel(self, result: ActivityResult | None = None) -> None:
         """ResultPanel 关闭时调用：事件优先，其次是日结算。"""
@@ -369,6 +416,7 @@ class GameFlow:
     def _begin_next_day(self, state: GameState) -> None:
         state.action_slot = 0
         state.phase = "campus"
+        self.today_activities = []
         self.teleport_to_spawn()
         self.bus.emit(TOPIC_DAY_STARTED, state=state, day_index=state.day_index)
         self._day_start_emitted_for = state.day_index

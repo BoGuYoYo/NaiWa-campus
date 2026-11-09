@@ -1,0 +1,96 @@
+{
+  "agent": "C",
+  "check": "camera",
+  "ok": true,
+  "half_view": {
+    "x": 10.0,
+    "y": 8.75
+  },
+  "target_bounds": {
+    "min": [
+      10.0,
+      8.75
+    ],
+    "max": [
+      70.0,
+      51.25
+    ]
+  },
+  "checks": [
+    {
+      "name": "film_is_24_px_per_meter",
+      "ok": true,
+      "detail": "film=(20.0, 11.25)"
+    },
+    {
+      "name": "camera_hpr_is_fixed",
+      "ok": true,
+      "detail": "(0.0, -40.0, 0.0)"
+    },
+    {
+      "name": "camera_offset_matches_spec",
+      "ok": true,
+      "detail": "offset=(-22.9813, 19.2836)"
+    },
+    {
+      "name": "deadzone_holds_inside",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "deadzone_pushes_to_edge_x",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "deadzone_pushes_to_edge_y",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "smooth_is_frame_rate_independent",
+      "ok": true,
+      "detail": "one_shot=0.9817 stepwise=0.9817"
+    },
+    {
+      "name": "clamp_low",
+      "ok": true,
+      "detail": "(10.0, 8.75)"
+    },
+    {
+      "name": "clamp_high",
+      "ok": true,
+      "detail": "(70.0, 51.25)"
+    },
+    {
+      "name": "pixel_align_to_1_over_24",
+      "ok": true,
+      "detail": "align(3.14159)"
+    },
+    {
+      "name": "corner_view_inside_map_0_0",
+      "ok": true,
+      "detail": "target=(10.000, 8.750)"
+    },
+    {
+      "name": "corner_view_inside_map_80_0",
+      "ok": true,
+      "detail": "target=(70.000, 8.750)"
+    },
+    {
+      "name": "corner_view_inside_map_0_60",
+      "ok": true,
+      "detail": "target=(10.000, 51.250)"
+    },
+    {
+      "name": "corner_view_inside_map_80_60",
+      "ok": true,
+      "detail": "target=(70.000, 51.250)"
+    },
+    {
+      "name": "camera_position_pixel_aligned",
+      "ok": true,
+      "detail": "camera=(43.5000, -12.5417)"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "notes": "任务 C 独立测试用的小地图，不依赖任何模型文件。",
+  "outdoor": {
+    "bounds": [0.0, 0.0, 20.0, 20.0],
+    "wall_thickness": 1.0,
+    "spawn": {"x": 10.0, "y": 3.0, "facing": "n", "location_id": "loc_yard"}
+  },
+  "interior_wall_thickness": 0.5,
+  "buildings": [
+    {"id": "loc_hall", "name": "测试馆", "rect": [2.0, 2.0, 8.0, 8.0],
+     "door": {"x": 8.0, "y": 5.0, "facing": "e"}, "outside_trigger": [8.8, 5.0]}
+  ],
+  "areas": [
+    {"id": "loc_yard", "name": "测试庭院", "rect": [1.0, 1.0, 19.0, 19.0]}
+  ],
+  "props": [
+    {"id": "prop_bench", "name": "长椅", "rect": [14.0, 2.0, 16.0, 4.0]}
+  ],
+  "interiors": [
+    {"id": "loc_hall", "origin": [100.0, 0.0], "size": [16.0, 10.0],
+     "entry_mat": {"x": 8.0, "y": 0.6, "radius": 0.8},
+     "spawn": {"x": 8.0, "y": 1.6, "facing": "n"},
+     "furniture": [
+       {"id": "furn_table", "name": "桌子", "rect": [2.0, 7.0, 5.0, 9.0]}
+     ],
+     "npc_marks": [
+       {"name": "测试 NPC", "x": 12.0, "y": 5.0}
+     ]}
+  ]
+}

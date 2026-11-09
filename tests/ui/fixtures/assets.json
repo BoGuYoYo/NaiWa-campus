@@ -1,0 +1,14 @@
+{
+  "_comment": "占位资源注册表：验证图标和字体（D-ST-01），返回纯色 Texture。",
+  "assets": {
+    "ui_panel_9slice": { "kind": "flat_color", "color": "#1B1F2A" },
+    "ui_icon_energy": { "kind": "flat_color", "color": "#6ABE30", "size": [12, 12] },
+    "ui_icon_mood": { "kind": "flat_color", "color": "#F2C14E", "size": [12, 12] },
+    "ui_key_e": { "kind": "flat_color", "color": "#F4F1E8", "size": [14, 14] },
+    "ui_key_wasd": { "kind": "flat_color", "color": "#F4F1E8", "size": [56, 14] },
+    "portrait_npc_sumo_normal": { "kind": "flat_color", "color": "#3A4157", "size": [96, 96] },
+    "portrait_npc_chenlang_happy": { "kind": "flat_color", "color": "#5A4157", "size": [96, 96] },
+    "portrait_npc_xiaoyou_shy": { "kind": "flat_color", "color": "#41575A", "size": [96, 96] }
+  },
+  "font_ui": "Fusion Pixel 12px（正式环境由 assets/fonts/ 提供，夹具使用系统等宽字体）"
+}

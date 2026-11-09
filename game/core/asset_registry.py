@@ -460,15 +460,75 @@ class AssetRegistry:
             return None
         if asset_id in self._font_cache:
             return self._font_cache[asset_id]
-        from panda3d.core import TextFont
-
-        font = TextFont()
-        font.load(self._filename(self.root / "assets" / entry.path))
-        if font.getNumPages() == 0 and not Path(self.root / "assets" / entry.path).exists():
+        font = self._load_font_file(self.root / "assets" / entry.path)
+        if font is None:
             self._mark_missing(asset_id, "engine load failed")
             return None
         self._font_cache[asset_id] = font
         return font
+
+    def _load_font_file(self, path: Path):
+        """用 Loader 载入字体。
+
+        1.10.16 的坑有两层：`TextFont()` 是抽象类（直接实例化抛 TypeError），
+        只能用 `loader.loadFont()`；而且它只吃 Panda 风格的 unix 路径，
+        传 Windows 路径或 Filename 对象都会失败，必须先 getFullpath()。
+        """
+        loader = getattr(self.loader, "loader", self.loader)
+        candidate = self._filename(path)
+        for argument in (candidate.get_fullpath(), candidate):
+            try:
+                font = loader.loadFont(argument)
+            except Exception as exc:
+                self.log.debug("[ASSET] font load failed %s(%r): %s", path, argument, exc)
+                continue
+            if font is not None:
+                return font
+        return None
+
+    #: 界面字体的候选系统字体（manifest 的 font_ui 缺失时的兜底）。
+    #: 只在这些文件存在时才用；不存在则继续用引擎默认字体（无中文）。
+    SYSTEM_CJK_FONTS = (
+        "msyh.ttc",      # 微软雅黑
+        "msyh.ttf",
+        "simhei.ttf",    # 黑体
+        "Deng.ttf",      # 等线
+        "simsun.ttc",    # 宋体
+        "YuGothR.ttc",
+    )
+
+    def load_ui_font(self):
+        """界面字体：优先 manifest 的 font_ui，缺失时回退到系统中文黑体。
+
+        规格要求的 FusionPixel12.ttf 尚未交付时，D 的界面本来会全是方框；
+        这里在保持 [ASSET] missing 语义的前提下给一个可用的兜底，并写明来源。
+        """
+        if "font_ui_fallback" in self._font_cache:
+            return self._font_cache["font_ui_fallback"]
+        font = self.load_font("font_ui")
+        if font is not None:
+            self.log.info("[FONT] ui font = manifest font_ui")
+            self._font_cache["font_ui_fallback"] = font
+            return font
+        import os
+
+        fonts_dir = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts"
+        for name in self.SYSTEM_CJK_FONTS:
+            candidate = fonts_dir / name
+            if not candidate.exists():
+                continue
+            fallback = self._load_font_file(candidate)
+            if fallback is None:
+                continue
+            self.log.warning(
+                "[FONT] font_ui 缺失，回退系统字体 %s（打包前须补 assets/fonts/FusionPixel12.ttf）",
+                candidate.name,
+            )
+            self._font_cache["font_ui_fallback"] = fallback
+            return fallback
+        self.log.error("[FONT] 没有可用的中文字体，界面文本会显示为方框")
+        self._font_cache["font_ui_fallback"] = None
+        return None
 
     def clear_cache(self) -> None:
         self._texture_cache.clear()

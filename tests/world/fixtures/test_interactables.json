@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "notes": "任务 C 独立测试用的交互点，配合 test_map.json。",
+  "interactables": [
+    {"id": "ia_test_desk", "name": "测试课桌", "scene": "campus", "location_id": "loc_yard",
+     "x": 5.0, "y": 11.0, "radius": 1.2, "type": "activity", "target": "attend_class"},
+    {"id": "ia_test_notice", "name": "测试告示牌", "scene": "campus", "location_id": "loc_yard",
+     "x": 3.0, "y": 11.0, "radius": 1.2, "type": "inspect", "target": "inspect.test_notice"},
+    {"id": "ia_test_tie_inspect", "name": "等距甲", "scene": "campus", "location_id": "loc_yard",
+     "x": 10.0, "y": 10.0, "radius": 1.5, "type": "inspect", "target": "inspect.tie_a"},
+    {"id": "ia_test_tie_save", "name": "等距乙", "scene": "campus", "location_id": "loc_yard",
+     "x": 10.0, "y": 12.0, "radius": 1.5, "type": "save", "target": "save_point"},
+    {"id": "ia_test_npc", "name": "测试同学", "scene": "campus", "location_id": "loc_yard",
+     "x": 15.0, "y": 15.0, "radius": 1.5, "type": "npc", "target": "npc_sumo"},
+    {"id": "ia_test_door", "name": "测试馆门", "scene": "campus", "location_id": "loc_hall",
+     "x": 8.8, "y": 5.0, "radius": 1.2, "type": "door", "target": "loc_hall"},
+
+    {"id": "ia_test_bed", "name": "测试床", "scene": "loc_hall", "location_id": "loc_hall",
+     "x": 4.0, "y": 5.0, "radius": 1.2, "type": "activity", "target": "rest_dorm"},
+    {"id": "ia_test_save", "name": "测试书桌", "scene": "loc_hall", "location_id": "loc_hall",
+     "x": 12.0, "y": 5.0, "radius": 1.2, "type": "save", "target": "save_point"}
+  ]
+}

@@ -600,6 +600,10 @@ def asset_specs() -> list[dict]:
         item.update(extra)
         specs.append(item)
 
+    for building in ("teaching", "dorm", "library", "club", "canteen"):
+        add(f"campus_texture_{building}", "image", f"campus/textures/{building}_front.png", "LIC-0208",
+            tags=["final", "front_elevation", "generated_texture"])
+
     add("char_naiwan_walk", "sprite_sheet", "characters/naiwan/walk.png", "LIC-0001",
         frame_w=48, frame_h=48, cols=8, rows=8, fps=8, pivot=[24, 46],
         row_order=list(DIRECTIONS), tags=list(FINAL_ASSET_TAGS))
@@ -733,17 +737,27 @@ LICENSE_ROWS = [
         "license_id": "LIC-0201", "asset_ids": "model_*",
         "author": "开发者A（Panda3D 程序生成低模）", "source_url": "internal://naiwa_campus/tools/make_placeholders.py",
         "license": "项目内部原创", "commercial_ok": "yes", "modified": "yes",
-        "date_added": "2026-01-05", "notes": "白模占位，正式模型由 Blender 4.x 导出 glTF 后经 tools/gltf_to_bam.py 转换",
+        "date_added": "2026-01-05", "notes": "历史占位模型许可记录；当前校园模型使用 LIC-0207",
     },
     {
         "license_id": "LIC-0207", "asset_ids": "model_*",
-        "author": "开发者A（tools/build_campus_models.py 生成的低多边形几何）；造型参考用户生成的等距图",
+        "author": "开发者A（Blender 4.5.11 场景 + tools/export_blender_game_assets.py + tools/gltf_to_bam.py）；造型参考用户生成的等距图",
         "source_url": "素材/建筑/（宿舍楼、教学楼、图书馆、社团、饭堂、12 个道具、草地1 等距参考图）",
         "license": "项目内部原创几何 + 用户提供的 AI 生成参考图",
         "commercial_ok": "yes", "modified": "yes",
         "date_added": "2026-11-08",
-        "notes": "纯顶点色、无贴图；单栋建筑 ≤800 三角面（实测 170~454），整场景 2,900 三角面；"
+        "notes": "Blender 场景已导出 glTF 并转换为 Panda3D BAM；颜色烘焙为 ColorAttrib 以兼容游戏无光照渲染；"
+                 "室外 7,120 三角面，含 5 个室内模型共 7,816 三角面；"
                  "原点在占地西南角、Z 向上、1 单位=1 米；碰撞体不在模型里（由 C 的 map.json 提供）",
+    },
+    {
+        "license_id": "LIC-0208",
+        "asset_ids": "campus_texture_teaching;campus_texture_dorm;campus_texture_library;campus_texture_club;campus_texture_canteen",
+        "author": "用户提供的 AI 生成素材（正面建筑贴图）",
+        "source_url": "素材/建筑/教学楼.jfif；宿舍楼.jfif；图书馆.jfif；社团中心.jfif；食堂.jfif",
+        "license": "用户提供的 AI 生成素材（生成工具与条款版本见素材来源说明）",
+        "commercial_ok": "yes", "modified": "yes", "date_added": "2026-11-09",
+        "notes": "由 tools/process_building_textures.py 按描好的外轮廓去除 JPEG 棋盘背景，裁切为 RGBA PNG；游戏中作为正面建筑卡片使用",
     },
     {
         "license_id": "LIC-0301", "asset_ids": "font_ui",

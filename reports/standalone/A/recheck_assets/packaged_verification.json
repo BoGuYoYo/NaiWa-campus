@@ -1,0 +1,31 @@
+{
+  "exit_code": 0,
+  "textures": [
+    {
+      "source": "C:/Users/huang/Desktop/奶娃/naiwa_campus/assets/campus/textures/ground_grass.png",
+      "packaged": "C:/Users/huang/Desktop/奶娃/naiwa_campus/dist/NaiwaCampus/_internal/assets/campus/textures/ground_grass.png",
+      "bytes": 142791
+    },
+    {
+      "source": "C:/Users/huang/Desktop/奶娃/naiwa_campus/assets/campus/textures/props/bin.png",
+      "packaged": "C:/Users/huang/Desktop/奶娃/naiwa_campus/dist/NaiwaCampus/_internal/assets/campus/textures/props/bin.png",
+      "bytes": 22033
+    },
+    {
+      "source": "C:/Users/huang/Desktop/奶娃/naiwa_campus/assets/campus/textures/props/lamp.png",
+      "packaged": "C:/Users/huang/Desktop/奶娃/naiwa_campus/dist/NaiwaCampus/_internal/assets/campus/textures/props/lamp.png",
+      "bytes": 8491
+    },
+    {
+      "source": "C:/Users/huang/Desktop/奶娃/naiwa_campus/assets/campus/textures/props/sign.png",
+      "packaged": "C:/Users/huang/Desktop/奶娃/naiwa_campus/dist/NaiwaCampus/_internal/assets/campus/textures/props/sign.png",
+      "bytes": 15437
+    },
+    {
+      "source": "C:/Users/huang/Desktop/奶娃/naiwa_campus/assets/campus/textures/props/tree.png",
+      "packaged": "C:/Users/huang/Desktop/奶娃/naiwa_campus/dist/NaiwaCampus/_internal/assets/campus/textures/props/tree.png",
+      "bytes": 45168
+    }
+  ],
+  "screenshot": "C:/Users/huang/Desktop/奶娃/naiwa_campus/reports/standalone/A/recheck_assets/packaged_campus_assets.png"
+}

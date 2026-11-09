@@ -304,12 +304,25 @@ class GameFlow:
         if skip_intro:
             self.enter_campus()
         else:
-            self.scenes.change("CampusScene", spawn="loc_gate", state=state)
-            state.phase = "event"
-            state.pending_event_id = self.story_opening_id
-            self.bus.emit(TOPIC_EVENT_STARTED, event_id=self.story_opening_id)
-            self.scenes.push("EventScene", event_id=self.story_opening_id, story=True)
+            # 开场事件必须等校园场景真正建立、淡入结束后再 push：
+            # 淡出途中 push 的话，主菜单的 on_exit 会把对话框的按键绑定清掉
+            # （对话框看得见、按什么都没反应，Esc 也失效）。
+            self.scenes.change(
+                "CampusScene",
+                spawn="loc_gate",
+                state=state,
+                on_ready=lambda: self._open_story_opening(state),
+            )
         return state
+
+    def _open_story_opening(self, state: GameState) -> None:
+        """校园场景就绪后弹出开场剧情（只在这次新游戏仍然是当前状态时执行）。"""
+        if self.state is not state:
+            return
+        state.phase = "event"
+        state.pending_event_id = self.story_opening_id
+        self.bus.emit(TOPIC_EVENT_STARTED, event_id=self.story_opening_id)
+        self.scenes.push("EventScene", event_id=self.story_opening_id, story=True)
 
     def load_game(self, slot: str, collision_check=None) -> GameState:
         state = self.saves.load(slot, collision_check=collision_check)

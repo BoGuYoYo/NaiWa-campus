@@ -251,6 +251,7 @@
   "ui.dialogue.continue": "▼",
   "ui.event.choice_locked_hint": "这个选项暂时无法选择",
   "ui.event.page_hint": "[Space] 继续",
+  "ui.event.escape_hint": "先选一个选项吧",
   "ui.graduation.page1_title": "总评属性",
   "ui.graduation.page2_title": "四年回顾",
   "ui.graduation.page3_title": "结局",

@@ -55,7 +55,12 @@ class InteractionPrompt(UIWidget):
 
         if not enabled:
             reason_id = ERROR_TEXT_IDS.get(getattr(prompt_view, "reason_code", None) or "", "")
-            reason = self.text_db.get(reason_id) if reason_id else self.text_db.get("ui.prompt.disabled")
+            if reason_id == "err.unknown_id":
+                reason = self.text_db.get(
+                    reason_id, id=getattr(prompt_view, "interactable_id", "")
+                )
+            else:
+                reason = self.text_db.get(reason_id) if reason_id else self.text_db.get("ui.prompt.disabled")
             self.detail.set_text(reason)
             self.detail.set_color(theme.COLOR_DISABLED)
         else:

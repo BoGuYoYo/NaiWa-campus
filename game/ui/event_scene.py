@@ -7,7 +7,10 @@
 - W/S、↑/↓：选项间循环移动光标；
 - Space / Enter / E：打字中 → 整页；整页 → 下一页 / 确认选项；
 - 1/2/3：直接选择（锁定项无效）；
-- Esc 无效（事件不可中途退出）。
+- Esc：跳过打字机 / 翻页 / 关掉结果页；到了选项阶段只提示，不替玩家做选择
+  （事件本身仍不可中途退出，但按键必须有可见反馈——旧版绑空 lambda，
+  玩家看到的就是"Esc 完全没反应"）。
+- 鼠标左键：等同 Space（玩家第一反应是点一下对话框）。
 
 流程：page 推进 → 最后一页后显示选项 → confirm → on_choose
 （由集成层调 B 的 EventService.choose）。
@@ -123,8 +126,10 @@ class EventScene(UIWidget):
         for i, (choice_id, enabled, _reason) in enumerate(self._cursor.items):
             # 优先用 B 给的 text_id（ChoiceView.text_id），没有才按命名约定拼
             text_id = self._choice_text_ids.get(choice_id) or f"evt.{self._event_id}.choice.{choice_id}"
+            # 必须挂在场景根节点上：UIPanel.root 已经平移到面板左上角，
+            # 再喂绝对逻辑坐标会被平移两次，选项文字会跑到面板外面（面板看着是空的）。
             label = UILabel(
-                self.panel.root, self.transform,
+                self.root, self.transform,
                 rect[0] + 12, rect[1] + 4 + i * 20,
                 self.text_db.get(text_id),
                 color=theme.COLOR_TEXT if enabled else theme.COLOR_DISABLED,
@@ -218,6 +223,21 @@ class EventScene(UIWidget):
             self._show_lock_hint(self._resolve_lock_text(reason))
             return
         self._emit_choice(choice_id)
+
+    def on_escape(self) -> None:
+        """Esc：跳过打字机 → 翻页 → 关掉结果页；选项阶段只给提示。"""
+        if self._showing_result:
+            self._finish()
+            return
+        if self.dialogue.advance():
+            return
+        if self._cursor is not None and self.panel.is_shown():
+            self._show_lock_hint(self.text_db.get("ui.event.escape_hint"))
+            return
+        if self._next_page():
+            return
+        if self._cursor is None:
+            self._finish()
 
     def _confirm_choice(self) -> None:
         result = self._cursor.confirm()

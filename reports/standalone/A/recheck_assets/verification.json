@@ -1,0 +1,92 @@
+{
+  "adapter": "CampusSceneAdapter",
+  "formal_scene": "CampusScene",
+  "front_card_count": 5,
+  "prop_card_count": 24,
+  "ground_node_count": 0,
+  "missing_assets": {
+    "font_ui": "file not found"
+  },
+  "textures": {
+    "campus_texture_ground": {
+      "path": "campus/textures/ground_grass.png",
+      "exists": true,
+      "size": [
+        512,
+        512
+      ]
+    },
+    "campus_texture_prop_tree": {
+      "path": "campus/textures/props/tree.png",
+      "exists": true,
+      "size": [
+        191,
+        256
+      ]
+    },
+    "campus_texture_prop_lamp": {
+      "path": "campus/textures/props/lamp.png",
+      "exists": true,
+      "size": [
+        43,
+        256
+      ]
+    },
+    "campus_texture_prop_bin": {
+      "path": "campus/textures/props/bin.png",
+      "exists": true,
+      "size": [
+        113,
+        160
+      ]
+    },
+    "campus_texture_prop_sign": {
+      "path": "campus/textures/props/sign.png",
+      "exists": true,
+      "size": [
+        94,
+        200
+      ]
+    },
+    "campus_texture_teaching": {
+      "path": "campus/textures/teaching_front.png",
+      "exists": true,
+      "size": [
+        2109,
+        1359
+      ]
+    },
+    "campus_texture_dorm": {
+      "path": "campus/textures/dorm_front.png",
+      "exists": true,
+      "size": [
+        2013,
+        1327
+      ]
+    },
+    "campus_texture_library": {
+      "path": "campus/textures/library_front.png",
+      "exists": true,
+      "size": [
+        1807,
+        1303
+      ]
+    },
+    "campus_texture_club": {
+      "path": "campus/textures/club_front.png",
+      "exists": true,
+      "size": [
+        1743,
+        1077
+      ]
+    },
+    "campus_texture_canteen": {
+      "path": "campus/textures/canteen_front.png",
+      "exists": true,
+      "size": [
+        2425,
+        1415
+      ]
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "exe_exit_code": 0,
+  "screenshot": "C:\\Users\\huang\\Desktop\\奶娃\\naiwa_campus\\reports\\standalone\\A\\building_textures\\packaged_spawn.png",
+  "textures": [
+    {
+      "file": "canteen_front.png",
+      "sha256": "a24070a393020511060fa86dfc78e1f74ce39d8801a5a73ba25c5ada94e63c0e",
+      "bytes": 3200255
+    },
+    {
+      "file": "club_front.png",
+      "sha256": "95a4e195cafa465118c03d36736f04c0d4507637c7133164232bb8907737ff2d",
+      "bytes": 1870805
+    },
+    {
+      "file": "dorm_front.png",
+      "sha256": "8476a0ed75ac4c32d83389c91c54890719a693a74ed2a2ebbcb005ecaafac2a6",
+      "bytes": 2453336
+    },
+    {
+      "file": "library_front.png",
+      "sha256": "5c0817c26324c69a5eb3d89119ade9070af25c2450b0afb4509527acd96cda90",
+      "bytes": 2096875
+    },
+    {
+      "file": "teaching_front.png",
+      "sha256": "dde8b74e6e61c00c4467ee6f0c5031c605a8cc13558dfa8319e0102f7d42be0e",
+      "bytes": 2264252
+    }
+  ],
+  "matches_source_render": true
+}

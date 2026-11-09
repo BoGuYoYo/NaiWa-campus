@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "notes": [
+    "18 个交互点 + 5 扇门，坐标与半径见《任务分工手册 3.0》表 14。",
+    "scene=campus 表示室外，坐标为世界坐标；scene=<建筑 id> 表示室内，坐标为房间本地坐标（原点见 map.json）。",
+    "location_id 为文档表 14 的“地点”列：室外交互点填区域 id，室内交互点与门填建筑 id。",
+    "多个交互点同时在范围内时取最近的一个，距离相同时按 npc > activity > door > save > inspect 选择。"
+  ],
+  "interactables": [
+    {"id": "ia_gate_notice", "name": "校门告示牌", "scene": "campus", "location_id": "loc_gate",
+     "x": 43.0, "y": 4.0, "radius": 1.5, "type": "inspect", "target": "inspect.gate_notice"},
+    {"id": "ia_track_start", "name": "跑道起点", "scene": "campus", "location_id": "loc_playground",
+     "x": 28.0, "y": 17.0, "radius": 2.0, "type": "activity", "target": "exercise"},
+    {"id": "ia_plaza_bench", "name": "广场长椅", "scene": "campus", "location_id": "loc_plaza",
+     "x": 40.0, "y": 33.0, "radius": 1.5, "type": "activity", "target": "campus_walk"},
+
+    {"id": "ia_class_desk", "name": "课桌", "scene": "loc_classroom", "location_id": "loc_classroom",
+     "x": 8.0, "y": 6.0, "radius": 1.2, "type": "activity", "target": "attend_class"},
+    {"id": "ia_course_board", "name": "课程公告牌", "scene": "loc_classroom", "location_id": "loc_classroom",
+     "x": 3.0, "y": 9.0, "radius": 1.2, "type": "inspect", "target": "inspect.course_board"},
+
+    {"id": "ia_reading_desk", "name": "阅览桌", "scene": "loc_library", "location_id": "loc_library",
+     "x": 6.0, "y": 5.0, "radius": 1.2, "type": "activity", "target": "library_study"},
+    {"id": "ia_bookshelf", "name": "书架", "scene": "loc_library", "location_id": "loc_library",
+     "x": 2.0, "y": 8.0, "radius": 1.2, "type": "inspect", "target": "inspect.bookshelf"},
+    {"id": "ia_npc_sumo", "name": "苏墨", "scene": "loc_library", "location_id": "loc_library",
+     "x": 11.0, "y": 6.0, "radius": 1.3, "type": "npc", "target": "npc_sumo"},
+    {"id": "ia_librarian", "name": "图书管理员", "scene": "loc_library", "location_id": "loc_library",
+     "x": 13.0, "y": 2.0, "radius": 1.3, "type": "inspect", "target": "inspect.librarian"},
+
+    {"id": "ia_bed", "name": "床", "scene": "loc_dorm", "location_id": "loc_dorm",
+     "x": 3.0, "y": 7.0, "radius": 1.2, "type": "activity", "target": "rest_dorm"},
+    {"id": "ia_dorm_desk", "name": "书桌（存档/状态）", "scene": "loc_dorm", "location_id": "loc_dorm",
+     "x": 12.0, "y": 7.0, "radius": 1.2, "type": "save", "target": "save_point"},
+
+    {"id": "ia_game_pc", "name": "游戏电脑", "scene": "loc_clubroom", "location_id": "loc_clubroom",
+     "x": 3.0, "y": 7.0, "radius": 1.2, "type": "activity", "target": "play_games"},
+    {"id": "ia_easel", "name": "创作台", "scene": "loc_clubroom", "location_id": "loc_clubroom",
+     "x": 8.0, "y": 8.0, "radius": 1.2, "type": "activity", "target": "create_work"},
+    {"id": "ia_club_board", "name": "社团公告板", "scene": "loc_clubroom", "location_id": "loc_clubroom",
+     "x": 13.0, "y": 8.0, "radius": 1.2, "type": "activity", "target": "join_club"},
+    {"id": "ia_npc_chenlang", "name": "陈朗", "scene": "loc_clubroom", "location_id": "loc_clubroom",
+     "x": 12.0, "y": 5.0, "radius": 1.3, "type": "npc", "target": "npc_chenlang"},
+
+    {"id": "ia_food_window", "name": "打饭窗口", "scene": "loc_canteen", "location_id": "loc_canteen",
+     "x": 8.0, "y": 8.5, "radius": 1.5, "type": "activity", "target": "eat_canteen"},
+    {"id": "ia_npc_xiaoyou", "name": "小柚", "scene": "loc_canteen", "location_id": "loc_canteen",
+     "x": 13.0, "y": 4.0, "radius": 1.3, "type": "npc", "target": "npc_xiaoyou"},
+    {"id": "ia_canteen_aunt", "name": "食堂阿姨", "scene": "loc_canteen", "location_id": "loc_canteen",
+     "x": 5.0, "y": 8.5, "radius": 1.3, "type": "inspect", "target": "inspect.canteen_aunt"},
+
+    {"id": "ia_door_dorm", "name": "宿舍楼门", "scene": "campus", "location_id": "loc_dorm",
+     "x": 18.8, "y": 17.0, "radius": 1.2, "type": "door", "target": "loc_dorm"},
+    {"id": "ia_door_classroom", "name": "教学楼门", "scene": "campus", "location_id": "loc_classroom",
+     "x": 20.8, "y": 40.0, "radius": 1.2, "type": "door", "target": "loc_classroom"},
+    {"id": "ia_door_library", "name": "图书馆门", "scene": "campus", "location_id": "loc_library",
+     "x": 59.2, "y": 40.0, "radius": 1.2, "type": "door", "target": "loc_library"},
+    {"id": "ia_door_clubroom", "name": "社团活动楼（含游戏室）门", "scene": "campus", "location_id": "loc_clubroom",
+     "x": 61.2, "y": 17.0, "radius": 1.2, "type": "door", "target": "loc_clubroom"},
+    {"id": "ia_door_canteen", "name": "食堂门", "scene": "campus", "location_id": "loc_canteen",
+     "x": 40.0, "y": 47.2, "radius": 1.2, "type": "door", "target": "loc_canteen"}
+  ]
+}

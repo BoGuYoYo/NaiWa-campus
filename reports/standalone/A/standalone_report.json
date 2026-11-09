@@ -1,8 +1,8 @@
 {
   "suite": "standalone_a",
-  "total": 13,
-  "passed": 13,
-  "failed": 0,
+  "total": 11,
+  "passed": 10,
+  "failed": 1,
   "results": [
     {
       "name": "A-ST-03a 存档往返一致",
@@ -51,21 +51,11 @@
     },
     {
       "name": "流程图：16 天推进到毕业",
-      "ok": true,
-      "detail": ""
+      "ok": false,
+      "detail": "ContentError: E_UNKNOWN_ID: 事件 sem_1_club_fair 没有选项 ok"
     },
     {
       "name": "流程图：暂停不累计 play_seconds",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "name": "A-ST-04a 缩放规则与网格对齐",
-      "ok": true,
-      "detail": ""
-    },
-    {
-      "name": "A-ST-04b 6 帧离屏渲染生成 480×270 截图",
       "ok": true,
       "detail": ""
     }

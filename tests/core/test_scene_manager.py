@@ -174,3 +174,52 @@ def test_pending_change_is_replaced_by_later_request():
     manager.update(0.3)
     assert len(created) == count + 1
     assert created[-1].scene_id == "GraduationScene"
+
+
+# --------------------------------------------------------------------------- #
+# on_ready：新场景就绪（淡入结束）后才允许 push 覆盖层
+# --------------------------------------------------------------------------- #
+def test_on_ready_runs_after_fade_in():
+    manager, created = make_manager()
+    manager.start("MainMenu")
+    manager.update(0.3)
+    seen = []
+    manager.change("CampusScene", on_ready=lambda: seen.append(manager.base_id))
+
+    manager.update(0.1)
+    assert seen == []  # 还在淡出
+    manager.update(0.2)
+    assert seen == []  # 场景换了，但淡入还没结束
+    manager.update(0.3)
+    assert seen == ["CampusScene"]
+    assert created[-1].scene_id == "CampusScene"
+
+
+def test_on_ready_runs_once_only():
+    manager, _created = make_manager()
+    manager.start("CampusScene")
+    manager.update(0.3)
+    seen = []
+    manager.change("MainMenu", on_ready=lambda: seen.append(1))
+    for _ in range(10):
+        manager.update(0.1)
+    assert seen == [1]
+
+
+def test_on_ready_runs_immediately_without_fade():
+    manager, _created = make_manager(fade=0.0)
+    manager.start("MainMenu")
+    seen = []
+    manager.change("CampusScene", on_ready=lambda: seen.append(manager.base_id))
+    assert seen == ["CampusScene"]
+
+
+def test_on_ready_exception_is_contained():
+    manager, _created = make_manager()
+
+    def boom():
+        raise RuntimeError("overlay failed")
+
+    manager.start("MainMenu", on_ready=boom)  # 不应把构造/main loop 带崩
+    manager.update(0.3)
+    assert manager.current_id == "MainMenu"

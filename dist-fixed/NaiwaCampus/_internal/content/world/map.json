@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "notes": [
+    "任务 C 的坐标唯一来源。代码中不得硬编码坐标。",
+    "室外地图 80x60 米，(0,0) 在西南角；X 向东、Y 向北、Z 向上；画面上方为北。",
+    "props 存放 A 摆放的固定阻挡物；树 0.6x0.6、路灯 0.4x0.4、垃圾桶 0.5x0.5、告示牌 1.0x0.4，均已按 A 交付的正面图逐一登记。",
+    "道具全部避开建筑占地、道路中心线、门的触发半径（1.2~1.5 米）与交互点半径；改名或移动后要重跑 --route C-R1。",
+    "interior_wall_thickness 为室内房间四周不可见墙体的厚度，由 C 决定。"
+  ],
+  "outdoor": {
+    "bounds": [0.0, 0.0, 80.0, 60.0],
+    "wall_thickness": 1.0,
+    "spawn": {"x": 40.0, "y": 5.0, "facing": "n", "location_id": "loc_gate"}
+  },
+  "interior_wall_thickness": 0.5,
+  "buildings": [
+    {"id": "loc_dorm", "name": "宿舍楼", "rect": [4.0, 10.0, 18.0, 24.0],
+     "door": {"x": 18.0, "y": 17.0, "facing": "e"}, "outside_trigger": [18.8, 17.0]},
+    {"id": "loc_classroom", "name": "教学楼", "rect": [4.0, 32.0, 20.0, 48.0],
+     "door": {"x": 20.0, "y": 40.0, "facing": "e"}, "outside_trigger": [20.8, 40.0]},
+    {"id": "loc_library", "name": "图书馆", "rect": [60.0, 32.0, 76.0, 48.0],
+     "door": {"x": 60.0, "y": 40.0, "facing": "w"}, "outside_trigger": [59.2, 40.0]},
+    {"id": "loc_clubroom", "name": "社团活动楼（含游戏室）", "rect": [62.0, 10.0, 76.0, 24.0],
+     "door": {"x": 62.0, "y": 17.0, "facing": "w"}, "outside_trigger": [61.2, 17.0]},
+    {"id": "loc_canteen", "name": "食堂", "rect": [30.0, 48.0, 50.0, 58.0],
+     "door": {"x": 40.0, "y": 48.0, "facing": "s"}, "outside_trigger": [40.0, 47.2]}
+  ],
+  "areas": [
+    {"id": "loc_gate", "name": "校门广场", "rect": [34.0, 0.0, 46.0, 8.0]},
+    {"id": "loc_playground", "name": "操场", "rect": [22.0, 10.0, 34.0, 24.0]},
+    {"id": "loc_plaza", "name": "中心广场", "rect": [30.0, 26.0, 50.0, 42.0]},
+    {"id": "road_main", "name": "主干道", "rect": [37.0, 0.0, 43.0, 48.0]},
+    {"id": "road_east_west", "name": "东西横道", "rect": [18.0, 15.0, 62.0, 19.0]},
+    {"id": "road_north", "name": "北侧横道", "rect": [20.0, 38.0, 60.0, 42.0]}
+  ],
+  "props": [
+    {"id": "prop_plaza_bench", "name": "广场长椅", "rect": [39.0, 33.6, 41.0, 34.2]},
+    {"id": "prop_gate_notice", "name": "校门告示牌", "rect": [42.5, 4.6, 43.5, 5.0]},
+
+    {"id": "prop_tree_w1", "name": "行道树", "rect": [35.2, 5.7, 35.8, 6.3]},
+    {"id": "prop_tree_w2", "name": "行道树", "rect": [35.2, 11.7, 35.8, 12.3]},
+    {"id": "prop_tree_w3", "name": "行道树", "rect": [35.2, 21.7, 35.8, 22.3]},
+    {"id": "prop_tree_w4", "name": "行道树", "rect": [35.2, 44.7, 35.8, 45.3]},
+    {"id": "prop_tree_e1", "name": "行道树", "rect": [46.2, 5.7, 46.8, 6.3]},
+    {"id": "prop_tree_e2", "name": "行道树", "rect": [46.2, 21.7, 46.8, 22.3]},
+    {"id": "prop_tree_e3", "name": "行道树", "rect": [46.2, 44.7, 46.8, 45.3]},
+    {"id": "prop_tree_n1", "name": "景观树", "rect": [20.2, 11.7, 20.8, 12.3]},
+    {"id": "prop_tree_n2", "name": "景观树", "rect": [20.2, 21.7, 20.8, 22.3]},
+    {"id": "prop_tree_c1", "name": "景观树", "rect": [11.7, 26.7, 12.3, 27.3]},
+    {"id": "prop_tree_c2", "name": "景观树", "rect": [15.7, 29.7, 16.3, 30.3]},
+    {"id": "prop_tree_c3", "name": "景观树", "rect": [64.7, 26.7, 65.3, 27.3]},
+    {"id": "prop_tree_c4", "name": "景观树", "rect": [70.7, 29.7, 71.3, 30.3]},
+
+    {"id": "prop_lamp_w1", "name": "路灯", "rect": [35.4, 8.8, 35.8, 9.2]},
+    {"id": "prop_lamp_w2", "name": "路灯", "rect": [35.4, 29.8, 35.8, 30.2]},
+    {"id": "prop_lamp_e1", "name": "路灯", "rect": [45.6, 8.8, 46.0, 9.2]},
+    {"id": "prop_lamp_e2", "name": "路灯", "rect": [45.6, 29.8, 46.0, 30.2]},
+    {"id": "prop_lamp_n1", "name": "路灯", "rect": [34.4, 44.8, 34.8, 45.2]},
+
+    {"id": "prop_bin_dorm", "name": "垃圾桶", "rect": [20.75, 13.75, 21.25, 14.25]},
+    {"id": "prop_bin_classroom", "name": "垃圾桶", "rect": [23.25, 43.25, 23.75, 43.75]},
+    {"id": "prop_bin_library", "name": "垃圾桶", "rect": [56.75, 42.75, 57.25, 43.25]},
+    {"id": "prop_bin_club", "name": "垃圾桶", "rect": [59.25, 20.75, 59.75, 21.25]},
+    {"id": "prop_bin_canteen", "name": "垃圾桶", "rect": [45.75, 45.75, 46.25, 46.25]}
+  ],
+  "interiors": [
+    {"id": "loc_dorm", "origin": [200.0, 0.0], "size": [16.0, 10.0],
+     "entry_mat": {"x": 8.0, "y": 0.6, "radius": 0.8},
+     "spawn": {"x": 8.0, "y": 1.6, "facing": "n"},
+     "furniture": [
+       {"id": "furn_bed", "name": "床", "rect": [1.0, 7.8, 5.0, 9.8]},
+       {"id": "furn_dorm_desk", "name": "书桌", "rect": [10.5, 8.2, 13.5, 9.8]},
+       {"id": "furn_wardrobe", "name": "衣柜", "rect": [14.5, 6.0, 15.8, 9.8]}
+     ],
+     "npc_marks": []},
+    {"id": "loc_classroom", "origin": [220.0, 0.0], "size": [16.0, 10.0],
+     "entry_mat": {"x": 8.0, "y": 0.6, "radius": 0.8},
+     "spawn": {"x": 8.0, "y": 1.6, "facing": "n"},
+     "furniture": [
+       {"id": "furn_desk_row_n", "name": "课桌排", "rect": [5.0, 4.0, 11.0, 5.0]},
+       {"id": "furn_desk_row_s", "name": "课桌排", "rect": [5.0, 2.0, 11.0, 2.8]},
+       {"id": "furn_podium", "name": "讲台", "rect": [6.0, 8.5, 10.0, 9.5]}
+     ],
+     "npc_marks": [],
+     "npc_note": "环境 NPC 2 名坐在课桌排旁，位置由 C 在放置正式模型时确定"},
+    {"id": "loc_library", "origin": [240.0, 0.0], "size": [16.0, 10.0],
+     "entry_mat": {"x": 8.0, "y": 0.6, "radius": 0.8},
+     "spawn": {"x": 8.0, "y": 1.6, "facing": "n"},
+     "furniture": [
+       {"id": "furn_reading_table", "name": "阅览桌", "rect": [4.0, 3.0, 8.0, 4.2]},
+       {"id": "furn_shelf_w", "name": "书架", "rect": [0.2, 6.0, 1.2, 9.8]},
+       {"id": "furn_shelf_n", "name": "书架", "rect": [4.0, 8.8, 9.0, 9.8]},
+       {"id": "furn_service_desk", "name": "服务台", "rect": [11.5, 2.6, 14.5, 3.2]}
+     ],
+     "npc_marks": [
+       {"name": "苏墨", "x": 11.0, "y": 7.0},
+       {"name": "管理员", "x": 13.0, "y": 3.8}
+     ]},
+    {"id": "loc_clubroom", "origin": [260.0, 0.0], "size": [16.0, 10.0],
+     "entry_mat": {"x": 8.0, "y": 0.6, "radius": 0.8},
+     "spawn": {"x": 8.0, "y": 1.6, "facing": "n"},
+     "furniture": [
+       {"id": "furn_pc_desk", "name": "电脑桌", "rect": [1.5, 8.2, 4.5, 9.8]},
+       {"id": "furn_easel", "name": "画架", "rect": [7.4, 8.6, 8.6, 9.6]},
+       {"id": "furn_notice_board", "name": "公告板", "rect": [12.0, 9.7, 14.0, 9.9]},
+       {"id": "furn_sofa", "name": "沙发", "rect": [10.0, 1.5, 13.0, 2.5]}
+     ],
+     "npc_marks": [
+       {"name": "陈朗", "x": 12.0, "y": 6.0}
+     ]},
+    {"id": "loc_canteen", "origin": [280.0, 0.0], "size": [16.0, 10.0],
+     "entry_mat": {"x": 8.0, "y": 0.6, "radius": 0.8},
+     "spawn": {"x": 8.0, "y": 1.6, "facing": "n"},
+     "furniture": [
+       {"id": "furn_food_window", "name": "打饭窗口台", "rect": [3.0, 9.0, 11.0, 9.9]},
+       {"id": "furn_table_e", "name": "餐桌", "rect": [10.0, 2.0, 15.0, 3.4]},
+       {"id": "furn_table_w", "name": "餐桌", "rect": [2.0, 2.0, 7.0, 3.4]}
+     ],
+     "npc_marks": [
+       {"name": "小柚", "x": 13.0, "y": 4.6},
+       {"name": "阿姨", "x": 5.0, "y": 9.4}
+     ]}
+  ]
+}

@@ -68,8 +68,11 @@ def test_done_steps_do_not_repeat_after_reload(fake_state, fixture_text_db):
 def test_only_one_step_at_a_time(fake_state, fixture_text_db):
     controller = make_controller(fake_state, fixture_text_db)
     assert controller.notify("enter_campus") == "tut.move"
-    # tut.move 未完成时其他步骤不并行启动
+    # tut.move 未完成时其他步骤排队，不丢失触发
     assert controller.notify("low_energy") == "tut.move"
+    assert controller.notify("player_moved", distance_m=3.0) == "tut.energy"
+    controller.notify("key_space")
+    assert "tut.energy" in fake_state.tutorial_done
 
 
 def test_is_finished(fake_state, fixture_text_db):

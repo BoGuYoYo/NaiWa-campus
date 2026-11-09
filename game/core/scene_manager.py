@@ -75,36 +75,54 @@ class SceneManager:
         return self._phase != "idle"
 
     # ------------------------------------------------------------------ #
-    def start(self, scene_id: str, **kwargs: Any) -> None:
-        """首个场景：无淡出，直接建立并淡入。"""
+    def start(self, scene_id: str, on_ready: Callable[[], None] | None = None,
+              **kwargs: Any) -> None:
+        """首个场景：无淡出，直接建立并淡入。
+
+        on_ready 在淡入结束（画面已可操作）时回调一次；淡出被跳过时立刻回调。
+        """
         self.log.info("[SCENE] start %s", scene_id)
         scene = self.factory(scene_id, kwargs)
         self.base_scene = scene
         self.base_id = scene_id
         self.history.append(scene_id)
         self._enter(scene, kwargs)
+        self._on_ready = on_ready
         if self.fade_seconds > 0:
             self._phase = "in"
             self._timer = 0.0
             self.fade_alpha = 1.0
+        else:
+            self._phase = "idle"
+            self._ready_callback()
         self._emit(scene_id, scene_id)
 
-    def change(self, scene_id: str, **kwargs: Any) -> None:
-        """基础场景切换：0.25 秒黑场淡出 → 退出旧场景 → 建立新场景 → 淡入。"""
+    def change(self, scene_id: str, on_ready: Callable[[], None] | None = None,
+               **kwargs: Any) -> None:
+        """基础场景切换：0.25 秒黑场淡出 → 退出旧场景 → 建立新场景 → 淡入。
+
+        on_ready 会在新场景建立且淡入结束后回调——覆盖层（开场事件、日结算）
+        必须挂在这个回调里，不能抢在淡出途中 push：那时旧场景还没退出，
+        旧场景的 on_exit 会把新覆盖层的按键绑定一起清掉。
+        """
         if self.base_scene is None and self._pending is None:
             # 首个场景没有可淡出的旧场景，直接建立，避免启动时白等 0.25 秒
-            self.start(scene_id, **kwargs)
+            self.start(scene_id, on_ready=on_ready, **kwargs)
             return
         if self._pending is not None:
             # 淡出途中又来了新的切换请求：以后来的为准，避免毕业/读档被旧请求吞掉
             self.log.info("[SCENE] pending change %s replaced by %s", self._pending[0], scene_id)
             self._pending = (scene_id, dict(kwargs))
+            self._on_ready = on_ready
             return
         if self.base_id == scene_id and not kwargs and self._phase == "idle":
             self.log.debug("[SCENE] change(%s) is a no-op", scene_id)
+            self._on_ready = on_ready
+            self._ready_callback()
             return
         self.log.info("[SCENE] change %s -> %s", self.base_id, scene_id)
         self._pending = (scene_id, dict(kwargs))
+        self._on_ready = on_ready
         if self.fade_seconds <= 0:
             self._run_pending()
             return
@@ -155,9 +173,17 @@ class SceneManager:
             if progress >= 1.0:
                 self.fade_alpha = 0.0
                 self._phase = "idle"
-                if self._on_ready is not None:
-                    callback, self._on_ready = self._on_ready, None
-                    callback()
+                self._ready_callback()
+
+    def _ready_callback(self) -> None:
+        """执行并清空 on_ready（只会跑一次；异常不能拖垮主循环）。"""
+        callback, self._on_ready = self._on_ready, None
+        if callback is None:
+            return
+        try:
+            callback()
+        except Exception as exc:
+            self.log.exception("[SCENE] on_ready failed: %s", exc)
 
     def _run_pending(self) -> None:
         if self._pending is None:
@@ -178,9 +204,7 @@ class SceneManager:
         self._timer = 0.0
         self.fade_alpha = 1.0 if self.fade_seconds > 0 else 0.0
         if self.fade_seconds <= 0:
-            if self._on_ready is not None:
-                callback, self._on_ready = self._on_ready, None
-                callback()
+            self._ready_callback()
 
     def _enter(self, scene: Any, kwargs: dict[str, Any]) -> None:
         hook = getattr(scene, "on_enter", None)

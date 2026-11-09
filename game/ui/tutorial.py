@@ -36,6 +36,7 @@ class TutorialController:
         self.state = state          # GameState（tutorial_done 由 D 写入）
         self.text_db = text_db
         self.active_step: str | None = None
+        self._pending_steps: list[str] = []
         self._moved_meters = 0.0
         self._tab_timer = 0.0
 
@@ -43,18 +44,34 @@ class TutorialController:
     def _start(self, step: str) -> None:
         if step in self.state.tutorial_done or self.active_step == step:
             return
-        # 步骤不并行：同一时刻只显示一个教程横幅
+        # 步骤不并行：当前横幅显示期间先排队，不能静默丢失触发。
         if self.active_step is not None:
+            if step not in self._pending_steps:
+                self._pending_steps.append(step)
             return
         self.active_step = step
+        if step == "tut.tab":
+            self._tab_timer = 0.0
         _log.info("tutorial start: %s", step)
+
+    def _activate_next(self) -> None:
+        while self.active_step is None and self._pending_steps:
+            step = self._pending_steps.pop(0)
+            if step in self.state.tutorial_done:
+                continue
+            self._start(step)
 
     def _complete(self, step: str) -> None:
         if step in self.state.tutorial_done:
             return
         self.state.tutorial_done.add(step)
+        if step in self._pending_steps:
+            self._pending_steps.remove(step)
         if self.active_step == step:
             self.active_step = None
+            self._activate_next()
+        elif self.active_step is None:
+            self._activate_next()
         _log.info("tutorial done: %s", step)
 
     # ------------------------------------------------------------------

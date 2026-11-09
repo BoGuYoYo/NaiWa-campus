@@ -9,7 +9,7 @@
 | A | 仓库骨架、`.gitignore` / `.gitattributes`（LFS：png/ogg/bam/blend/gltf/字体） | ✅ |
 | A | `game/__main__.py`、`app.py`、`config.py`（含 `--dev/--seed/--scene/--spawn/--day/--load/--skip-intro/--windowed/--offscreen/--autoplay/--frames/--screenshot/--inspect/--echo`） | ✅ |
 | A | `core/state.py`、`results.py`、`event_bus.py`、`asset_registry.py`、`render_pipeline.py`、`scene_manager.py`、`save_manager.py`、`audio.py`、`flow.py` | ✅ |
-| A | 480×270 离屏渲染管线（nearest、正交 film 20×11.25、主相机停用、1/24 米网格对齐、整数倍优先 / 85% 规则回退） | ✅ 实测 1280×720=2.6667 拉伸、1920×1080=4 倍 |
+| A | 480×270 离屏渲染管线（nearest、正交 film 25×14.0625、视野放大 1.25 倍、主相机停用、1/24 米网格对齐、整数倍优先 / 85% 规则回退） | ✅ 实测 1280×720=2.6667 拉伸、1920×1080=4 倍 |
 | A | 存档系统（tmp+fsync+replace、`.bak` 回退、`save_version` 迁移、摘要 peek） | ✅ |
 | A | 109 条 manifest + `LICENSES.csv`（9 张许可记录） | ✅ |
 | A | 占位美术 69 张、音频 16 个（4 BGM + 12 SFX，OGG 44.1k）、低模 23 个 `.bam` | ✅ |
@@ -38,9 +38,9 @@ python -m game --dev --scene CampusScene --skip-intro --offscreen --frames 12
    `SceneManager` 使用 A 的替身场景（测试地面）。日志会显示 `fallback`。
 2. `assets/fonts/FusionPixel12.ttf` 未放入，`font_ui` 标记 `pending`；缺字体时中文文本无法显示
    （A 的替身场景已改用 ASCII 标签规避）。D 接入 TextDB 后需要真实字体。
-3. 角色的行走/待机、8 张头像、9 张活动插图均已转正式；其余美术（NPC、环境角色、UI 皮肤、模型）仍是占位；`LICENSES.csv` 中 `author` 字段已注明来源，
+3. 角色的行走/待机、8 张头像、9 张活动插图、23 个校园模型均已转正式；其余美术（NPC、环境角色、UI 皮肤）仍是占位；`LICENSES.csv` 中 `author` 字段已注明来源，
    替换后需更新（角色两张已升级为 `LIC-0001` 正式资源，2026-11-07 素材更新后行走表为 8 帧 384×384）。
-4. `tools/gltf_to_bam.py` 尚未用真实 glTF 验证（仓库里还没有 Blender 导出的资源）。
+4. `tools/gltf_to_bam.py` 已用 Blender 4.5.11 导出的真实 glTF 验证，建筑与道具已替换进 `assets/campus/`。
 5. 替身场景的 `campus_walk` 互动只演示流程，正式交互由 C 的 `InteractionService` 提供。
 
 ## 下周风险
@@ -57,4 +57,4 @@ python -m game --dev --scene CampusScene --skip-intro --offscreen --frames 12
 1. 第 2 周：`SceneManager` / `SaveManager` / `GameFlow` 与 C/D 的真实场景联调；补 `settings.json` 菜单项；
    日志轮转（保留 5 份）与 `reports/` 自动归档。
 2. 奶娃占位精灵表 → 正式行走/待机（A9 流程，先过比例评审）。
-3. 校园白模（5 栋建筑 + 地面）替换 `tools/make_placeholders.py` 生成的白模。
+3. 校园模型已完成首轮参考图重构；下周将与 C 的 `content/world/map.json` 对齐建筑占地与碰撞。

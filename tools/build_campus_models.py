@@ -142,14 +142,39 @@ def panel(root, name, x, y, z, w, h, color, face="s"):
 
 
 def window_row(root, name, x, y, z, count, win_w, win_h, gap, color=C_GLASS, face="s",
-               frame=True):
-    """一排窗：每扇 1 块玻璃（2 三角面），可选 1 圈窗框用亮色薄板（再 2 面）。"""
+               frame=True, mullions=1, frame_color=C_FRAME):
+    """A row of glazed windows with separate perimeter frames and mullions."""
     for index in range(count):
         wx = x + index * (win_w + gap)
         panel(root, f"{name}_{index}", wx, y, z, win_w, win_h, color, face=face)
         if frame:
-            panel(root, f"{name}_{index}_f", wx - 0.08, y, z - 0.08,
-                  win_w + 0.16, win_h + 0.16, C_FRAME, face=face)
+            edge = 0.055
+            if face in ("s", "n"):
+                panel(root, f"{name}_{index}_left", wx - edge, y, z - edge,
+                      edge, win_h + edge * 2, frame_color, face=face)
+                panel(root, f"{name}_{index}_right", wx + win_w, y, z - edge,
+                      edge, win_h + edge * 2, frame_color, face=face)
+                panel(root, f"{name}_{index}_bottom", wx - edge, y, z - edge,
+                      win_w + edge * 2, edge, frame_color, face=face)
+                panel(root, f"{name}_{index}_top", wx - edge, y, z + win_h,
+                      win_w + edge * 2, edge, frame_color, face=face)
+                for mullion in range(1, mullions + 1):
+                    mx = wx + win_w * mullion / (mullions + 1)
+                    panel(root, f"{name}_{index}_mullion{mullion}", mx - edge / 2, y, z,
+                          edge, win_h, frame_color, face=face)
+            else:
+                panel(root, f"{name}_{index}_left", x, y - edge, z - edge,
+                      edge, win_h + edge * 2, frame_color, face=face)
+                panel(root, f"{name}_{index}_right", x, y + win_w, z - edge,
+                      edge, win_h + edge * 2, frame_color, face=face)
+                panel(root, f"{name}_{index}_bottom", x, y - edge, z - edge,
+                      win_w + edge * 2, edge, frame_color, face=face)
+                panel(root, f"{name}_{index}_top", x, y - edge, z + win_h,
+                      win_w + edge * 2, edge, frame_color, face=face)
+                for mullion in range(1, mullions + 1):
+                    my = y + win_w * mullion / (mullions + 1)
+                    panel(root, f"{name}_{index}_mullion{mullion}", x, my - edge / 2, z,
+                          edge, win_h, frame_color, face=face)
     return root
 
 
@@ -170,10 +195,102 @@ def cylinder(root, name, cx, cy, z, radius, height, sides, color):
         tris.append((index, sides + nxt, sides + index))
     center_top = len(verts)
     verts.append((cx, cy, z + height))
+    center_bottom = len(verts)
+    verts.append((cx, cy, z))
     for index in range(sides):
         nxt = (index + 1) % sides
         tris.append((sides + index, center_top, sides + nxt))
+        tris.append((index, center_bottom, nxt))
     root.attachNewNode(_mesh(name, verts, tris, color).node())
+    return root
+
+
+def rod(root, name, p0, p1, radius, color, sides=6):
+    """Low-poly round beam between two points."""
+    import math
+
+    direction = tuple(p1[i] - p0[i] for i in range(3))
+    length = math.sqrt(sum(value * value for value in direction))
+    if length <= 1e-6:
+        return root
+    axis = tuple(value / length for value in direction)
+    reference = (0.0, 0.0, 1.0) if abs(axis[2]) < 0.92 else (0.0, 1.0, 0.0)
+    side = (axis[1] * reference[2] - axis[2] * reference[1],
+            axis[2] * reference[0] - axis[0] * reference[2],
+            axis[0] * reference[1] - axis[1] * reference[0])
+    side_len = math.sqrt(sum(value * value for value in side))
+    side = tuple(value / side_len for value in side)
+    up = (axis[1] * side[2] - axis[2] * side[1],
+          axis[2] * side[0] - axis[0] * side[2],
+          axis[0] * side[1] - axis[1] * side[0])
+    verts = []
+    for point in (p0, p1):
+        for index in range(sides):
+            angle = 2 * math.pi * index / sides
+            verts.append(tuple(point[k] + radius * (
+                math.cos(angle) * side[k] + math.sin(angle) * up[k]) for k in range(3)))
+    tris = []
+    for index in range(sides):
+        nxt = (index + 1) % sides
+        tris.extend(((index, nxt, sides + nxt), (index, sides + nxt, sides + index),
+                     (2 * sides, index, nxt), (2 * sides + 1, sides + nxt, sides + index)))
+    verts.extend((p0, p1))
+    root.attachNewNode(_mesh(name, verts, tris, color).node())
+    return root
+
+
+def ellipsoid(root, name, cx, cy, cz, rx, ry, rz, color, sides=8):
+    """A compact faceted ellipsoid for foliage and soft low-poly forms."""
+    import math
+
+    profiles = ((-0.82, 0.54), (-0.25, 0.92), (0.36, 0.78), (0.82, 0.48))
+    verts = [(cx, cy, cz - rz)]
+    for ring, (height, radius) in enumerate(profiles):
+        phase = ring * 0.17
+        for index in range(sides):
+            angle = 2 * math.pi * index / sides + phase
+            verts.append((cx + rx * radius * math.cos(angle),
+                          cy + ry * radius * math.sin(angle), cz + rz * height))
+    top = len(verts)
+    verts.append((cx, cy, cz + rz))
+    tris = []
+    for index in range(sides):
+        nxt = (index + 1) % sides
+        tris.append((0, 1 + nxt, 1 + index))
+    for ring in range(len(profiles) - 1):
+        start_a = 1 + ring * sides
+        start_b = start_a + sides
+        for index in range(sides):
+            nxt = (index + 1) % sides
+            a, b = start_a + index, start_a + nxt
+            c, d0 = start_b + nxt, start_b + index
+            tris.extend(((a, b, c), (a, c, d0)))
+    last = 1 + (len(profiles) - 1) * sides
+    for index in range(sides):
+        nxt = (index + 1) % sides
+        tris.append((last + index, last + nxt, top))
+    root.attachNewNode(_mesh(name, verts, tris, color).node())
+    return root
+
+
+def circle_panel(root, name, cx, y, cz, radius, color, sides=16):
+    """Filled circular detail on a south-facing vertical facade."""
+    import math
+
+    verts = [(cx, y, cz)]
+    for index in range(sides):
+        angle = 2 * math.pi * index / sides
+        verts.append((cx + radius * math.cos(angle), y, cz + radius * math.sin(angle)))
+    tris = [(0, 1 + index, 1 + (index + 1) % sides) for index in range(sides)]
+    root.attachNewNode(_mesh(name, verts, tris, color).node())
+    return root
+
+
+def grass_blade(root, name, x, y, z, width, height, color, lean=0.0):
+    """One triangular grass blade used in the ground reference sheet."""
+    verts = [(x - width / 2, y, z), (x + width / 2, y, z),
+             (x + lean, y, z + height)]
+    root.attachNewNode(_mesh(name, verts, [(0, 1, 2)], color).node())
     return root
 
 
@@ -184,35 +301,44 @@ def build_dorm() -> "object":
     from panda3d.core import NodePath
 
     root = NodePath("model_dorm")
-    w, d, floors, fh = 16.0, 12.0, 3, 2.86
+    w, d, floors, fh = 16.0, 12.0, 4, 2.7
     h = floors * fh
     box(root, "dorm_body", 0, 0, 0, w, d, h, C_WALL_LIGHT)
     box(root, "dorm_plinth", -0.15, -0.15, 0, w + 0.3, d + 0.3, 0.35, C_STONE)
-    # 楼层分隔带
+    # Wide floor bands and a slightly darker ground strip match the reference's cool facade.
+    box(root, "dorm_ground_band", -0.12, -0.12, 0.55, w + 0.24, d + 0.24, 0.18, C_FRAME)
     for floor in range(1, floors):
         box(root, f"dorm_band{floor}", -0.06, -0.06, floor * fh - 0.09,
             w + 0.12, d + 0.12, 0.18, C_FRAME)
-    # 南立面窗（4 扇/层）+ 阳台
+    # South facade: paired windows, projecting balconies and simple drying rails.
     for floor in range(floors):
         base_z = floor * fh + 0.75
-        window_row(root, f"dorm_win{floor}", 1.6, 0.0, base_z, 4, 1.5, 1.35, 1.9)
-        for balcony in (1, 3):
-            bx = 1.05 + balcony * 3.4
+        window_row(root, f"dorm_win{floor}", 1.25, 0.0, base_z, 5, 1.55, 1.3, 1.0,
+                   frame=False, mullions=0)
+        for balcony, bx in enumerate((2.55, 9.55)):
             box(root, f"dorm_bal{floor}_{balcony}", bx, -0.75, base_z - 0.22,
-                2.2, 0.8, 0.12, C_FRAME)
-            box(root, f"dorm_rail{floor}_{balcony}", bx, -0.75, base_z - 0.1,
-                2.2, 0.06, 0.55, C_FRAME)
-    # 东山墙窗
+                2.45, 0.82, 0.12, C_FRAME)
+            quad(root, f"dorm_rail{floor}_{balcony}", (bx, -0.76, base_z - 0.1),
+                 (bx + 2.45, -0.76, base_z - 0.1), (bx + 2.45, -0.76, base_z + 0.45),
+                 (bx, -0.76, base_z + 0.45), C_FRAME)
+            rod(root, f"dorm_clothesline{floor}_{balcony}", (bx + 0.2, -0.84, base_z + 0.48),
+                (bx + 2.2, -0.84, base_z + 0.48), 0.025, C_METAL, sides=4)
+    # Both side walls carry the narrow stacked windows seen in the source render.
     for floor in range(floors):
-        window_row(root, f"dorm_ewin{floor}", w, 2.0, floor * fh + 0.75, 2, 1.2, 1.2, 2.6,
-                   face="e")
-    # 入口：雨棚 + 台阶 + 门
+        base_z = floor * fh + 0.78
+        window_row(root, f"dorm_ewin{floor}", w, 1.2, base_z, 2, 1.25, 1.2, 2.5,
+                   face="e", frame=False, mullions=0)
+        window_row(root, f"dorm_wwin{floor}", 0.0, 1.2, base_z, 2, 1.25, 1.2, 2.5,
+                   face="w", frame=False, mullions=0)
+    # Entrance canopy, framed door and shallow steps.
     box(root, "dorm_steps", 6.4, -1.5, 0, 3.2, 1.5, 0.3, C_STONE)
     box(root, "dorm_steps2", 6.6, -0.9, 0, 2.8, 0.9, 0.6, C_STONE)
     panel(root, "dorm_door", 7.0, 0.0, 0.6, 2.0, 2.1, C_DOOR)
+    box(root, "dorm_door_l", 6.88, -0.08, 0.52, 0.1, 0.12, 2.28, C_TRIM)
+    box(root, "dorm_door_r", 9.02, -0.08, 0.52, 0.1, 0.12, 2.28, C_TRIM)
     quad(root, "dorm_awning", (6.5, -1.3, 2.85), (9.5, -1.3, 2.85),
          (9.5, 0.0, 3.25), (6.5, 0.0, 3.25), C_TRIM)
-    # 屋顶 + 3 个老虎窗
+    # Red gable roof with three front dormers.
     gable_roof(root, "dorm_roof", -0.3, -0.3, h, w + 0.6, d + 0.6, 3.2, C_ROOF_RED, C_ROOF_RED2)
     for index, dx in enumerate((3.0, 7.4, 11.8)):
         box(root, f"dorm_dormer{index}", dx, -0.55, h + 0.35, 1.9, 1.1, 1.25, C_WALL_LIGHT)
@@ -220,14 +346,20 @@ def build_dorm() -> "object":
              (dx + 2.0, -0.7, h + 1.6), (dx + 1.4, 0.6, h + 2.35),
              (dx + 0.5, 0.6, h + 2.35), C_ROOF_RED)
         panel(root, f"dorm_dormer_win{index}", dx + 0.55, -0.58, h + 0.65, 0.8, 0.75, C_GLASS)
-    # 屋顶水箱（4 腿 + 8 边柱体）
-    box(root, "dorm_tank_legs", 10.6, 8.4, h + 0.2, 1.5, 1.5, 1.4, C_METAL)
-    cylinder(root, "dorm_tank", 11.35, 9.15, h + 1.6, 0.85, 1.5, 8, C_METAL)
-    # 天线 + 小烟囱
-    box(root, "dorm_antenna", 9.2, 9.6, h + 0.1, 0.09, 0.09, 3.0, C_METAL)
+    # Rooftop water tank on four legs, with a small antenna and chimney cluster.
+    tank_x, tank_y = 11.1, 8.9
+    for leg_x in (tank_x - 0.62, tank_x + 0.62):
+        for leg_y in (tank_y - 0.62, tank_y + 0.62):
+            box(root, f"dorm_tank_leg_{leg_x}_{leg_y}", leg_x, leg_y, h + 0.25,
+                0.16, 0.16, 1.45, C_METAL)
+    box(root, "dorm_tank_crossbar", tank_x - 0.75, tank_y - 0.08, h + 0.65,
+        1.5, 0.16, 0.12, C_METAL)
+    cylinder(root, "dorm_tank", tank_x, tank_y, h + 1.7, 0.85, 1.45, 8, C_METAL)
+    cylinder(root, "dorm_tank_cap", tank_x, tank_y, h + 3.15, 0.92, 0.14, 8, C_FRAME)
+    box(root, "dorm_antenna", 8.9, 9.35, h + 0.15, 0.08, 0.08, 3.0, C_METAL)
     for index in range(3):
-        box(root, f"dorm_antenna_bar{index}", 8.9, 9.55, h + 2.2 + index * 0.35,
-            0.7, 0.07, 0.06, C_METAL)
+        rod(root, f"dorm_antenna_bar{index}", (8.45, 9.35, h + 2.1 + index * 0.32),
+            (9.4, 9.35, h + 2.1 + index * 0.32), 0.035, C_METAL, sides=5)
     box(root, "dorm_chimney", 12.4, 7.4, h + 0.6, 1.1, 1.1, 1.0, C_WALL_LIGHT)
     box(root, "dorm_chimney_cap", 12.3, 7.3, h + 1.6, 1.3, 1.3, 0.16, C_ROOF_RED)
     return root
@@ -243,21 +375,32 @@ def build_teaching() -> "object":
     box(root, "teach_left", 0, 0, 0, 6.6, d, h, C_WALL_CREAM)
     box(root, "teach_right", w - 6.6, 0, 0, 6.6, d, h, C_WALL_CREAM)
     box(root, "teach_back", 6.6, d - 5.0, 0, w - 13.2, 5.0, h, C_WALL_CREAM)
-    # 每层横向窗带（长条玻璃）
+    # Each wing has three deep blue window bays with cream separators.
     for floor in range(floors):
         base_z = floor * fh + 0.8
-        panel(root, f"teach_winL{floor}", 0.5, 0.0, base_z, 5.6, 1.5, C_GLASS)
-        panel(root, f"teach_winR{floor}", w - 6.1, 0.0, base_z, 5.6, 1.5, C_GLASS)
-        panel(root, f"teach_winLw{floor}", 0.0, 1.4, base_z, 4.6, 1.5, C_GLASS2, face="w")
-        panel(root, f"teach_winRw{floor}", w, 1.4, base_z, 4.6, 1.5, C_GLASS2, face="e")
+        window_row(root, f"teach_winL{floor}", 0.45, 0.0, base_z, 3, 1.52, 1.5, 0.28,
+                   frame=False, mullions=0)
+        window_row(root, f"teach_winR{floor}", w - 5.0, 0.0, base_z, 3, 1.52, 1.5, 0.28,
+                   frame=False, mullions=0)
+        window_row(root, f"teach_winLw{floor}", 0.0, 1.2, base_z, 3, 1.25, 1.5, 0.55,
+                   color=C_GLASS2, face="w", frame=False, mullions=0)
+        window_row(root, f"teach_winRw{floor}", w, 1.2, base_z, 3, 1.25, 1.5, 0.55,
+                   color=C_GLASS2, face="e", frame=False, mullions=0)
         box(root, f"teach_band{floor}", -0.07, -0.07, floor * fh + 2.45,
             w + 0.14, d + 0.14, 0.2, C_WALL_CREAM2)
-    # 中央塔楼 + 钟
+    # Central clock tower: tall glazed slit, clock face and a projecting entrance.
     tower_w = 5.2
     tx = (w - tower_w) / 2
     box(root, "teach_tower", tx, -1.2, 0, tower_w, 5.2, h + 2.6, C_WALL_CREAM)
     panel(root, "teach_tower_win", tx + 1.5, -1.2, 1.0, 2.2, h + 0.6, C_GLASS)
-    cylinder(root, "teach_clock", tx + tower_w / 2, -1.25, h + 1.9, 0.85, 0.12, 12, C_FRAME)
+    for mullion in (tx + 2.15, tx + 3.05):
+        box(root, f"teach_tower_mullion{mullion}", mullion, -1.28, 1.0, 0.08, 0.1, h + 0.6, C_FRAME)
+    circle_panel(root, "teach_clock_outer", tx + tower_w / 2, -1.29, h + 1.92, 0.88, C_FRAME)
+    circle_panel(root, "teach_clock_face", tx + tower_w / 2, -1.33, h + 1.92, 0.72, C_GLASS2)
+    box(root, "teach_clock_hand_h", tx + tower_w / 2 - 0.38, -1.38, h + 1.88,
+        0.76, 0.05, 0.08, C_FRAME)
+    box(root, "teach_clock_hand_v", tx + tower_w / 2 - 0.04, -1.38, h + 1.88,
+        0.08, 0.05, 0.48, C_FRAME)
     # 女儿墙（红）
     for name, (bx, by, bw, bd) in {
         "p_left": (0, 0, 6.6, d), "p_right": (w - 6.6, 0, 6.6, d),
@@ -270,15 +413,19 @@ def build_teaching() -> "object":
     box(root, "teach_tower_cap", tx - 0.2, -1.4, h + 2.6, tower_w + 0.4, 5.6, 0.4, C_ROOF_RED)
     # 入口 + 台阶 + 雨棚
     box(root, "teach_steps", tx + 0.6, -2.4, 0, 4.0, 1.2, 0.3, C_STONE)
+    box(root, "teach_steps2", tx + 0.95, -1.65, 0, 3.3, 0.75, 0.5, C_STONE)
     panel(root, "teach_door", tx + 1.4, -1.2, 0.3, 2.4, 2.0, C_DOOR)
+    box(root, "teach_door_l", tx + 1.26, -1.3, 0.22, 0.1, 0.12, 2.18, C_TRIM)
+    box(root, "teach_door_r", tx + 3.84, -1.3, 0.22, 0.1, 0.12, 2.18, C_TRIM)
     quad(root, "teach_canopy", (tx + 0.4, -2.1, 2.7), (tx + 4.8, -2.1, 2.7),
          (tx + 4.8, -1.2, 2.95), (tx + 0.4, -1.2, 2.95), C_FRAME)
-    # 旗杆 + 红旗 + 屋顶空调箱
+    # Flag, roof vents and a few small service boxes keep the roof silhouette busy.
     box(root, "teach_flagpole", 1.6, 1.2, h, 0.1, 0.1, 5.2, C_METAL)
     quad(root, "teach_flag", (1.7, 1.25, h + 4.9), (1.7, 2.55, h + 4.9),
          (1.7, 2.55, h + 3.9), (1.7, 1.25, h + 3.9), C_ROOF_RED)
     for index, (ax, ay) in enumerate(((2.2, d - 3.2), (12.4, d - 3.4), (16.2, 2.0))):
         box(root, f"teach_ac{index}", ax, ay, h, 1.1, 0.8, 0.55, C_METAL)
+        box(root, f"teach_ac_cap{index}", ax - 0.08, ay - 0.08, h + 0.55, 1.26, 0.96, 0.08, C_FRAME)
     return root
 
 
@@ -290,12 +437,20 @@ def build_library() -> "object":
     h = floors * fh
     box(root, "lib_body", 0, 0, 0, w, d, h, C_WALL_CREAM)
     box(root, "lib_plinth", -0.2, -0.2, 0, w + 0.4, d + 0.4, 0.4, C_STONE)
-    # 转角石块（简化：4 个竖向薄块）
+    for floor in range(1, floors):
+        box(root, f"lib_band{floor}", -0.08, -0.08, floor * fh - 0.08,
+            w + 0.16, d + 0.16, 0.16, C_WALL_CREAM2)
+    # Corner quoins give the library the chunky yellow trim visible in the reference.
     for name, (qx, qy) in {"q1": (0.0, 0.0), "q2": (w - 1.0, 0.0),
                            "q3": (0.0, d - 1.0), "q4": (w - 1.0, d - 1.0)}.items():
-        box(root, f"lib_{name}", qx, qy, 0, 1.0, 1.0, h, C_WALL_CREAM2)
-    # 中央通高窗 + 门廊
+        for floor in range(floors):
+            box(root, f"lib_{name}_{floor}", qx, qy, floor * fh + 0.2, 1.0, 1.0, 0.46,
+                C_WALL_CREAM2)
+    # Central full-height glazed bay and a four-column portico.
     panel(root, "lib_tall_win", w / 2 - 1.6, 0.0, 1.2, 3.2, h - 2.6, C_GLASS)
+    for index in range(3):
+        box(root, f"lib_tall_mullion{index}", w / 2 - 1.55 + index * 1.05, -0.08, 1.2,
+            0.08, 0.1, h - 2.6, C_FRAME)
     for index in range(4):
         px = 3.0 + index * 3.1
         box(root, f"lib_col{index}", px, -1.9, 0, 0.65, 0.65, h * 0.62, C_WALL_CREAM)
@@ -303,12 +458,15 @@ def build_library() -> "object":
     box(root, "lib_steps", 1.6, -3.6, 0, 12.6, 1.5, 0.28, C_STONE)
     box(root, "lib_steps2", 2.4, -2.6, 0, 11.0, 1.0, 0.5, C_STONE)
     panel(root, "lib_door", w / 2 - 1.1, -1.9, 0.5, 2.2, 2.1, C_TRIM)
-    # 侧窗
+    # Repeated windows on the front and side walls.
     for floor in range(floors):
-        window_row(root, f"lib_win{floor}", 1.6, 0.0, floor * fh + 1.0, 3, 1.1, 1.3, 3.6)
-        panel(root, f"lib_ewin{floor}", w, 2.2, floor * fh + 1.0, 2.6, 1.3, C_GLASS, face="e")
-        panel(root, f"lib_wwin{floor}", 0.0, 2.2, floor * fh + 1.0, 2.6, 1.3, C_GLASS, face="w")
-    # 四坡屋顶 + 采光脊
+        window_row(root, f"lib_win{floor}", 1.2, 0.0, floor * fh + 1.0, 4, 1.12, 1.28, 2.0,
+                   mullions=1)
+        window_row(root, f"lib_ewin{floor}", w, 2.0, floor * fh + 1.0, 3, 1.25, 1.28, 2.0,
+                   color=C_GLASS, face="e", mullions=1)
+        window_row(root, f"lib_wwin{floor}", 0.0, 2.0, floor * fh + 1.0, 3, 1.25, 1.28, 2.0,
+                   color=C_GLASS, face="w", mullions=1)
+    # Four-sided red roof and raised skylight ridge.
     hipped_roof(root, "lib_roof", -0.4, -0.4, h, w + 0.8, d + 0.8, 4.2, 3.2,
                 C_ROOF_RED, C_ROOF_RED2)
     quad(root, "lib_skylight", (w / 2 - 2.0, d / 2 - 2.4, h + 3.0),
@@ -328,23 +486,28 @@ def build_club() -> "object":
     h = floors * fh
     box(root, "club_body", 0, 0, 0, w, d, h, C_WALL_GREEN)
     box(root, "club_band", -0.08, -0.08, fh - 0.12, w + 0.16, d + 0.16, 0.24, C_WALL_GREEN2)
-    # 底层大玻璃 + 入口
+    box(root, "club_plinth", -0.15, -0.15, 0, w + 0.3, d + 0.3, 0.28, C_WALL_GREEN2)
+    # Ground-floor shopfront glazing and a framed side entrance.
     for index in range(3):
-        panel(root, f"club_shopwin{index}", 1.2 + index * 3.0, 0.0, 0.8, 2.4, 2.4, C_GLASS)
+        window_row(root, f"club_shopwin{index}", 1.05 + index * 3.0, 0.0, 0.75, 1, 2.45, 2.4, 0,
+                   mullions=2)
     panel(root, "club_door", 10.6, 0.0, 0.5, 1.8, 2.2, C_DOOR)
+    box(root, "club_door_l", 10.48, -0.08, 0.42, 0.1, 0.12, 2.38, C_TRIM)
+    box(root, "club_door_r", 12.42, -0.08, 0.42, 0.1, 0.12, 2.38, C_TRIM)
     box(root, "club_step", 10.5, -0.9, 0, 2.0, 0.9, 0.22, C_STONE)
-    # 彩虹雨棚
+    # Bright striped awning from the supplied club reference.
     colors = ((0.80, 0.30, 0.35), (0.90, 0.72, 0.30), (0.35, 0.55, 0.75))
-    for index, color in enumerate(colors):
+    for index, color in enumerate(colors * 2):
         quad(root, f"club_awning{index}", (10.4 + index * 0.62, -1.15, 3.05),
              (11.02 + index * 0.62, -1.15, 3.05), (11.02 + index * 0.62, 0.0, 3.35),
              (10.4 + index * 0.62, 0.0, 3.35), color)
-    # 二层窗
+    # Upper windows repeat the same narrow framed language.
     for index in range(3):
-        panel(root, f"club_win2_{index}", 2.0 + index * 3.6, 0.0, fh + 0.9, 1.6, 1.5, C_GLASS)
-        panel(root, f"club_ewin2_{index}", w, 1.6 + index * 3.2, fh + 0.9, 1.4, 1.4, C_GLASS,
-              face="e")
-    # 屋顶女儿墙 + 招牌
+        window_row(root, f"club_win2_{index}", 1.5 + index * 3.7, 0.0, fh + 0.9, 1, 1.7, 1.5,
+                   0, mullions=1)
+        window_row(root, f"club_ewin2_{index}", w, 1.4 + index * 3.2, fh + 0.9, 1, 1.35, 1.4,
+                   0, color=C_GLASS, face="e", mullions=1)
+    # Roof parapet, green deck, rooftop sign and a tiny service box.
     for name, (bx, by, bw, bd) in {"s": (0, 0, w, 0.3), "n": (0, d - 0.3, w, 0.3),
                                    "w": (0, 0, 0.3, d), "e": (w - 0.3, 0, 0.3, d)}.items():
         box(root, f"club_parapet_{name}", bx, by, h, bw, bd, 0.5, C_ROOF_RED)
@@ -352,6 +515,7 @@ def build_club() -> "object":
     box(root, "club_sign_postL", 6.2, 7.2, h + 0.12, 0.16, 0.16, 2.0, C_METAL)
     box(root, "club_sign_postR", 10.4, 7.2, h + 0.12, 0.16, 0.16, 2.0, C_METAL)
     box(root, "club_sign_board", 5.9, 7.05, h + 2.0, 5.0, 0.18, 1.3, C_FRAME)
+    box(root, "club_sign_strip", 5.9, 6.96, h + 2.88, 5.0, 0.1, 0.16, C_ROOF_RED)
     box(root, "club_roofbox", 1.4, 2.0, h + 0.12, 1.2, 0.9, 0.5, C_METAL)
     return root
 
@@ -364,25 +528,29 @@ def build_canteen() -> "object":
     box(root, "canteen_body", 0, 0, 0, w, d, h, C_WALL_OCHRE)
     box(root, "canteen_plinth", -0.15, -0.15, 0, w + 0.3, d + 0.3, 0.3, C_STONE)
     box(root, "canteen_band", -0.07, -0.07, h - 0.5, w + 0.14, d + 0.14, 0.22, C_WALL_CREAM)
-    # 正面大玻璃 + 竖向框
+    # Front glass wall with strong mullions and a warm service counter.
     for index in range(4):
-        panel(root, f"canteen_glass{index}", 1.4 + index * 2.6, 0.0, 0.9, 2.1, 3.0, C_GLASS)
-        box(root, f"canteen_mullion{index}", 1.35 + index * 2.6 + 2.15, -0.06, 0.9,
-            0.12, 0.12, 3.0, C_FRAME)
-    # 侧窗（后加的小窗带）
+        window_row(root, f"canteen_glass{index}", 1.15 + index * 2.65, 0.0, 0.85, 1, 2.1, 3.0,
+                   0, mullions=1)
+    # Side windows are smaller and sit above the counter line.
     for index in range(3):
-        panel(root, f"canteen_ewin{index}", w, 2.0 + index * 3.0, 2.4, 1.8, 1.2, C_GLASS2,
-              face="e")
-    # 深挑檐 + 4 根立柱
+        window_row(root, f"canteen_ewin{index}", w, 1.8 + index * 3.1, 2.35, 1, 1.85, 1.2, 0,
+                   color=C_GLASS2, face="e", mullions=1)
+    # Deep red canopy, four slim posts and a framed side door.
     quad(root, "canteen_canopy", (0.6, -2.6, 3.3), (9.4, -2.6, 3.3),
          (9.4, 0.0, 3.7), (0.6, 0.0, 3.7), C_ROOF_RED)
     for index in range(4):
-        box(root, f"canteen_post{index}", 0.9 + index * 2.8, -2.4, 0, 0.18, 0.18, 3.3, C_METAL)
+        box(root, f"canteen_post{index}", 0.9 + index * 2.8, -2.4, 0, 0.18, 0.18, 3.3, C_TRIM)
+        box(root, f"canteen_post_cap{index}", 0.82 + index * 2.8, -2.48, 3.25,
+            0.34, 0.34, 0.12, C_ROOF_RED2)
     panel(root, "canteen_door", 10.6, 0.0, 0.4, 2.2, 2.4, C_DOOR)
+    box(root, "canteen_door_l", 10.46, -0.08, 0.32, 0.1, 0.12, 2.62, C_TRIM)
+    box(root, "canteen_door_r", 12.94, -0.08, 0.32, 0.1, 0.12, 2.62, C_TRIM)
     box(root, "canteen_step", 10.5, -1.0, 0, 2.4, 1.0, 0.22, C_STONE)
-    # 屋顶（非对称双坡）+ 烟囱组 + 空调外机
+    # Low asymmetric gable roof, exhaust pipes and rooftop AC boxes.
     gable_roof(root, "canteen_roof", -0.5, -0.5, h, w + 1.0, d + 1.0, 2.6,
                C_ROOF_RED, C_ROOF_RED2)
+    box(root, "canteen_roof_ridge", 2.0, 4.6, h + 2.55, 10.0, 0.28, 0.22, C_ROOF_RED2)
     box(root, "canteen_chimney_base", 12.4, 8.6, h + 0.6, 2.0, 1.4, 0.9, C_METAL)
     for index, (cx, height) in enumerate(((12.7, 2.4), (13.3, 2.0), (13.9, 2.7))):
         cylinder(root, f"canteen_pipe{index}", cx, 9.3, h + 1.5, 0.16, height, 6, C_METAL)
@@ -390,6 +558,7 @@ def build_canteen() -> "object":
         box(root, f"canteen_ac{index}", 3.0 + index * 2.4, 9.4, h + 0.4, 1.2, 0.8, 0.55, C_METAL)
     # 外侧售餐台
     box(root, "canteen_counter", 1.0, -2.9, 0.0, 5.0, 0.7, 0.95, C_WALL_CREAM2)
+    box(root, "canteen_counter_top", 0.85, -3.0, 0.95, 5.3, 0.9, 0.14, C_TRIM)
     return root
 
 
@@ -450,15 +619,23 @@ def build_ground() -> "object":
 
     root = NodePath("model_ground")
     w, d = 80.0, 45.0
-    # 模型局部坐标：原点在地块西南角，摆放时平移到世界 (-20, -15)
-    # 所以世界 x 38~44 的南北主路 -> 局部 x 58~64；世界 y 6~11 的东西支路 -> 局部 y 21~26
+    # Local origin is the south-west corner; the layered soil slab follows the grass tile reference.
+    box(root, "ground_soil_deep", 0, 0, -1.0, w, d, 0.45, (0.18, 0.17, 0.15))
+    box(root, "ground_soil_mid", 0, 0, -0.55, w, d, 0.35, (0.27, 0.24, 0.20))
     box(root, "ground_lawn", 0, 0, -0.2, w, d, 0.2, C_GRASS)
     box(root, "ground_road_n", 58.0, 0, -0.18, 6.0, d, 0.2, C_PATH)
     box(root, "ground_road_w", 0, 21.0, -0.18, w, 5.0, 0.2, C_PATH)
-    # 几块颜色略深的草地斑块
-    for index, (px, py, pw, pd) in enumerate(((24, 35, 12, 8), (42, 17, 10, 6),
-                                             (70, 33, 12, 9), (32, 4, 10, 7))):
-        box(root, f"ground_patch{index}", px, py, -0.19, pw, pd, 0.2, C_GRASS2)
+    # Irregular darker patches and small tufts break up the otherwise flat top surface.
+    for index, (px, py, sx, sy) in enumerate(((24, 35, 6.0, 3.5), (42, 17, 5.0, 3.0),
+                                              (70, 33, 6.0, 3.5), (32, 4, 5.0, 3.0),
+                                              (12, 12, 3.0, 2.0), (68, 7, 3.0, 2.0))):
+        ellipsoid(root, f"ground_patch{index}", px, py, 0.025, sx, sy, 0.035, C_GRASS2, sides=8)
+    for index, (px, py, scale) in enumerate(((18, 37, 1.0), (24, 35, 1.25), (43, 18, 0.9),
+                                              (70, 33, 1.25), (31, 5, 0.85), (67, 8, 0.75))):
+        for blade in range(4):
+            grass_blade(root, f"ground_grass_{index}_{blade}", px + blade * 0.18 - 0.25,
+                        py + (blade % 2) * 0.12, 0.03, 0.16 * scale, 0.65 * scale,
+                        C_LEAF if blade % 2 else C_LEAF2, lean=(blade - 1.5) * 0.06)
     return root
 
 
@@ -467,9 +644,10 @@ def build_prop_tree():
 
     root = NodePath("model_prop_tree")
     box(root, "tree_trunk", -0.35, -0.35, 0, 0.7, 0.7, 2.6, (0.42, 0.32, 0.22))
-    box(root, "tree_canopy_low", -1.3, -1.3, 2.2, 2.6, 2.6, 1.3, C_LEAF)
-    box(root, "tree_canopy_mid", -1.0, -1.0, 3.2, 2.0, 2.0, 1.1, C_LEAF2)
-    box(root, "tree_canopy_top", -0.6, -0.6, 4.0, 1.2, 1.2, 0.8, C_LEAF)
+    box(root, "tree_trunk_cap", -0.48, -0.48, 2.35, 0.96, 0.96, 0.35, (0.36, 0.27, 0.19))
+    ellipsoid(root, "tree_canopy_left", -0.72, -0.1, 3.25, 1.2, 1.0, 1.0, C_LEAF)
+    ellipsoid(root, "tree_canopy_right", 0.62, 0.1, 3.35, 1.15, 1.0, 1.0, C_LEAF2)
+    ellipsoid(root, "tree_canopy_top", -0.05, 0.0, 4.2, 1.05, 0.95, 0.95, C_LEAF)
     return root
 
 
@@ -479,9 +657,10 @@ def build_prop_lamp():
     root = NodePath("model_prop_lamp")
     box(root, "lamp_base", -0.25, -0.25, 0, 0.5, 0.5, 0.2, C_METAL)
     box(root, "lamp_pole", -0.09, -0.09, 0.2, 0.18, 0.18, 4.0, C_METAL)
-    box(root, "lamp_arm", -0.09, -0.09, 3.9, 1.0, 0.18, 0.18, C_METAL)
-    box(root, "lamp_head", 0.7, -0.28, 3.5, 0.56, 0.56, 0.45, C_METAL)
-    panel(root, "lamp_glass", 0.74, -0.26, 3.55, 0.48, 0.34, (0.95, 0.88, 0.62))
+    box(root, "lamp_arm", -0.09, -0.09, 4.0, 0.18, 0.18, 0.28, C_METAL)
+    box(root, "lamp_head", -0.34, -0.34, 4.1, 0.68, 0.68, 0.6, C_METAL)
+    box(root, "lamp_glass", -0.25, -0.25, 4.2, 0.5, 0.5, 0.34, (0.95, 0.88, 0.62))
+    box(root, "lamp_cap", -0.38, -0.38, 4.7, 0.76, 0.76, 0.12, C_METAL)
     return root
 
 
@@ -489,10 +668,15 @@ def build_prop_bench():
     from panda3d.core import NodePath
 
     root = NodePath("model_prop_bench")
-    for index in (0, 1):
-        box(root, f"bench_leg{index}", -0.1 + index * 1.9, -0.35, 0, 0.2, 0.7, 0.45, C_METAL)
-    box(root, "bench_seat", -0.1, -0.4, 0.45, 2.2, 0.8, 0.14, (0.58, 0.44, 0.30))
-    box(root, "bench_back", -0.1, 0.3, 0.6, 2.2, 0.14, 0.55, (0.52, 0.39, 0.27))
+    wood = (0.58, 0.44, 0.30)
+    for index, x in enumerate((-0.1, 0.55, 1.2)):
+        box(root, f"bench_seat_slats{index}", x, -0.4, 0.45, 0.58, 0.8, 0.14, wood)
+        box(root, f"bench_back_slats{index}", x, 0.3, 0.72, 0.58, 0.14, 0.42, (0.52, 0.39, 0.27))
+    for index, x in enumerate((0.05, 1.75)):
+        rod(root, f"bench_leg_front{index}", (x, -0.32, 0.0), (x, -0.32, 0.48), 0.07, C_METAL, sides=5)
+        rod(root, f"bench_leg_back{index}", (x, 0.32, 0.0), (x, 0.32, 0.48), 0.07, C_METAL, sides=5)
+        rod(root, f"bench_leg_cross{index}", (x - 0.08, -0.32, 0.05), (x + 0.08, 0.32, 0.48),
+            0.055, C_METAL, sides=5)
     return root
 
 
@@ -502,6 +686,7 @@ def build_prop_fence():
     root = NodePath("model_prop_fence")
     for index in (0, 1):
         box(root, f"fence_post{index}", index * 1.85, -0.1, 0, 0.16, 0.16, 1.1, C_STONE)
+        box(root, f"fence_cap{index}", index * 1.85 - 0.04, -0.14, 1.1, 0.24, 0.24, 0.12, C_STONE)
     box(root, "fence_rail_top", 0, -0.07, 0.9, 2.0, 0.1, 0.12, C_STONE)
     box(root, "fence_rail_mid", 0, -0.07, 0.55, 2.0, 0.1, 0.12, C_STONE)
     return root
@@ -513,6 +698,7 @@ def build_prop_sign():
     root = NodePath("model_prop_sign")
     box(root, "sign_post", -0.08, -0.08, 0, 0.16, 0.16, 1.9, C_METAL)
     box(root, "sign_board", -0.8, -0.09, 1.1, 1.7, 0.12, 1.0, C_FRAME)
+    box(root, "sign_board_inner", -0.67, -0.16, 1.22, 1.44, 0.06, 0.66, C_GLASS2)
     box(root, "sign_strip", -0.8, -0.11, 1.95, 1.7, 0.1, 0.16, C_ROOF_RED)
     return root
 
@@ -522,7 +708,9 @@ def build_prop_planter():
 
     root = NodePath("model_prop_planter")
     box(root, "planter_box", -0.7, -0.7, 0, 1.4, 1.4, 0.55, C_STONE)
-    box(root, "planter_shrub", -0.55, -0.55, 0.5, 1.1, 1.1, 0.55, C_LEAF2)
+    box(root, "planter_rim", -0.78, -0.78, 0.55, 1.56, 1.56, 0.16, C_FRAME)
+    ellipsoid(root, "planter_shrub", 0, 0, 0.92, 0.62, 0.62, 0.55, C_LEAF2)
+    ellipsoid(root, "planter_shrub_top", 0.12, -0.08, 1.18, 0.38, 0.38, 0.32, C_LEAF)
     return root
 
 
@@ -541,9 +729,10 @@ def build_prop_bike_rack():
     root = NodePath("model_prop_bike_rack")
     box(root, "rack_foot_l", -0.1, -0.4, 0, 1.2, 0.12, 0.1, C_METAL)
     box(root, "rack_foot_r", 1.0, -0.4, 0, 1.2, 0.12, 0.1, C_METAL)
-    box(root, "rack_bar", 0.5, -0.1, 0.65, 0.12, 0.12, 0.12, C_METAL)
-    box(root, "rack_up_l", 0.2, -0.12, 0.1, 0.12, 0.12, 0.7, C_METAL)
-    box(root, "rack_up_r", 1.6, -0.12, 0.1, 0.12, 0.12, 0.7, C_METAL)
+    rod(root, "rack_bar", (0.2, -0.1, 0.1), (0.2, -0.1, 0.8), 0.07, C_METAL, sides=6)
+    rod(root, "rack_bar_top", (0.2, -0.1, 0.8), (1.6, -0.1, 0.8), 0.07, C_METAL, sides=6)
+    rod(root, "rack_up_l", (1.6, -0.1, 0.8), (1.6, -0.1, 0.1), 0.07, C_METAL, sides=6)
+    rod(root, "rack_back", (0.2, 0.25, 0.1), (1.6, 0.25, 0.1), 0.06, C_METAL, sides=6)
     return root
 
 
@@ -556,6 +745,8 @@ def build_prop_flag_pole():
     cylinder(root, "flag_finial", 0, 0, 6.2, 0.14, 0.25, 6, C_TRIM)
     quad(root, "flag_cloth", (0.1, -0.7, 5.6), (0.1, 0.0, 5.6),
          (0.1, 0.0, 4.7), (0.1, -0.7, 4.7), C_ROOF_RED)
+    quad(root, "flag_cloth_blue", (0.1, -0.7, 5.55), (0.1, -0.34, 5.55),
+         (0.1, -0.34, 4.75), (0.1, -0.7, 4.75), C_GLASS2)
     return root
 
 
@@ -597,9 +788,12 @@ def build_prop_flower_bed():
     box(root, "bed_ground", -1.2, -0.6, 0, 2.4, 1.2, 0.18, (0.42, 0.32, 0.24))
     box(root, "bed_edge", -1.25, -0.65, 0.18, 2.5, 0.15, 0.28, C_ROOF_RED)
     box(root, "bed_edge_n", -1.25, 0.5, 0.18, 2.5, 0.15, 0.28, C_ROOF_RED)
-    for index in range(4):
-        box(root, f"flower{index}", -1.0 + index * 0.6, -0.2, 0.18, 0.18, 0.18, 0.22,
-            (0.88, 0.57, 0.69) if index % 2 else (0.90, 0.85, 0.45))
+    box(root, "bed_edge_w", -1.25, -0.65, 0.18, 0.15, 1.3, 0.28, C_ROOF_RED)
+    box(root, "bed_edge_e", 1.1, -0.65, 0.18, 0.15, 1.3, 0.28, C_ROOF_RED)
+    for index in range(6):
+        color = (0.88, 0.57, 0.69) if index % 2 else (0.90, 0.85, 0.45)
+        ellipsoid(root, f"flower{index}", -0.95 + index * 0.38, -0.1 + (index % 2) * 0.28,
+                  0.5, 0.16, 0.16, 0.2, color, sides=6)
     return root
 
 
@@ -608,9 +802,14 @@ def build_prop_road():
 
     root = NodePath("model_prop_road")
     box(root, "road_slab", 0, 0, 0, 6.0, 6.0, 0.12, (0.62, 0.60, 0.56))
-    for index in range(4):
-        box(root, f"road_line{index}", 0.4 + index * 1.5, 2.9, 0.12, 0.9, 0.2, 0.02,
-            (0.92, 0.90, 0.82))
+    box(root, "road_border_s", 0, -0.02, 0.12, 6.0, 0.12, 0.06, C_STONE)
+    box(root, "road_border_n", 0, 5.9, 0.12, 6.0, 0.12, 0.06, C_STONE)
+    box(root, "road_border_w", -0.02, 0, 0.12, 0.12, 6.0, 0.06, C_STONE)
+    box(root, "road_border_e", 5.9, 0, 0.12, 0.12, 6.0, 0.06, C_STONE)
+    for row in range(4):
+        for col in range(4):
+            box(root, f"road_tile_{row}_{col}", 0.35 + col * 1.35, 0.35 + row * 1.35, 0.12,
+                1.1, 1.1, 0.02, (0.70, 0.68, 0.64) if (row + col) % 2 else (0.66, 0.64, 0.60))
     return root
 
 

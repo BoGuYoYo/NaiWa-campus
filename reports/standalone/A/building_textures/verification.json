@@ -1,0 +1,65 @@
+{
+  "buildings": {
+    "teaching": {
+      "texture_size": [
+        2109,
+        1359
+      ],
+      "player_front_visible_pixels": 646,
+      "player_behind_visible_pixels": 0
+    },
+    "dorm": {
+      "texture_size": [
+        2013,
+        1327
+      ],
+      "player_front_visible_pixels": 651,
+      "player_behind_visible_pixels": 0
+    },
+    "library": {
+      "texture_size": [
+        1807,
+        1303
+      ],
+      "player_front_visible_pixels": 647,
+      "player_behind_visible_pixels": 0
+    },
+    "club": {
+      "texture_size": [
+        1743,
+        1077
+      ],
+      "player_front_visible_pixels": 646,
+      "player_behind_visible_pixels": 0
+    },
+    "canteen": {
+      "texture_size": [
+        2425,
+        1415
+      ],
+      "player_front_visible_pixels": 647,
+      "player_behind_visible_pixels": 0
+    }
+  },
+  "movement": {
+    "w": [
+      0.0,
+      1.0
+    ],
+    "s": [
+      0.0,
+      -1.0
+    ],
+    "a": [
+      -1.0,
+      0.0
+    ],
+    "d": [
+      1.0,
+      0.0
+    ],
+    "diagonal_distance": 0.999999982885729
+  },
+  "transparent_corner_visible_pixels": 636,
+  "missing_assets": {}
+}

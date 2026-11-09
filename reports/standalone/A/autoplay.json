@@ -22,21 +22,24 @@
   ],
   "activities": 48,
   "events": [
-    "sem_1_placeholder:ok",
-    "sem_2_placeholder:ok",
-    "sem_3_placeholder:ok",
-    "sem_4_placeholder:ok",
-    "sem_5_placeholder:ok",
-    "sem_6_placeholder:ok",
-    "sem_7_placeholder:ok",
-    "sem_8_placeholder:ok"
+    "sem_1_club_fair:fair_club",
+    "sem_2_first_exam:cram",
+    "sem_3_art_contest:help_friend",
+    "sem_4_sports_meet:cheer",
+    "sem_5_club_election:support",
+    "sem_6_lab_invite:accept_lab",
+    "sem_7_final_project:internship",
+    "sem_8_graduation_eve:thesis"
   ],
-  "ending_id": "ending_academic",
-  "day_index": 15,
-  "play_seconds": 0.09,
+  "ending_id": "ending_balanced",
+  "day_index": 16,
+  "play_seconds": 0.15,
   "errors": [],
-  "missing_assets": [],
+  "missing_assets": [
+    "font_ui"
+  ],
   "save_slots": [
+    "slot_1",
     "autosave"
   ]
 }

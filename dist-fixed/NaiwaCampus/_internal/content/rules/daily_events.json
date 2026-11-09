@@ -1,0 +1,91 @@
+[
+  {
+    "id": "daily_lost_cat",
+    "title": "迷路的小猫",
+    "effects": {
+      "mood": 3
+    }
+  },
+  {
+    "id": "daily_free_snack",
+    "title": "学长塞来的零食",
+    "effects": {
+      "energy": 10
+    }
+  },
+  {
+    "id": "daily_sudden_rain",
+    "title": "突然下雨",
+    "effects": {
+      "mood": -2,
+      "stamina": 1
+    }
+  },
+  {
+    "id": "daily_street_music",
+    "title": "广场上的吉他声",
+    "effects": {
+      "interest": 2
+    }
+  },
+  {
+    "id": "daily_found_notes",
+    "title": "捡到一本笔记",
+    "effects": {
+      "academic": 2
+    }
+  },
+  {
+    "id": "daily_club_flyer",
+    "title": "发传单的社团",
+    "effects": {
+      "social": 2
+    }
+  },
+  {
+    "id": "daily_sunset",
+    "title": "操场上的夕阳",
+    "effects": {
+      "mood": 4
+    }
+  },
+  {
+    "id": "daily_bike_ride",
+    "title": "绕校园骑一圈车",
+    "effects": {
+      "stamina": 2
+    }
+  },
+  {
+    "id": "daily_wrong_room",
+    "title": "走错教室",
+    "effects": {
+      "academic": 1,
+      "mood": 1
+    }
+  },
+  {
+    "id": "daily_photo_help",
+    "title": "帮游客拍合照",
+    "effects": {
+      "social": 1,
+      "mood": 2
+    }
+  },
+  {
+    "id": "daily_vending_luck",
+    "title": "售货机多掉一瓶",
+    "effects": {
+      "mood": 3,
+      "energy": 5
+    }
+  },
+  {
+    "id": "daily_old_friend",
+    "title": "遇到高中同学",
+    "effects": {
+      "social": 2,
+      "mood": 2
+    }
+  }
+]

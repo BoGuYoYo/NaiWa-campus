@@ -12,7 +12,8 @@
    A 的 `LowResPipeline.align_camera()` 落到 480×270 缓冲上——C 的 `CameraController`
    会直接改 `base.cam`，与渲染管线抢镜头，因此这里不用它。
 2. 输入：WASD/方向键与 Shift 由 C 的 `PlayerController.read_input()` 轮询；
-   E / Tab / Esc / Space 由本层 `accept()` 绑定，覆盖层存在时统一忽略。
+   E / Tab / Esc / Space 由本层通过 `app.input`（InputRouter）绑定，退场只收回自己那份，
+   覆盖层存在时 gameplay 输入统一由 SceneManager.input_locked 关掉。
 3. 交互：E → C 的 `InteractionService.interact()`，返回的 kind 决定后续流程：
    activity → ResultPanel，door → C 已切场景，save → SaveMenu，inspect → 文本事件。
 """
@@ -20,13 +21,16 @@
 from __future__ import annotations
 
 import logging
+import math
 from typing import Any, Callable
 
 from panda3d.core import TextNode, TextureStage
 
 from game import config
-from game.core.results import ChoiceView, EventResult, EventView
+from game.core.event_bus import TOPIC_DAY_ENDED
+from game.core.results import EventView
 from game.core.state import GameState
+from game.systems.content_db import ContentError
 from game.ui import theme
 from game.ui.day_summary import DaySummary
 from game.ui.event_scene import EventScene
@@ -84,6 +88,11 @@ class SpriteAnimator:
             self._frame = 0
             self._elapsed = 0.0
         self._fps = max(0.1, float(fps))
+        # 立刻把当前帧的 UV 落到卡片上：覆盖层打开时 tick() 不会推进，
+        # 少了这一步角色会一直显示整张精灵表（看上去就是"人没了"）。
+        sheet = self._sheet(asset_id)
+        if sheet is not None:
+            self._apply(sheet)
 
     def tick(self, dt: float) -> None:
         if self._asset_id is None:
@@ -137,7 +146,10 @@ class WorldSceneBase:
         self.prompt = None
         self.tracker = None
         self.tutorial = None
+        self.tutorial_overlay = None
         self.debug = None
+        self._tutorial_day_handler = None
+        self._last_player_position: tuple[float, float] | None = None
         self._last_ia: str | None = None
         self._state: GameState | None = None
 
@@ -188,6 +200,9 @@ class WorldSceneBase:
                 # 落点决定所在地点：从室内出来时必须回到室外的区域 id，
                 # 否则 scene_of() 会认为玩家还在室内，户外交互点全部查不到。
                 self._state.world.location_id = self.md.area_at(exit_x, exit_y) or self._state.world.location_id
+        # 建好场景就把角色卡片摆到出生点并贴上待机帧：覆盖层（开场事件）在场时
+        # on_update 会提前 return，卡片会一直停在原点 (0, 0)——镜头里就是"人物消失"。
+        self.player.apply_pose()
         self._apply_scene_camera()
 
         self.hud = HUD(self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry)
@@ -203,7 +218,16 @@ class WorldSceneBase:
             event_bus=self.app.bus,
         )
         self.tutorial = TutorialController(self._state, self.app.text)
+        self.tutorial_overlay = TutorialOverlay(
+            self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry
+        )
+        self.tutorial_overlay.attach(self.tutorial)
         self.tutorial.notify("enter_campus")
+        self.tutorial_overlay.refresh()
+        self._last_player_position = (self.player.motion.x, self.player.motion.y)
+        self._tutorial_day_handler = self.app.bus.subscribe(
+            TOPIC_DAY_ENDED, self._on_tutorial_day_ended
+        )
         self.debug = self._build_debug_draw()
         self._bind_input()
         self._refresh_prompt(force=True)
@@ -232,8 +256,14 @@ class WorldSceneBase:
 
     def on_exit(self) -> None:
         self._unbind_input()
-        for key in ("f1", "f2", "f3", "f5", "f6"):
-            self.app.ignore(key)
+        if self._tutorial_day_handler is not None:
+            self.app.bus.unsubscribe(TOPIC_DAY_ENDED, self._tutorial_day_handler)
+            self._tutorial_day_handler = None
+        if self.tutorial_overlay is not None:
+            self.tutorial_overlay.destroy()
+            self.tutorial_overlay = None
+        self.tutorial = None
+        self._last_player_position = None
         self.debug = None
         for widget in (self.hud, self.prompt):
             if widget is not None:
@@ -250,7 +280,18 @@ class WorldSceneBase:
         if self._state is None:
             return
         locked = self.app.scenes.input_locked
+        before = (self.player.motion.x, self.player.motion.y)
         self.player.update(dt, locked=locked)
+        after = (self.player.motion.x, self.player.motion.y)
+        self._last_player_position = after
+        distance = math.hypot(after[0] - before[0], after[1] - before[1])
+        if distance > 0.0:
+            self.tutorial.notify("player_moved", distance_m=distance)
+        if self._state.energy < 40:
+            self.tutorial.notify("low_energy")
+        self.tutorial.notify("tick", dt=dt)
+        if self.tutorial_overlay is not None:
+            self.tutorial_overlay.refresh()
         if locked:
             # 覆盖层（对话框 / 结果面板 / 菜单）打开时把 HUD 与提示框收起来
             if self.hud is not None:
@@ -265,8 +306,13 @@ class WorldSceneBase:
         self._refresh_prompt()
         self.hud.update(self._state)
         self.hud.tick(dt)
-        self.tutorial.notify("tick", dt=dt)
         self._check_autostep()
+
+    def _on_tutorial_day_ended(self, **_data: Any) -> None:
+        if self.tutorial is not None:
+            self.tutorial.notify("day_ended")
+            if self.tutorial_overlay is not None:
+                self.tutorial_overlay.refresh()
 
     # ------------------------------------------------------------------ 子类实现
     scene_id = "campus"
@@ -288,19 +334,24 @@ class WorldSceneBase:
 
     # ------------------------------------------------------------------ 输入
     def _key_down(self, key: str) -> bool:
-        watcher = getattr(self.app, "mouseWatcherNode", None)
-        if watcher is None:
-            return False
-        return bool(watcher.isKeyDown(key))
+        from game.world.player_controller import key_down
+
+        return key_down(getattr(self.app, "mouseWatcherNode", None), key)
 
     def _bind_input(self) -> None:
-        self.app.accept("e", self._on_interact)
-        self.app.accept("tab", self._on_tab)
-        self.app.accept("escape", self._on_escape)
+        self.bind("e", self._on_interact)
+        self.bind("tab", self._on_tab)
+        self.bind("escape", self._on_escape)
 
     def _unbind_input(self) -> None:
-        for key in ("e", "tab", "escape"):
+        # 只收回本场景绑过的键；直接 ignore 会连带拆掉上层覆盖层的绑定
+        self.app.input.unbind(self)
+        for key in ("f1", "f2", "f3", "f5", "f6"):
             self.app.ignore(key)
+
+    def bind(self, event: str, handler) -> None:
+        """本场景的按键绑定统一入口（归属可回收）。"""
+        self.app.input.bind(self, event, handler)
 
     def _on_interact(self) -> None:
         if self.app.scenes.input_locked:
@@ -347,10 +398,7 @@ class WorldSceneBase:
         self._last_ia = ia_id
         view = self.interaction.query(self._state, ia_id)
         self.prompt.show_prompt(view)
-        if not view.enabled:
-            self.tutorial.notify("near_interactable")
-        else:
-            self.tutorial.notify("near_interactable")
+        self.tutorial.notify("near_interactable")
 
 
 class CampusSceneAdapter(WorldSceneBase):
@@ -519,11 +567,15 @@ class WidgetSceneBase:
     def apply(self, **kwargs: Any) -> None:
         pass
 
+    def bind(self, event: str, handler) -> None:
+        """按键绑定的唯一入口：记下归属，退场时只收回自己那份。"""
+        self.app.input.bind(self, event, handler)
+
     def bind_input(self) -> None:
         pass
 
     def unbind_input(self) -> None:
-        pass
+        self.app.input.unbind(self)
 
     def on_update(self, dt: float) -> None:
         tick = getattr(self.widget, "tick", None)
@@ -558,17 +610,13 @@ class MainMenuSceneAdapter(WidgetSceneBase):
         )
 
     def bind_input(self) -> None:
-        self.app.accept("arrow_up", lambda: self.widget.move(-1))
-        self.app.accept("w", lambda: self.widget.move(-1))
-        self.app.accept("arrow_down", lambda: self.widget.move(1))
-        self.app.accept("s", lambda: self.widget.move(1))
-        self.app.accept("enter", self.widget.confirm)
-        self.app.accept("space", self.widget.confirm)
-        self.app.accept("escape", self.app.quit_game)
-
-    def unbind_input(self) -> None:
-        for key in ("arrow_up", "w", "arrow_down", "s", "enter", "space", "escape"):
-            self.app.ignore(key)
+        self.bind("arrow_up", lambda: self.widget.move(-1))
+        self.bind("w", lambda: self.widget.move(-1))
+        self.bind("arrow_down", lambda: self.widget.move(1))
+        self.bind("s", lambda: self.widget.move(1))
+        self.bind("enter", self.widget.confirm)
+        self.bind("space", self.widget.confirm)
+        self.bind("escape", self.app.quit_game)
 
     def _new_game(self) -> None:
         self.app.flow.new_game(seed=self.app.options.seed, skip_intro=self.app.options.skip_intro)
@@ -599,16 +647,23 @@ class ResultPanelSceneAdapter(WidgetSceneBase):
             self.widget.show_result(result)
 
     def bind_input(self) -> None:
-        self.app.accept("space", self.widget.confirm)
-        self.app.accept("enter", self.widget.confirm)
-
-    def unbind_input(self) -> None:
-        for key in ("space", "enter"):
-            self.app.ignore(key)
+        # 三个「按 Space 继续」的面板都接受鼠标左键与 Esc：
+        # 玩家第一反应是点一下或按 Esc，不能只有 Space 能用。
+        self.bind("space", self.widget.confirm)
+        self.bind("enter", self.widget.confirm)
+        self.bind("mouse1", self.widget.confirm)
+        self.bind("escape", self.widget.confirm)
 
     def _close(self) -> None:
         result = self.kwargs.get("result")
         self.app.scenes.pop()
+        base_scene = self.app.scenes.base_scene
+        tutorial = getattr(base_scene, "tutorial", None)
+        if tutorial is not None:
+            tutorial.notify("result_closed")
+            overlay = getattr(base_scene, "tutorial_overlay", None)
+            if overlay is not None:
+                overlay.refresh()
         self.app.flow.close_result_panel(result)
 
 
@@ -623,7 +678,9 @@ class EventSceneAdapter(WidgetSceneBase):
 
     def apply(self, event_id: str | None = None, text_id: str | None = None,
               semester: bool = False, story: bool = False, **kwargs: Any) -> None:
+        self._pending_result = None
         if text_id:
+            # Inspect pages are display-only: they must never enter EventService.choose.
             lines = [self.app.text.get_raw(text_id)]
             self.widget.show_simple_pages("inspect", [])
             self.widget.dialogue.show_page({"speaker": None, "portrait": None, "lines": lines})
@@ -635,57 +692,59 @@ class EventSceneAdapter(WidgetSceneBase):
         self.widget.load_event(view)
 
     def _build_view(self, event_id: str) -> EventView:
-        """从 TextDB 组出完整事件：分页 = evt.<id>.body.N，选项 = evt.<id>.choice.<cid>。"""
-        text = self.app.text
-        pages = sorted(
-            (key for key in text.dialogues if key.startswith(f"evt.{event_id}.body.")),
-            key=lambda k: int(k.rsplit(".", 1)[-1]) if k.rsplit(".", 1)[-1].isdigit() else 0,
-        )
-        choices = [
-            ChoiceView(choice_id=key.rsplit(".", 1)[-1], text_id=key)
-            for key in text.strings
-            if key.startswith(f"evt.{event_id}.choice.")
-        ]
-        return EventView(
-            event_id=event_id,
-            kind="story",
-            speaker=None,
-            page_text_ids=pages,
-            choices=choices,
-        )
+        """从事件服务取得规则计算后的视图，包含真实的锁定状态。"""
+        state = self.app.flow.require_state()
+        return self.app.services.event.get_view(state, event_id)
+
+    def _show_content_error(self, event_id: str, choice_id: str, error: ContentError) -> None:
+        """把服务层拒绝显示给玩家，而不是让场景回调冒泡到主循环。"""
+        lock_id = f"evt.{event_id}.lock.{choice_id}"
+        if self.app.text.has(lock_id):
+            text = self.app.text.get_raw(lock_id)
+        elif "E_CHOICE_LOCKED" in str(error):
+            text = self.app.text.get("err.choice_locked")
+        else:
+            text = self.app.text.get("err.unknown_id", id=event_id)
+        show_hint = getattr(self.widget, "_show_lock_hint", None)
+        if callable(show_hint):
+            show_hint(text)
+        else:
+            LOG.warning("事件选择被拒绝但控件没有锁定提示接口：%s", error)
+        LOG.info("事件选择被拒绝 event=%s choice=%s: %s", event_id, choice_id, error)
 
     def bind_input(self) -> None:
-        self.app.accept("space", self.widget.on_space)
-        self.app.accept("enter", self.widget.on_space)
-        self.app.accept("e", self.widget.on_space)
-        self.app.accept("arrow_up", lambda: self.widget.on_move(-1))
-        self.app.accept("w", lambda: self.widget.on_move(-1))
-        self.app.accept("arrow_down", lambda: self.widget.on_move(1))
-        self.app.accept("s", lambda: self.widget.on_move(1))
+        self.bind("space", self.widget.on_space)
+        self.bind("enter", self.widget.on_space)
+        self.bind("e", self.widget.on_space)
+        self.bind("mouse1", self.widget.on_space)
+        self.bind("arrow_up", lambda: self.widget.on_move(-1))
+        self.bind("w", lambda: self.widget.on_move(-1))
+        self.bind("arrow_down", lambda: self.widget.on_move(1))
+        self.bind("s", lambda: self.widget.on_move(1))
         for digit in (1, 2, 3):
-            self.app.accept(str(digit), lambda d=digit: self.widget.on_digit(d))
-        self.app.accept("escape", lambda: None)  # 事件不可中途退出
-
-    def unbind_input(self) -> None:
-        for key in ("space", "enter", "e", "arrow_up", "w", "arrow_down", "s",
-                    "1", "2", "3", "escape"):
-            self.app.ignore(key)
+            self.bind(str(digit), lambda d=digit: self.widget.on_digit(d))
+        # 事件不能中途退出，但 Esc 必须有反应：跳过打字机 / 翻页 / 关掉结果页，
+        # 到了选项阶段则提示「先选一个选项」——不能像旧版那样绑一个空 lambda。
+        self.bind("escape", self.widget.on_escape)
 
     def _choose(self, event_id: str, choice_id: str) -> None:
-        result = EventResult(
-            event_id=event_id,
-            choice_id=choice_id,
-            result_text_ids=[f"evt.{event_id}.result.{choice_id}"],
-        )
+        if getattr(self, "_inspect_only", False):
+            return
+        state = self.app.flow.require_state()
+        try:
+            result = self.app.services.event.choose(state, event_id, choice_id)
+        except ContentError as error:
+            self._show_content_error(event_id, choice_id, error)
+            return
         self.widget.show_event_result(result)
         self._pending_result = result
 
     def _finished(self, event_id: str) -> None:
-        result = getattr(self, "_pending_result", None) or EventResult(
-            event_id=event_id, choice_id="none"
-        )
+        # A page-only/inspect event has no result to commit. In particular, do not
+        # manufacture choice_id="none", which would look like a real settlement.
+        result = getattr(self, "_pending_result", None)
         self.app.scenes.pop()
-        if getattr(self, "_inspect_only", False):
+        if getattr(self, "_inspect_only", False) or result is None:
             return
         self.app.flow.handle_event_result(result)
 
@@ -705,12 +764,10 @@ class DaySummarySceneAdapter(WidgetSceneBase):
         self.widget.show_summary(result, day=day, action_names=names)
 
     def bind_input(self) -> None:
-        self.app.accept("space", self.widget.confirm)
-        self.app.accept("enter", self.widget.confirm)
-
-    def unbind_input(self) -> None:
-        for key in ("space", "enter"):
-            self.app.ignore(key)
+        self.bind("space", self.widget.confirm)
+        self.bind("enter", self.widget.confirm)
+        self.bind("mouse1", self.widget.confirm)
+        self.bind("escape", self.widget.confirm)
 
 
 class TabPanelSceneAdapter(WidgetSceneBase):
@@ -721,12 +778,8 @@ class TabPanelSceneAdapter(WidgetSceneBase):
         self.widget.update_state(state if state is not None else self.app.flow.state)
 
     def bind_input(self) -> None:
-        self.app.accept("tab", self._pop)
-        self.app.accept("escape", self._pop)
-
-    def unbind_input(self) -> None:
-        for key in ("tab", "escape"):
-            self.app.ignore(key)
+        self.bind("tab", self._pop)
+        self.bind("escape", self._pop)
 
 
 class PauseMenuSceneAdapter(WidgetSceneBase):
@@ -738,17 +791,13 @@ class PauseMenuSceneAdapter(WidgetSceneBase):
         self.widget.on_resume = self._resume
 
     def bind_input(self) -> None:
-        self.app.accept("arrow_up", lambda: self.widget.move(-1))
-        self.app.accept("w", lambda: self.widget.move(-1))
-        self.app.accept("arrow_down", lambda: self.widget.move(1))
-        self.app.accept("s", lambda: self.widget.move(1))
-        self.app.accept("enter", self._confirm)
-        self.app.accept("space", self._confirm)
-        self.app.accept("escape", self._resume)
-
-    def unbind_input(self) -> None:
-        for key in ("arrow_up", "w", "arrow_down", "s", "enter", "space", "escape"):
-            self.app.ignore(key)
+        self.bind("arrow_up", lambda: self.widget.move(-1))
+        self.bind("w", lambda: self.widget.move(-1))
+        self.bind("arrow_down", lambda: self.widget.move(1))
+        self.bind("s", lambda: self.widget.move(1))
+        self.bind("enter", self._confirm)
+        self.bind("space", self._confirm)
+        self.bind("escape", self._resume)
 
     def _confirm(self) -> None:
         key = self.widget.confirm()
@@ -781,21 +830,16 @@ class SettingsMenuSceneAdapter(WidgetSceneBase):
         self.widget.on_back = self._back
 
     def bind_input(self) -> None:
-        self.app.accept("arrow_up", lambda: self.widget.move(-1))
-        self.app.accept("w", lambda: self.widget.move(-1))
-        self.app.accept("arrow_down", lambda: self.widget.move(1))
-        self.app.accept("s", lambda: self.widget.move(1))
-        self.app.accept("arrow_left", lambda: self.widget.adjust(-1))
-        self.app.accept("a", lambda: self.widget.adjust(-1))
-        self.app.accept("arrow_right", lambda: self.widget.adjust(1))
-        self.app.accept("d", lambda: self.widget.adjust(1))
-        self.app.accept("enter", self.widget.confirm)
-        self.app.accept("escape", self.widget.cancel)
-
-    def unbind_input(self) -> None:
-        for key in ("arrow_up", "w", "arrow_down", "s", "arrow_left", "a",
-                    "arrow_right", "d", "enter", "escape"):
-            self.app.ignore(key)
+        self.bind("arrow_up", lambda: self.widget.move(-1))
+        self.bind("w", lambda: self.widget.move(-1))
+        self.bind("arrow_down", lambda: self.widget.move(1))
+        self.bind("s", lambda: self.widget.move(1))
+        self.bind("arrow_left", lambda: self.widget.adjust(-1))
+        self.bind("a", lambda: self.widget.adjust(-1))
+        self.bind("arrow_right", lambda: self.widget.adjust(1))
+        self.bind("d", lambda: self.widget.adjust(1))
+        self.bind("enter", self.widget.confirm)
+        self.bind("escape", self.widget.cancel)
 
     def _back(self) -> None:
         self.app.scenes.pop()
@@ -817,17 +861,13 @@ class SaveMenuSceneAdapter(WidgetSceneBase):
         )
 
     def bind_input(self) -> None:
-        self.app.accept("arrow_up", lambda: self.widget.move(-1))
-        self.app.accept("w", lambda: self.widget.move(-1))
-        self.app.accept("arrow_down", lambda: self.widget.move(1))
-        self.app.accept("s", lambda: self.widget.move(1))
-        self.app.accept("enter", self.widget.confirm)
-        self.app.accept("space", self.widget.confirm)
-        self.app.accept("escape", self.widget.cancel)
-
-    def unbind_input(self) -> None:
-        for key in ("arrow_up", "w", "arrow_down", "s", "enter", "space", "escape"):
-            self.app.ignore(key)
+        self.bind("arrow_up", lambda: self.widget.move(-1))
+        self.bind("w", lambda: self.widget.move(-1))
+        self.bind("arrow_down", lambda: self.widget.move(1))
+        self.bind("s", lambda: self.widget.move(1))
+        self.bind("enter", self.widget.confirm)
+        self.bind("space", self.widget.confirm)
+        self.bind("escape", self.widget.cancel)
 
     def _back(self) -> None:
         self.app.scenes.pop()
@@ -858,12 +898,8 @@ class GraduationSceneAdapter(WidgetSceneBase):
         self.widget.open(ending, snapshot)
 
     def bind_input(self) -> None:
-        self.app.accept("space", self.widget.on_space)
-        self.app.accept("enter", self.widget.on_space)
-
-    def unbind_input(self) -> None:
-        for key in ("space", "enter"):
-            self.app.ignore(key)
+        self.bind("space", self.widget.on_space)
+        self.bind("enter", self.widget.on_space)
 
 
 __all__ = [

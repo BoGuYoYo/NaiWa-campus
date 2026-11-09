@@ -271,3 +271,44 @@ def test_teleport_to_spawn_resets_position(flow):
 def test_require_state_without_game_raises(flow):
     with pytest.raises(RuntimeError):
         flow.require_state()
+
+
+def test_intro_overlay_waits_until_campus_scene_is_ready(tmp_path):
+    """回归：开场事件必须等校园场景淡入结束再 push。
+
+    旧版在 change() 之后立刻 push，淡出结束时主菜单的 on_exit 会把对话框的
+    Space / Enter 绑定一并 ignore 掉 —— 对话框按不动、Esc 也没反应。
+    """
+    bus = EventBus()
+    scenes = SceneManager(
+        app=None,
+        factory=lambda sid, kw: DummyScene(sid, **kw),
+        bus=bus,
+        fade_seconds=0.25,
+    )
+    manager = GameFlow(
+        app=None,
+        scenes=scenes,
+        saves=SaveManager(saves_root=tmp_path / "saves"),
+        bus=bus,
+        services=resolve_services(),
+    )
+    scenes.start("MainMenu")
+    scenes.update(0.3)
+
+    state = manager.new_game(seed=1, skip_intro=False)
+    assert scenes.overlays == []
+    assert state.phase == "campus"
+
+    scenes.update(0.1)  # 淡出中：旧场景还没退，不能挂覆盖层
+    assert scenes.overlays == []
+    scenes.update(0.2)  # 校园场景已建立，淡入中
+    assert scenes.current_id == "CampusScene"
+    assert scenes.overlays == []
+
+    scenes.update(0.3)  # 淡入结束 → on_ready 弹开场
+    assert scenes.top_overlay_id == "EventScene"
+    assert scenes.overlays[0][1].kwargs["event_id"] == "story_opening"
+    assert state.phase == "event"
+    assert state.pending_event_id == "story_opening"
+

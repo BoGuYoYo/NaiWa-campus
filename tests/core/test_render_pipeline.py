@@ -16,8 +16,10 @@ def test_internal_canvas_constants():
     assert config.INTERNAL_WIDTH == 480
     assert config.INTERNAL_HEIGHT == 270
     assert config.PIXELS_PER_METER == 24
-    assert config.FILM_WIDTH_METERS == 20.0
-    assert config.FILM_HEIGHT_METERS == 11.25
+    assert config.CAMERA_VIEW_SCALE == 1.25
+    assert config.FILM_WIDTH_METERS == 25.0
+    assert config.FILM_HEIGHT_METERS == 14.0625
+    assert config.CAMERA_DISTANCE == 38.0
 
 
 @pytest.mark.parametrize("size", [(1920, 1080), (3840, 2160), (960, 540)])

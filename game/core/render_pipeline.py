@@ -2,7 +2,7 @@
 
 要点：
 1. 480×270 离屏缓冲，纹理放大/缩小过滤都是 nearest，清屏色 #1B1F2A；
-2. 正交镜头 film size 20 × 11.25 米（每米 24 像素），near/far = 1/200，主窗口相机停用；
+2. 正交镜头 film size 25 × 14.0625 米（每米 24 像素，视野放大 1.25 倍），near/far = 1/200，主窗口相机停用；
 3. render2d 上一张全屏卡片显示缓冲纹理，按整数倍优先 / 比例拉伸兜底居中加黑边；
 4. 相机每帧对齐 1/24 米网格，避免像素闪烁；
 5. 像素 UI 用同一套 480×270 逻辑坐标（ui_px）；
@@ -172,8 +172,9 @@ class LowResPipeline:
         self.camera_target = (sx, sy)
         if self.camera_np is None:
             return (sx, sy)
-        # 视方向 forward = (0, cos p, sin p)；相机沿 -forward 后退，正交投影下距离只影响深度。
-        distance = 30.0
+        # 视方向 forward = (0, cos p, sin p)；相机沿 -forward 后退。
+        # 正交镜头的可视范围由 film size 控制，距离仍保持更远以留出深度余量。
+        distance = config.CAMERA_DISTANCE
         pitch = config.CAMERA_TILT_DEGREES
         self.camera_np.setPos(
             sx - 0.0 * distance,

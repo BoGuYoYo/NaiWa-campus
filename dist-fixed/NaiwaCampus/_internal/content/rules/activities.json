@@ -1,0 +1,157 @@
+[
+  {
+    "id": "attend_class",
+    "name": "上课",
+    "location": "loc_classroom",
+    "effects": {
+      "energy": -15,
+      "mood": -4,
+      "academic": 4,
+      "interest": 1
+    },
+    "counter": "class_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": true,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": null,
+    "random_daily_event": false
+  },
+  {
+    "id": "library_study",
+    "name": "图书馆学习",
+    "location": "loc_library",
+    "effects": {
+      "energy": -20,
+      "mood": -3,
+      "academic": 5,
+      "rel.npc_sumo": 2
+    },
+    "counter": "library_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": true,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": null,
+    "random_daily_event": false
+  },
+  {
+    "id": "play_games",
+    "name": "打游戏",
+    "location": "loc_clubroom",
+    "effects": {
+      "energy": -8,
+      "mood": 8,
+      "interest": 3,
+      "rel.npc_xiaoyou": 2
+    },
+    "counter": "games_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": false,
+    "late_flag_on_daily_count": {
+      "count": 3,
+      "flag": "stayed_up_late"
+    },
+    "flag_when_counter": null,
+    "random_daily_event": false
+  },
+  {
+    "id": "create_work",
+    "name": "创作",
+    "location": "loc_clubroom",
+    "effects": {
+      "energy": -15,
+      "mood": 1,
+      "interest": 4,
+      "rel.npc_xiaoyou": 2
+    },
+    "counter": "create_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": false,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": null,
+    "random_daily_event": false
+  },
+  {
+    "id": "join_club",
+    "name": "参加社团",
+    "location": "loc_clubroom",
+    "effects": {
+      "energy": -12,
+      "mood": -2,
+      "social": 4,
+      "interest": 1,
+      "rel.npc_chenlang": 3
+    },
+    "counter": "club_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": false,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": {
+      "counter": "club_count",
+      "at_least": 3,
+      "flag": "club_member"
+    },
+    "random_daily_event": false
+  },
+  {
+    "id": "exercise",
+    "name": "操场锻炼",
+    "location": "loc_playground",
+    "effects": {
+      "energy": -18,
+      "mood": 4,
+      "stamina": 4
+    },
+    "counter": "exercise_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": false,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": null,
+    "random_daily_event": false
+  },
+  {
+    "id": "eat_canteen",
+    "name": "食堂用餐",
+    "location": "loc_canteen",
+    "effects": {
+      "energy": 25,
+      "mood": 4,
+      "stamina": 1
+    },
+    "counter": "meal_count",
+    "daily_limit": 2,
+    "halve_academic_on_low_mood": false,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": null,
+    "random_daily_event": false
+  },
+  {
+    "id": "rest_dorm",
+    "name": "宿舍休息",
+    "location": "loc_dorm",
+    "effects": {
+      "energy": 35,
+      "mood": 3
+    },
+    "counter": "rest_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": false,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": null,
+    "random_daily_event": false
+  },
+  {
+    "id": "campus_walk",
+    "name": "校园闲逛",
+    "location": "loc_plaza",
+    "effects": {
+      "energy": -5,
+      "mood": 5
+    },
+    "counter": "walk_count",
+    "daily_limit": null,
+    "halve_academic_on_low_mood": false,
+    "late_flag_on_daily_count": null,
+    "flag_when_counter": null,
+    "random_daily_event": true
+  }
+]

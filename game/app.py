@@ -24,6 +24,7 @@ from .core.event_bus import (
     EventBus,
 )
 from .core.flow import GameFlow, resolve_services
+from .core.input_router import InputRouter
 from .core.render_pipeline import LowResPipeline
 from .core.results import ActivityResult, DayEndResult, EndingResult, EventResult
 from .core.save_manager import SaveLoadError, SaveManager
@@ -85,6 +86,8 @@ class NaiwaApp(ShowBase):
         self.settings = config.Settings.load()
         super().__init__()
 
+        # 按键绑定统一走路由：ignore() 是全局接口，场景退场时不能把别人的绑定一起拆掉
+        self.input = InputRouter(self.accept, self.ignore)
         self.bus = EventBus(logger=logging.getLogger("naiwa.bus"), strict_topics=options.dev)
         self.registry = AssetRegistry(loader=self, bus=self.bus)
         self.pipeline = LowResPipeline(self)
@@ -356,9 +359,14 @@ class StubScene:
         pass
 
     def on_exit(self) -> None:
+        # 只收回自己绑的键：直接 ignore 会把上层场景/覆盖层的绑定一起拆掉
+        self.app.input.unbind(self)
         if self.root is not None and not self.root.isEmpty():
             self.root.removeNode()
         self.root = None
+
+    def bind(self, event: str, handler) -> None:
+        self.app.input.bind(self, event, handler)
 
     def on_update(self, dt: float) -> None:
         pass
@@ -383,13 +391,8 @@ class StubMainMenu(StubScene):
     def on_enter(self, **kwargs: Any) -> None:
         self.root = self.app.render2d.attachNewNode("stub_main_menu")
         self.label = self._panel("NAIWA CAMPUS  |  Enter: New Game   Esc: Quit")
-        self.app.accept("enter", self._start)
-        self.app.accept("escape", self.app.quit_game)
-
-    def on_exit(self) -> None:
-        self.app.ignore("enter")
-        self.app.ignore("escape")
-        super().on_exit()
+        self.bind("enter", self._start)
+        self.bind("escape", self.app.quit_game)
 
     def _start(self) -> None:
         self.app.flow.new_game(seed=self.app.options.seed, skip_intro=self.app.options.skip_intro)
@@ -424,14 +427,9 @@ class StubCampus(StubScene):
             "a": KeyboardButton.asciiKey("a"),
             "d": KeyboardButton.asciiKey("d"),
         }
-        self.app.accept("e", self._interact)
-        self.app.accept("escape", self._pause)
-        self.app.accept("tab", self._tab)
-
-    def on_exit(self) -> None:
-        for key in ("e", "escape", "tab"):
-            self.app.ignore(key)
-        super().on_exit()
+        self.bind("e", self._interact)
+        self.bind("escape", self._pause)
+        self.bind("tab", self._tab)
 
     # ------------------------------------------------------------------ #
     # 校园布景：建筑优先用透明正面图，缺失时回退 BAM；道具仍使用模型。
@@ -688,7 +686,7 @@ class StubResultPanel(StubScene):
         self.cg = None
         if isinstance(result, ActivityResult):
             self.cg = self._show_cg(result.activity_id)
-        self.app.accept("enter", self._close)
+        self.bind("enter", self._close)
 
     def _show_cg(self, activity_id: str):
         """活动结果配图：cg_naiwan_<activity>，缺失时 registry 会自动回退占位图。"""
@@ -712,7 +710,6 @@ class StubResultPanel(StubScene):
         return image
 
     def on_exit(self) -> None:
-        self.app.ignore("enter")
         if self.cg is not None:
             self.cg.destroy()
             self.cg = None
@@ -745,12 +742,7 @@ class StubEventScene(StubScene):
         # The overlay intentionally locks walking. Accept the common movement keys too,
         # so a player who tries WASD is taken through the opening instead of feeling stuck.
         for event in ("enter", "space", "mouse1", "w", "a", "s", "d"):
-            self.app.accept(event, self._choose)
-
-    def on_exit(self) -> None:
-        for event in ("enter", "space", "mouse1", "w", "a", "s", "d"):
-            self.app.ignore(event)
-        super().on_exit()
+            self.bind(event, self._choose)
 
     def _choose(self) -> None:
         self.app.scenes.pop()
@@ -780,11 +772,7 @@ class StubDaySummary(StubScene):
                 lines.append("毕业")
         self.root = self.app.render2d.attachNewNode("stub_summary")
         self.label = self._panel("DAY SUMMARY\n" + "\n".join(lines) + "\n\nEnter: close")
-        self.app.accept("enter", self._close)
-
-    def on_exit(self) -> None:
-        self.app.ignore("enter")
-        super().on_exit()
+        self.bind("enter", self._close)
 
     def _close(self) -> None:
         self.app.scenes.pop()
@@ -794,14 +782,9 @@ class StubPauseMenu(StubScene):
     def on_enter(self, **kwargs: Any) -> None:
         self.root = self.app.render2d.attachNewNode("stub_pause")
         self.label = self._panel("PAUSED\nEnter: resume   S: save   L: load")
-        self.app.accept("enter", self._resume)
-        self.app.accept("s", self._save)
-        self.app.accept("l", self._load)
-
-    def on_exit(self) -> None:
-        for key in ("enter", "s", "l"):
-            self.app.ignore(key)
-        super().on_exit()
+        self.bind("enter", self._resume)
+        self.bind("s", self._save)
+        self.bind("l", self._load)
 
     def _resume(self) -> None:
         self.app.scenes.pop()
@@ -831,11 +814,7 @@ class StubTabPanel(StubScene):
             text = f"{state.year} 年 {state.semester} 学期 第 {state.day} 天\n{stats}\n心情={state.mood} 精力={state.energy}\nTab 关闭"
         self.root = self.app.render2d.attachNewNode("stub_tab")
         self.label = self._panel(text)
-        self.app.accept("tab", lambda: self.app.scenes.pop())
-
-    def on_exit(self) -> None:
-        self.app.ignore("tab")
-        super().on_exit()
+        self.bind("tab", lambda: self.app.scenes.pop())
 
 
 class StubGraduation(StubScene):
@@ -846,11 +825,7 @@ class StubGraduation(StubScene):
         state = self.app.flow.state
         stats = "  ".join(f"{k}={v}" for k, v in state.stats.items()) if state else ""
         self.label = self._panel(f"GRADUATION: {ending_id}\n{stats}\n\nEnter: back to menu")
-        self.app.accept("enter", self._back)
-
-    def on_exit(self) -> None:
-        self.app.ignore("enter")
-        super().on_exit()
+        self.bind("enter", self._back)
 
     def _back(self) -> None:
         self.app.flow.finish_graduation()

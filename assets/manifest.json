@@ -779,261 +779,319 @@
       "id": "ui_panel_9slice",
       "type": "image",
       "path": "ui/panel_9slice.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_academic",
       "type": "image",
       "path": "ui/icons/academic.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_stamina",
       "type": "image",
       "path": "ui/icons/stamina.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_mood",
       "type": "image",
       "path": "ui/icons/mood.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_social",
       "type": "image",
       "path": "ui/icons/social.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_interest",
       "type": "image",
       "path": "ui/icons/interest.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_energy",
       "type": "image",
       "path": "ui/icons/energy.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_attend_class",
       "type": "image",
       "path": "ui/icons/activity_attend_class.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_library_study",
       "type": "image",
       "path": "ui/icons/activity_library_study.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_play_games",
       "type": "image",
       "path": "ui/icons/activity_play_games.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_create_work",
       "type": "image",
       "path": "ui/icons/activity_create_work.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_join_club",
       "type": "image",
       "path": "ui/icons/activity_join_club.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_exercise",
       "type": "image",
       "path": "ui/icons/activity_exercise.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_eat_canteen",
       "type": "image",
       "path": "ui/icons/activity_eat_canteen.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_rest_dorm",
       "type": "image",
       "path": "ui/icons/activity_rest_dorm.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_icon_campus_walk",
       "type": "image",
       "path": "ui/icons/activity_campus_walk.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_e",
       "type": "image",
       "path": "ui/keys/e.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_space",
       "type": "image",
       "path": "ui/keys/space.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_tab",
       "type": "image",
       "path": "ui/keys/tab.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_esc",
       "type": "image",
       "path": "ui/keys/esc.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_w",
       "type": "image",
       "path": "ui/keys/w.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_a",
       "type": "image",
       "path": "ui/keys/a.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_s",
       "type": "image",
       "path": "ui/keys/s.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_key_d",
       "type": "image",
       "path": "ui/keys/d.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_slot_full",
       "type": "image",
       "path": "ui/slot_full.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_slot_empty",
       "type": "image",
       "path": "ui/slot_empty.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_bar_frame",
       "type": "image",
       "path": "ui/bar_frame.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_bar_fill",
       "type": "image",
       "path": "ui/bar_fill.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "ui_cursor",
       "type": "image",
       "path": "ui/cursor.png",
-      "license_id": "LIC-0101",
+      "license_id": "LIC-0210",
       "tags": [
-        "placeholder"
+        "final",
+        "ui",
+        "generated_from_user_art"
       ]
     },
     {

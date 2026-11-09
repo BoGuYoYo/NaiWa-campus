@@ -22,6 +22,7 @@
 | `char_naiwan_walk` / `char_naiwan_idle` | **正式**（`LIC-0001`） | 用户提供的单方向序列帧 + `待机图.jfif`，经 `tools/slice_reference_sheets.py` 切片 |
 | `portrait_naiwan_*`（8 张） | **正式**（`LIC-0006`） | 用户提供的 `素材/小表情/`，经 `tools/import_generated_art.py` 落位 |
 | `cg_naiwan_*`（9 张） | **正式**（`LIC-0006`） | 用户提供的 `素材/场景/`，同一工具落位 |
+| UI 皮肤 `ui_*`（29 张） | **正式**（`LIC-0210`） | 用户提供的 `素材/UI/` 合成图，经 `tools/import_ui_skin.py` 去背、最近邻缩放和 32 色量化 |
 | 其余全部美术与音频 | 同尺寸占位资源 | `tools/make_placeholders.py` 程序生成 |
 
 ## 2.1 当前角色规格（2026-11-08 素材更新后）
@@ -76,6 +77,21 @@ python tools/import_generated_art.py --all            # 写入 assets/art/cg 与
 
 游戏里已经接上：`game/app.py` 的替身 `ResultPanel` 会按 `cg_naiwan_<activity_id>` 显示活动插图
 （缺失时 registry 自动回退占位图），文本与插图分居左下 / 中上，互不遮挡。
+
+### UI 皮肤导入（2026-11-09，`LIC-0210`）
+
+`素材/UI/` 本次交付的是 10 张合成 JPEG：6 张属性图标、1 张 3×3 活动图标表、1 张共用键帽、
+1 张点/条/光标表和 1 张面板。`tools/import_ui_skin.py` 按现有 29 个 `ui_*` asset_id 切分并写回
+原路径，不改变游戏或 UI 模块接口：
+
+```powershell
+python tools/import_ui_skin.py --source "..\素材\UI"
+python tools/import_ui_skin.py --verify
+```
+
+处理规则为边界泛洪去背、整数网格上的最近邻缩放、映射到 `PALETTE` 的 32 色、透明像素 RGB 清零；
+键帽文字由工具以 3×5 像素字烧入。对照图写入 `reports/review/ui_skin_sheet.png`，面板额外检查
+四角镜像和 16×16 中心纯色，数值条额外检查两端 2 像素列可复用。
 
 ### 建筑正面贴图（2026-11-09）
 

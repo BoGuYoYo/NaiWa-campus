@@ -1,8 +1,7 @@
 # UI 皮肤 AI 生图提示词（29 个 `ui_*` 资源）
 
-对应 `assets/manifest.json` 里的 29 个 `ui_*` 资源，现在全是 `make_placeholders.py` 生成的
-占位图（`LIC-0101`）。本文给出可直接粘贴的生图提示词，替换后重新登记许可（建议 `LIC-0210`，
-作者写"用户提供的 AI 生成素材"）。
+对应 `assets/manifest.json` 里的 29 个 `ui_*` 资源。2026-11-09 已导入用户生成的 UI 皮肤，
+登记为 `LIC-0210`；本文保留生成规格和验收约束，方便后续重新出图。
 
 - 画布：游戏内部 480×270，UI 用**同一套 480×270 逻辑像素**，最近邻放大。
 - 调色板：`assets/palette.png`，32 色，主色见下表，**生成图尽量只用这些色**。
@@ -475,9 +474,9 @@ triangle with a 1px #2B2235 outline, sharp pixel steps, no glow, transparent bac
 python tools/import_ui_skin.py --source "..\素材\UI" --verify
 ```
 
-> 该导入脚本尚未创建；生成图到位后由 A 补，流程与 `import_campus_props.py` /
-> `process_building_textures.py` 一致（白底/棋盘背景泛洪去背 → 最近邻缩放到目标尺寸 →
-> 量化 32 色 → 透明像素 RGB 置 0 → 登记 `manifest.json` 与 `LICENSES.csv`）。
+当前导入脚本为 `tools/import_ui_skin.py`：它读取 `素材/UI/` 的合成图，按表格切分活动图标、
+共享键帽和点/条/光标，再执行白底/棋盘背景泛洪去背、最近邻缩放、32 色量化、透明像素 RGB 清零，
+并更新 `manifest.json` 与 `LICENSES.csv`。重复运行结果稳定；缺源图时只打印 `SKIP`，不会覆盖现有文件。
 
 ## 10. 一句话验收清单
 

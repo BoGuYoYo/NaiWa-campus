@@ -125,7 +125,9 @@ class NaiwaApp(ShowBase):
         self.accept("window-event", self._on_window_event)
 
         if options.dev:
-            self.accept("f1", self._debug_toggle_fps)
+            # F1~F6 归 C 的 DebugDraw（碰撞线框 / 交互点 / 状态 / 传送 / 时段），
+            # A 自己的 FPS 开关让到 F7，避免 f1 被两边同时 accept。
+            self.accept("f7", self._debug_toggle_fps)
             self.accept("f4", self._debug_inspect_character)
 
         self.log.info("[APP] ready offscreen=%s scene=%s", options.offscreen, options.scene)

@@ -137,6 +137,7 @@ class WorldSceneBase:
         self.prompt = None
         self.tracker = None
         self.tutorial = None
+        self.debug = None
         self._last_ia: str | None = None
         self._state: GameState | None = None
 
@@ -203,11 +204,37 @@ class WorldSceneBase:
         )
         self.tutorial = TutorialController(self._state, self.app.text)
         self.tutorial.notify("enter_campus")
+        self.debug = self._build_debug_draw()
         self._bind_input()
         self._refresh_prompt(force=True)
 
+    # ------------------------------------------------------------------ 调试绘制
+    def _build_debug_draw(self):
+        """--dev 下接 C 的 DebugDraw：F1 碰撞线框、F2 交互点、F3 状态、F5 传送、F6 时段。"""
+        if not getattr(self.app.options, "dev", False):
+            return None
+        try:
+            from game.world.debug_draw import DebugDraw
+
+            debug = DebugDraw(
+                self.md, self.root, player=self.player, state=self._state, goto=self._debug_goto
+            )
+            debug.set_scene(self.scene_id)
+            debug.bind(self.app)
+            return debug
+        except Exception as exc:  # pragma: no cover - 调试工具不应阻塞开局
+            self.log.warning("[WORLD] DebugDraw 不可用: %s", exc)
+            return None
+
+    def _debug_goto(self, x: float, y: float, facing: str | None = None) -> None:
+        if self.player is not None:
+            self.player.teleport(x, y, facing)
+
     def on_exit(self) -> None:
         self._unbind_input()
+        for key in ("f1", "f2", "f3", "f5", "f6"):
+            self.app.ignore(key)
+        self.debug = None
         for widget in (self.hud, self.prompt):
             if widget is not None:
                 widget.destroy()

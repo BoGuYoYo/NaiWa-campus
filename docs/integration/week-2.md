@@ -59,7 +59,7 @@ game --dev --autoplay --offscreen             → 48 次活动、8 学期事件�
 | P1 | 室内 `npc_marks` 与交互点坐标差 1 米 | C |
 | P1 | UI 皮肤仍是 A 的占位图（28 个 `ui_*` 里 D 已接 22 个） | A / D |
 | P2 | `EventSceneAdapter` 目前直接从 `TextDB` 组事件视图，B 交付后应改为调用 `EventService.get_view` | A / B |
-| P2 | `DebugDraw`（F1/F2/F3/F5/F6）尚未接进适配层，键位仍空 | C / A |
+| — | `DebugDraw`（F1/F2/F3/F5/F6）已接进适配层，A 的 FPS 开关让到 F7（截图 `reports/review/C+D/07_debug_draw.png`） | C / A（已闭环） |
 
 ## 4. 下周风险
 

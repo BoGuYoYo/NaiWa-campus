@@ -1,0 +1,48 @@
+{
+  "save_version": 1,
+  "seed": 42,
+  "day_index": 7,
+  "action_slot": 0,
+  "stats": {
+    "academic": 77,
+    "interest": 13,
+    "social": 20,
+    "stamina": 23
+  },
+  "mood": 42,
+  "energy": 69,
+  "relationships": {
+    "npc_chenlang": 0,
+    "npc_sumo": 51,
+    "npc_xiaoyou": 8
+  },
+  "flags": [
+    "lab_visited",
+    "npc_sumo_stage1"
+  ],
+  "counters": {
+    "class_count": 3,
+    "library_count": 9,
+    "meal_count": 3,
+    "rest_count": 3
+  },
+  "today_counts": {},
+  "talked_today": [],
+  "event_log": [
+    "sem_1_club_fair:fair_lab",
+    "rel_npc_sumo_1:continue",
+    "sem_2_first_exam:cram",
+    "sem_3_art_contest:help_friend"
+  ],
+  "pending_event_id": null,
+  "phase": "campus",
+  "ending_id": null,
+  "world": {
+    "location_id": "loc_gate",
+    "x": 40.0,
+    "y": 5.0,
+    "facing": "n"
+  },
+  "tutorial_done": [],
+  "play_seconds": 0.0
+}

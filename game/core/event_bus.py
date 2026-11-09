@@ -57,16 +57,24 @@ class EventBus:
         if handlers and handler in handlers:
             handlers.remove(handler)
 
-    def emit(self, topic: str, **data: Any) -> None:
+    def emit(self, topic: str, **data: Any) -> int:
+        """派发事件，返回实际被调用的处理函数个数。
+
+        返回值是 B 的规则层用例（`test_event_bus.py`）依赖的契约：`emit()` 在
+        没有订阅者时返回 0，不算异常。旧签名的调用方忽略返回值即可。
+        """
         self.emitted.append((topic, data))
         if self._strict and topic not in KNOWN_TOPICS:
             self._log.warning("[BUS] unknown topic %s", topic)
+        called = 0
         for handler in list(self._handlers.get(topic, ())):
+            called += 1
             try:
                 handler(**data)
             except Exception as exc:  # 单个订阅者失败不能拖垮流程
                 self.errors.append((topic, exc))
                 self._log.exception("[BUS] handler error on %s: %s", topic, exc)
+        return called
 
     def clear(self) -> None:
         self._handlers.clear()

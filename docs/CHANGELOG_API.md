@@ -170,6 +170,79 @@ A 只注册 `flow_tick(45)`、`offscreen_capture(60)`、`autoplay(70)`。其他�
 
 ---
 
+### 10. 合入 B 的规则系统（2026-11-09）
+
+B 的 `game/systems/`、`game/sim/`、`content/rules/` 正式合入。合入前 B 的包在 master 上
+**29 条用例红、4 个服务静默退回替身、日常事件能把当天锁死**；下面是逐条对齐。
+合入后：`pytest tests` 536 条（5 条 skip）、`game.sim` 6 策略 × 200 种子 1200/1200、
+随机 3000 局分布与 `docs/balance_report.md` 一致。
+
+#### 10.1 公共数据层（A 的 `game/core`）
+
+| 项 | 变更 | 原因 |
+| --- | --- | --- |
+| `state.NPC_IDS` | 新增 `NPC_IDS = RELATIONSHIP_KEYS` | B 的 `spec_data` / `content_db` 从 `game.core.state` 取这个名字。缺它时 5 个规则服务里 **4 个 ImportError**，而 `resolve_services()` 会静默退回替身，表现为"接入了但数值全不对" |
+| `GameState.validate()` | 新增 | B 的模拟器在结局判定前调用。它和 `clamp()` 分工不同：`clamp()` 是读档兜底（尽量修好），`validate()` 是"不该发生"的断言（算错就抛） |
+| `GameState.copy()` | 新增，别名到 `snapshot()` | B 的存档续跑/批量模拟用 `copy()`；A 原来只有 `snapshot()` |
+| `EventBus.emit()` | 返回值 `None` → `int`（实际调用的处理函数个数） | 手册只写了 `emit(topic, **data)`，没规定返回值；B 的 `test_event_bus.py` 6 条用例按"返回条数"断言。改成返回计数对现有调用方完全无害（旧调用都忽略返回值） |
+
+#### 10.2 日常事件不再锁死当天（P0）
+
+| 项 | 变更 | 原因 |
+| --- | --- | --- |
+| `flow.IMMEDIATE_EVENT_PREFIX` / `is_immediate_event()` | 新增 | B 的日常事件（`daily_*`）在规则层就已立即结算、不调用 `choose`、不进 EventScene（`B_delivery.md` 第 3 节第 5 条） |
+| `GameFlow.handle_activity_result()` | `daily_*` 不再写 `pending_event_id`，改为把 `evt.<id>.body.1` 追加到 `result.text_ids` | 让玩家在结果面板里看到"遇见了什么"，同时不产生后续场景 |
+| `GameFlow.close_result_panel()` | `daily_*` 不进 EventScene，直接结算当天 | 旧逻辑对所有 `triggered_event_id` 一律 `push("EventScene")` + `phase = "event"`；B 的 `end_day()` 有阶段守卫（只允许 `campus`），于是**当天再也过不去**，只能读档。第四周合入时实测复现 |
+| `ResultPanel.continue_hint` | 立即事件仍显示「继续」 | 面板文案写着「有事情发生了……」但后面没有场景，属于误导 |
+
+#### 10.3 交谈结果面板（B 的 `talk.*`）
+
+| 项 | 变更 | 原因 |
+| --- | --- | --- |
+| `result_panel._talk_npc_short()` | 新增 | B 的 `talk()` 返回 `activity_id="talk.npc_sumo"`，面板按 `act.talk.npc_sumo.name` / `cg_naiwan_talk.npc_sumo` 取值 → 标题与正文显示 `#id`、插图走品红缺图 |
+| `ResultPanel.show_result()` | `talk.*` 走 NPC 分支：标题 `npc.<short>.name`、正文 `npc.<short>.talk`、插图用占位色块 | 交谈是 NPC 交互，不是活动，没有 160×90 的活动 CG |
+
+#### 10.4 文案兜底（`tools/gen_placeholder_text.py`）
+
+B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事件（24）、部分学期事件选项（23）、
+交谈（3）等共 **120 条**在 `strings.json` 里还没有。做法：
+
+1. 学期事件的选项/结果：D 其实写过，只是用了自己的 choice_id（`follow_chenlang` vs B 的 `fair_club`）。
+   工具按"同一事件的第 k 个选项 ↔ 第 k 条文案"的位置对齐，把 D 的**正式文案迁到 B 的 id 上**，
+   不让占位文案把真文案挤掉；
+2. 剩下没有对应文案的（锁定提示、日常事件、交谈、关系事件）按规则 JSON 里的
+   `title` / `effects` / NPC 名生成可读占位（选项受 12 字上限约束）；
+3. 生成的 id 全部记进 `content/text/zh_CN/_placeholder_ids.json`，D 按清单替换正式文案即可；
+4. `docs/ui/text_index.csv` 由 `tools/make_text_index.py` 重新生成（335 → 455 行）。
+
+#### 10.5 测试与用例
+
+| 项 | 变更 | 原因 |
+| --- | --- | --- |
+| `tests/systems/__init__.py` | 新增 | 否则 `tests/systems/test_state.py` 与 `tests/core/test_state.py` 同名冲突，pytest 收集直接报 import mismatch |
+| `tests/systems/test_spec_sync.py` | `test_rules_pass_schema` 在 `content/schema/rules.schema.json` 缺失时 skip | 正式 JSON Schema 归 E；A 只搬了规则内容，没搬 B 的临时 schema。E 落库后自动生效 |
+| `tests/core/test_flow.py` | 新增 `first_enabled_choice()` / `play_one_action()`；事件选择不再硬编 `"ok"`（B 的事件没有这个选项）；毕业断言放宽到 `TOTAL_DAYS-1..TOTAL_DAYS`（B 的日历在最后一天结算后把 `day_index` 推到 16） | 原来 4 条用例是按 A 的替身服务写的，接真服务后红 |
+| `tests/core/test_flow.py` | 新增 `test_daily_event_is_immediate_and_does_not_lock_the_day` | 把 10.2 的锁死问题钉成回归用例 |
+
+#### 10.6 未合入的 B 交付物
+
+| 路径 | 处理 | 原因 |
+| --- | --- | --- |
+| `delivery_B/game/core/*` | 不合入 | B 的临时实现（与 A 的差 122/175 行），正式版以 A 为准 |
+| `delivery_B/content/schema/rules.schema.json` | 不合入 | E 的正式 schema 未到，不留临时版占位 |
+| `delivery_B/pytest.ini`、`requirements*.txt` | 不合入 | 与 E 维护的仓库配置双份版本源 |
+
+#### 10.7 合并后仍待处理
+
+| 事项 | 责任方 |
+| --- | --- |
+| `content/text/zh_CN/_placeholder_ids.json` 里 120 条占位文案换成正式文案 | D |
+| `content/schema/rules.schema.json` 落库（落库后 5 条 skip 自动转正） | E |
+| 日常事件的 HUD toast（现在只在结果面板显示一行） | D |
+| `game/systems/spec_data.py` 与规则 JSON 的"唯一数值源"约束：改数值必须先改 `spec_data` 再 `python -m game.systems.spec_export` | B |
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

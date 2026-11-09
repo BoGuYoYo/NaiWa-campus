@@ -1,0 +1,117 @@
+{
+  "academic": {
+    "cycle": [
+      "library_study",
+      "attend_class",
+      "library_study",
+      "eat_canteen",
+      "library_study",
+      "rest_dorm"
+    ],
+    "talk_npc": "npc_sumo",
+    "talk_every": 7,
+    "prefs": {
+      "1": "fair_lab",
+      "2": "cram",
+      "4": "study_hall",
+      "6": "accept_lab",
+      "7": "internship",
+      "8": "thesis"
+    },
+    "expected_ending": "ending_academic"
+  },
+  "club_leader": {
+    "cycle": [
+      "join_club",
+      "join_club",
+      "eat_canteen",
+      "attend_class",
+      "join_club",
+      "rest_dorm"
+    ],
+    "talk_npc": "npc_chenlang",
+    "talk_every": 5,
+    "prefs": {
+      "1": "fair_club",
+      "4": "cheer",
+      "5": "run_election",
+      "6": "team_project",
+      "7": "internship",
+      "8": "party"
+    },
+    "expected_ending": "ending_club_leader"
+  },
+  "creator": {
+    "cycle": [
+      "create_work",
+      "create_work",
+      "eat_canteen",
+      "attend_class",
+      "create_work",
+      "rest_dorm"
+    ],
+    "talk_npc": "npc_xiaoyou",
+    "talk_every": 9,
+    "prefs": {
+      "1": "fair_game",
+      "2": "relax",
+      "3": "submit_art",
+      "7": "exhibition",
+      "8": "project"
+    },
+    "expected_ending": "ending_creator"
+  },
+  "digital": {
+    "cycle": [
+      "play_games",
+      "attend_class",
+      "play_games",
+      "create_work",
+      "play_games",
+      "eat_canteen"
+    ],
+    "talk_npc": "npc_xiaoyou",
+    "talk_every": 9,
+    "prefs": {
+      "1": "fair_game",
+      "2": "relax",
+      "7": "game_jam",
+      "8": "project"
+    },
+    "expected_ending": "ending_digital"
+  },
+  "vibrant": {
+    "cycle": [
+      "exercise",
+      "join_club",
+      "eat_canteen",
+      "exercise",
+      "campus_walk",
+      "exercise"
+    ],
+    "talk_npc": "npc_chenlang",
+    "talk_every": 6,
+    "prefs": {
+      "1": "fair_club",
+      "2": "relax",
+      "4": "run_race",
+      "5": "support",
+      "8": "party"
+    },
+    "expected_ending": "ending_vibrant"
+  },
+  "balanced": {
+    "cycle": [
+      "attend_class",
+      "eat_canteen",
+      "join_club",
+      "exercise",
+      "play_games",
+      "rest_dorm"
+    ],
+    "talk_npc": null,
+    "talk_every": 0,
+    "prefs": {},
+    "expected_ending": "ending_balanced"
+  }
+}

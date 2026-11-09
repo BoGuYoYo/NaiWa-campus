@@ -54,6 +54,28 @@ def run_day(manager: GameFlow, activity_ids=("attend_class", "library_study", "c
     return result
 
 
+def first_enabled_choice(manager: GameFlow, state, event_id: str) -> str:
+    """从事件视图里挑第一个可用选项（B 的事件用真实 choice_id，没有 'ok'）。"""
+    view = manager.services.event.get_view(state, event_id)
+    for choice in view.choices:
+        if choice.enabled:
+            return choice.choice_id
+    raise AssertionError(f"{event_id} 没有可用选项")
+
+
+def play_one_action(manager: GameFlow, state) -> None:
+    """走一个动作：优先上课，没精力就回宿舍休息。"""
+    for activity_id in ("attend_class", "rest_dorm"):
+        ok, reason = manager.services.activity.can_start(state, activity_id)
+        if not ok:
+            continue
+        result = manager.services.activity.start(state, activity_id)
+        manager.handle_activity_result(result)
+        manager.close_result_panel(result)
+        return
+    raise AssertionError(f"没有可执行的活动（phase={state.phase}, slot={state.action_slot}）")
+
+
 def test_new_game_defaults_and_events(flow):
     seen = []
     flow.bus.subscribe(TOPIC_DAY_STARTED, lambda **data: seen.append(data["day_index"]))
@@ -117,7 +139,7 @@ def test_semester_event_pushes_overlay_and_autosaves_twice(flow):
     event_id = flow.scenes.overlays[-1][1].kwargs["event_id"]
     assert event_id.startswith("sem_1")
 
-    result = flow.services.event.choose(state, event_id, "ok")
+    result = flow.services.event.choose(state, event_id, first_enabled_choice(flow, state, event_id))
     flow.handle_event_result(result)
     assert state.phase == "campus"
     assert "post_event" in reasons
@@ -132,13 +154,35 @@ def test_activity_event_is_pushed_on_result_panel_close(flow):
     from game.core.results import ActivityResult
 
     result = ActivityResult(ok=True, activity_id="attend_class", error_code=None,
-                            triggered_event_id="daily_lost_cat", day_finished=False)
+                            triggered_event_id="sem_1_club_fair", day_finished=False)
     flow.handle_activity_result(result)
     assert flow.scenes.top_overlay_id is None  # 面板未关闭前不切场景
     flow.close_result_panel(result)
     assert flow.scenes.top_overlay_id == "EventScene"
     assert state.phase == "event"
-    assert seen and seen[0].triggered_event_id == "daily_lost_cat"
+    assert seen and seen[0].triggered_event_id == "sem_1_club_fair"
+
+
+def test_daily_event_is_immediate_and_does_not_lock_the_day(flow):
+    """B 的日常事件是立即结算：不推 EventScene、不改 phase，当天照样能结算。
+
+    这条守的是第四周整合踩到的锁死问题：曾经把 daily_* 也当学期事件推场景，
+    phase 被置成 event，B 的 end_day 阶段守卫直接拒绝，玩家再也过不去这一天。
+    """
+    from game.core.results import ActivityResult
+
+    flow.new_game(seed=42, skip_intro=True)
+    state = flow.require_state()
+    result = ActivityResult(ok=True, activity_id="campus_walk", error_code=None,
+                            text_ids=["act.campus_walk.result.1"],
+                            triggered_event_id="daily_lost_cat", day_finished=True)
+    flow.handle_activity_result(result)
+    flow.close_result_panel(result)
+
+    assert "evt.daily_lost_cat.body.1" in result.text_ids  # 文案进结果面板第二行
+    assert flow.scenes.top_overlay_id == "DaySummary"      # 直接日结算，没进事件场景
+    assert state.day_index == 1
+    assert state.phase == "campus"
 
 
 def test_full_run_reaches_graduation(flow):
@@ -154,20 +198,19 @@ def test_full_run_reaches_graduation(flow):
             break
         if state.phase == "event":
             event_id = state.pending_event_id or flow.story_opening_id
-            result = flow.services.event.choose(state, event_id, "ok")
+            result = flow.services.event.choose(state, event_id, first_enabled_choice(flow, state, event_id))
             flow.handle_event_result(result)
             continue
         if not state.day_finished:
-            result = flow.services.activity.start(state, "attend_class")
-            flow.handle_activity_result(result)
-            flow.close_result_panel(result)
+            play_one_action(flow, state)
         else:
             flow.finish_day()
         phases.append(state.phase)
 
     state = flow.require_state()
     assert state.phase == "graduation"
-    assert state.day_index == config.TOTAL_DAYS - 1
+    # B 的日历在最后一天结算后把 day_index 推到 TOTAL_DAYS（0..15 是游戏内 16 天）
+    assert config.TOTAL_DAYS - 1 <= state.day_index <= config.TOTAL_DAYS
     assert state.ending_id
     assert graduated and graduated[0].ending_id == state.ending_id
 

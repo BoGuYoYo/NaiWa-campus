@@ -20,6 +20,16 @@ _log = logging.getLogger("naiwa.ui.result_panel")
 
 REVEAL_INTERVAL = 0.12  # 数值逐条出现间隔
 
+#: 交谈不是"活动"，没有 cg_naiwan_<id>；标题和正文改读 NPC 的文本键
+NPC_TALK_PREFIX = "talk."
+
+
+def _talk_npc_short(activity_id: str) -> str | None:
+    """`talk.npc_sumo` -> `sumo`；不是交谈返回 None。"""
+    if not activity_id.startswith(NPC_TALK_PREFIX):
+        return None
+    return activity_id.split(".", 1)[1].removeprefix("npc_")
+
 
 class ResultPanel(UIWidget):
     def __init__(self, parent, transform: UITransform, text_db, asset_registry=None) -> None:
@@ -83,12 +93,22 @@ class ResultPanel(UIWidget):
         self._reveal_count = 0
 
         activity_id = getattr(activity_result, "activity_id", "") or ""
-        self.title.set_text(self.text_db.get(f"act.{activity_id}.name"))
-        self._apply_illustration(activity_id)
+        talk_short = _talk_npc_short(activity_id)
+        if talk_short:
+            # 交谈复用 NPC 的文本键与占位色块（B 会给 talk.<npc>.result.1，
+            # 与 npc.<short>.talk 语义重复，只显示 D 的那句）
+            self.title.set_text(self.text_db.get(f"npc.{talk_short}.name"))
+            self.illustration.clear_texture()
+            self.illustration.set_color(*theme.hex_to_rgba("#3A4358"))
+            text_ids = [f"npc.{talk_short}.talk"]
+        else:
+            self.title.set_text(self.text_db.get(f"act.{activity_id}.name"))
+            self._apply_illustration(activity_id)
+            text_ids = list(getattr(activity_result, "text_ids", None) or [])
 
         # 结果文本：text_ids 顺序显示，最多 2 行
         lines: list[str] = []
-        for text_id in (getattr(activity_result, "text_ids", None) or [])[:2]:
+        for text_id in text_ids[:2]:
             lines.extend(self.text_db.get(text_id).splitlines() or [""])
         self.result_text.set_lines(lines[:2])
 
@@ -110,7 +130,12 @@ class ResultPanel(UIWidget):
         if not self._deltas:
             _log.debug("结果面板收到空 deltas: %s", activity_id)
 
-        if getattr(activity_result, "triggered_event_id", None):
+        # 日常事件是立即结算的，后面没有场景可跟进，提示语保持"继续"
+        from game.core.flow import is_immediate_event
+
+        if getattr(activity_result, "triggered_event_id", None) and not is_immediate_event(
+            activity_result.triggered_event_id
+        ):
             self.continue_hint.set_text(self.text_db.get("ui.result.event_follow"))
         else:
             self.continue_hint.set_text(self.text_db.get("ui.result.continue"))

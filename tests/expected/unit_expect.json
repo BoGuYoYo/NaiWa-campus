@@ -1,0 +1,339 @@
+{
+  "version": 2,
+  "note": "B-T01~B-T23 的唯一规格来源：kind=case 由 test_unit_cases.py 执行；batch/resume/fuzz 的参数由 test_strategies.py 与 test_fuzz.py 读取。",
+  "cases": [
+    {
+      "id": "B-T01",
+      "kind": "case",
+      "desc": "新游戏初始值",
+      "setup": {},
+      "stages": [
+        {
+          "ops": [],
+          "expect": {
+            "seed": 42,
+            "day_index": 0,
+            "action_slot": 0,
+            "phase": "campus",
+            "energy": 84,
+            "max_energy": 84,
+            "mood": 60,
+            "stats.academic": 10,
+            "stats.stamina": 20,
+            "stats.social": 10,
+            "stats.interest": 10,
+            "relationships.npc_sumo": 0,
+            "relationships.npc_chenlang": 0,
+            "relationships.npc_xiaoyou": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "B-T02",
+      "kind": "case",
+      "desc": "图书馆学习一次",
+      "setup": {},
+      "stages": [
+        {
+          "ops": [["start", "library_study"]],
+          "expect": {
+            "energy": 64,
+            "mood": 57,
+            "stats.academic": 15,
+            "relationships.npc_sumo": 2,
+            "action_slot": 1,
+            "counters.library_count": 1,
+            "today_counts.library_study": 1
+          },
+          "expect_result": {
+            "ok": true,
+            "deltas.energy": -20,
+            "text_ids": ["act.library_study.result.1"],
+            "day_finished": false
+          }
+        }
+      ]
+    },
+    {
+      "id": "B-T03",
+      "kind": "case",
+      "desc": "连续学习三次后日结算",
+      "setup": {},
+      "stages": [
+        {
+          "ops": [["start", "library_study"], ["start", "library_study"], ["start", "library_study"]],
+          "expect": {"energy": 24, "mood": 51, "stats.academic": 25, "action_slot": 3}
+        },
+        {
+          "ops": [["end_day"]],
+          "expect": {"energy": 64, "day_index": 1, "action_slot": 0, "phase": "campus"},
+          "expect_result": {"new_day_index": 1, "graduated": false}
+        }
+      ]
+    },
+    {
+      "id": "B-T04",
+      "kind": "case",
+      "desc": "心情 29 时上课学业减半",
+      "setup": {"mood": 29},
+      "stages": [
+        {
+          "ops": [["start", "attend_class"]],
+          "expect": {"stats.academic": 12, "stats.interest": 11, "mood": 25},
+          "expect_result": {"deltas.academic": 2}
+        }
+      ]
+    },
+    {
+      "id": "B-T05",
+      "kind": "case",
+      "desc": "同一天第三次打游戏触发熬夜",
+      "setup": {},
+      "stages": [
+        {
+          "ops": [["start", "play_games"], ["start", "play_games"], ["start", "play_games"]],
+          "expect": {"energy": 60, "flags": ["stayed_up_late"]}
+        },
+        {
+          "ops": [["end_day"]],
+          "expect": {"energy": 80, "flags": []}
+        }
+      ]
+    },
+    {
+      "id": "B-T06",
+      "kind": "case",
+      "desc": "第 3 天苏墨关系 14 时交谈触发阶段 1",
+      "setup": {"day_index": 2, "relationships.npc_sumo": 14},
+      "stages": [
+        {
+          "ops": [["talk", "npc_sumo"]],
+          "expect": {
+            "relationships.npc_sumo": 25,
+            "energy": 79,
+            "stats.social": 12,
+            "flags": ["npc_sumo_stage1"],
+            "talked_today": ["npc_sumo"],
+            "action_slot": 1
+          },
+          "expect_result": {"ok": true, "triggered_event_id": "rel_npc_sumo_1"}
+        }
+      ]
+    },
+    {
+      "id": "B-T07",
+      "kind": "case",
+      "desc": "学期门槛未到不触发关系事件",
+      "setup": {"day_index": 0, "relationships.npc_sumo": 30},
+      "stages": [
+        {
+          "ops": [["talk", "npc_sumo"]],
+          "expect": {"relationships.npc_sumo": 36, "flags": []},
+          "expect_result": {"triggered_event_id": null}
+        }
+      ]
+    },
+    {
+      "id": "B-T08",
+      "kind": "case",
+      "desc": "精力不足拒绝图书馆学习",
+      "setup": {"energy": 10},
+      "stages": [
+        {
+          "ops": [["can_start", "library_study"]],
+          "expect_result": {"ok": false, "error_code": "E_LOW_ENERGY"}
+        }
+      ]
+    },
+    {
+      "id": "B-T09",
+      "kind": "case",
+      "desc": "低精力日结算扣心情",
+      "setup": {"energy": 15, "mood": 50},
+      "stages": [
+        {
+          "ops": [["end_day"]],
+          "expect": {"mood": 45, "energy": 55},
+          "expect_result": {"deltas.mood": -5, "deltas.energy": 40}
+        }
+      ]
+    },
+    {
+      "id": "B-T10",
+      "kind": "case",
+      "desc": "精力上限随体力变化",
+      "setup": {"stats.stamina": 50},
+      "stages": [
+        {
+          "ops": [],
+          "expect": {"max_energy": 90}
+        }
+      ]
+    },
+    {
+      "id": "B-T11",
+      "kind": "case",
+      "desc": "学业 98 时学习只加 2",
+      "setup": {"stats.academic": 98},
+      "stages": [
+        {
+          "ops": [["start", "library_study"]],
+          "expect": {"stats.academic": 100},
+          "expect_result": {"deltas.academic": 2}
+        }
+      ]
+    },
+    {
+      "id": "B-T12",
+      "kind": "case",
+      "desc": "seed 42 第 0 天只有第三次闲逛触发日常事件",
+      "setup": {"seed": 42, "day_index": 0},
+      "stages": [
+        {
+          "ops": [["start", "campus_walk"], ["start", "campus_walk"]],
+          "triggered_sequence": [null, null]
+        },
+        {
+          "ops": [["start", "campus_walk"]],
+          "triggered_sequence": [null, null, "daily_old_friend"],
+          "expect": {"event_log": ["daily_old_friend"]}
+        }
+      ]
+    },
+    {
+      "id": "B-T13",
+      "kind": "case",
+      "desc": "新游戏毕业判定为平衡毕业生",
+      "setup": {},
+      "stages": [
+        {
+          "ops": [["evaluate"]],
+          "expect_result": {"ending_id": "ending_balanced"}
+        }
+      ]
+    },
+    {
+      "id": "B-T14",
+      "kind": "case",
+      "desc": "同时满足学术与社团领袖时按优先级取学术",
+      "setup": {
+        "stats.academic": 70,
+        "stats.social": 60,
+        "counters.library_count": 10,
+        "counters.club_count": 10,
+        "relationships.npc_chenlang": 60,
+        "flags": ["accepted_lab", "ran_for_president"]
+      },
+      "stages": [
+        {
+          "ops": [["evaluate"]],
+          "expect_result": {"ending_id": "ending_academic"}
+        }
+      ]
+    },
+    {
+      "id": "B-T15",
+      "kind": "case",
+      "desc": "食堂每天上限 2 次",
+      "setup": {},
+      "stages": [
+        {
+          "ops": [["start", "eat_canteen"], ["start", "eat_canteen"], ["can_start", "eat_canteen"]],
+          "expect": {"counters.meal_count": 2, "action_slot": 2},
+          "expect_result": {"ok": false, "error_code": "E_DAILY_LIMIT"}
+        }
+      ]
+    },
+    {
+      "id": "B-T16",
+      "kind": "case",
+      "desc": "时段用尽后行动被拒绝且状态不变",
+      "setup": {"action_slot": 3},
+      "stages": [
+        {
+          "ops": [["start", "attend_class"]],
+          "state_unchanged": true,
+          "expect_result": {"ok": false, "error_code": "E_NO_SLOT"}
+        }
+      ]
+    },
+    {
+      "id": "B-T17",
+      "kind": "case",
+      "desc": "当天已交谈的 NPC 不能重复交谈",
+      "setup": {"talked_today": ["npc_xiaoyou"]},
+      "stages": [
+        {
+          "ops": [["talk", "npc_xiaoyou"]],
+          "state_unchanged": true,
+          "expect_result": {"ok": false, "error_code": "E_ALREADY_TALKED"}
+        }
+      ]
+    },
+    {
+      "id": "B-T18",
+      "kind": "case",
+      "desc": "第 2 天结束触发第一学期事件",
+      "setup": {"day_index": 1},
+      "stages": [
+        {
+          "ops": [["end_day"]],
+          "expect": {"day_index": 2, "phase": "event", "pending_event_id": "sem_1_club_fair"},
+          "expect_result": {"semester_event_id": "sem_1_club_fair", "graduated": false}
+        }
+      ]
+    },
+    {
+      "id": "B-T19",
+      "kind": "case",
+      "desc": "第 16 天结束触发毕业事件",
+      "setup": {"day_index": 15},
+      "stages": [
+        {
+          "ops": [["end_day"]],
+          "expect": {"day_index": 16, "phase": "event", "pending_event_id": "sem_8_graduation_eve"},
+          "expect_result": {"semester_event_id": "sem_8_graduation_eve", "graduated": true}
+        }
+      ]
+    },
+    {
+      "id": "B-T20",
+      "kind": "case",
+      "desc": "无条件旗标时社长竞选选项被锁",
+      "setup": {"day_index": 8, "stats.social": 50},
+      "stages": [
+        {
+          "ops": [["view", "sem_5_club_election", "run_election"]],
+          "expect_result": {
+            "enabled": false,
+            "lock_reason_id": "evt.sem_5_club_election.lock.run_election"
+          }
+        }
+      ]
+    },
+    {
+      "id": "B-T21",
+      "kind": "batch",
+      "desc": "6 套策略 × seed 0-199 全部命中预期结局",
+      "strategies": ["academic", "club_leader", "creator", "digital", "vibrant", "balanced"],
+      "seeds": {"from": 0, "to": 199},
+      "expect": "all_hit"
+    },
+    {
+      "id": "B-T22",
+      "kind": "resume",
+      "desc": "第 7 天存档续跑与不中断运行一致",
+      "strategies": ["academic", "club_leader", "creator", "digital", "vibrant", "balanced"],
+      "seed": 42,
+      "expect": "final_equals_plain"
+    },
+    {
+      "id": "B-T23",
+      "kind": "fuzz",
+      "desc": "随机策略 3000 局无异常、不越界、每局有结局",
+      "runs": 3000,
+      "invariants": {"specialist_rate_max": 0.1, "balanced_rate_min": 0.83}
+    }
+  ]
+}

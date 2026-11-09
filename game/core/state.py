@@ -14,6 +14,8 @@ from ..config import ACTIONS_PER_DAY, DAYS_PER_SEMESTER, SEMESTERS_PER_YEAR, TOT
 
 STAT_KEYS = ("academic", "stamina", "social", "interest")
 RELATIONSHIP_KEYS = ("npc_sumo", "npc_chenlang", "npc_xiaoyou")
+#: B 的规则系统（spec_data / content_db）按这个名字取 NPC 列表；与关系键同源
+NPC_IDS = RELATIONSHIP_KEYS
 STAT_MIN = 0
 STAT_MAX = 100
 MOOD_MIN = 0
@@ -130,6 +132,35 @@ class GameState:
 
     def snapshot(self) -> "GameState":
         return copy.deepcopy(self)
+
+    def copy(self) -> "GameState":
+        """B 的规则系统/模拟器用的名字（存档回放、批量模拟）；别名到 snapshot。"""
+        return self.snapshot()
+
+    def validate(self) -> None:
+        """校验不变量，非法抛 ValueError（B 的模拟器在结局判定前调用）。
+
+        与 clamp() 的分工：clamp() 是读档兜底（尽量修好），validate() 是
+        「不该发生」的断言 —— 规则系统算错就立刻炸，而不是静默漂移。
+        """
+        for key in STAT_KEYS:
+            value = self.stats.get(key)
+            if not isinstance(value, int) or isinstance(value, bool) or not STAT_MIN <= value <= STAT_MAX:
+                raise ValueError(f"stats.{key}={value!r}（允许 {STAT_MIN}..{STAT_MAX}）")
+        if not MOOD_MIN <= self.mood <= MOOD_MAX:
+            raise ValueError(f"mood={self.mood}（允许 {MOOD_MIN}..{MOOD_MAX}）")
+        upper = self.max_energy()
+        if not 0 <= self.energy <= upper:
+            raise ValueError(f"energy={self.energy}（允许 0..{upper}）")
+        for npc_id, value in self.relationships.items():
+            if not STAT_MIN <= value <= STAT_MAX:
+                raise ValueError(f"relationships.{npc_id}={value}（允许 {STAT_MIN}..{STAT_MAX}）")
+        if not 0 <= self.action_slot <= ACTIONS_PER_DAY:
+            raise ValueError(f"action_slot={self.action_slot}（允许 0..{ACTIONS_PER_DAY}）")
+        if not 0 <= self.day_index <= TOTAL_DAYS:
+            raise ValueError(f"day_index={self.day_index}（允许 0..{TOTAL_DAYS}）")
+        if self.phase not in PHASES:
+            raise ValueError(f"phase={self.phase!r}（允许 {', '.join(PHASES)}）")
 
     def clamp(self) -> None:
         """读档/外部写入后的兜底钳制；正常流程由 B 的 effects 处理。"""

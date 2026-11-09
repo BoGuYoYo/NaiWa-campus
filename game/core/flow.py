@@ -28,6 +28,15 @@ from .state import DEFAULT_SPAWN_LOCATION, GameState, WorldPos, new_state
 
 LOG = logging.getLogger("naiwa.flow")
 
+#: B 的「日常事件」前缀。这类事件在规则层就已立即结算（B_delivery 第 3 节第 5 条），
+#: 不进 EventScene —— 否则 A 会把 phase 置成 event，B 的 end_day 阶段守卫会拒绝结算，
+#: 当天就再也过不去了（第四周整合时踩到的锁死问题）。
+IMMEDIATE_EVENT_PREFIX = "daily_"
+
+
+def is_immediate_event(event_id: str | None) -> bool:
+    return bool(event_id) and event_id.startswith(IMMEDIATE_EVENT_PREFIX)
+
 
 # --------------------------------------------------------------------------- #
 # 独立运行替身服务：仅当 B 的 game.systems.* 尚未合入时启用，数值不代表正式平衡。
@@ -141,7 +150,7 @@ class FallbackEndingService:
             "academic": "ending_academic",
             "social": "ending_club_leader",
             "interest": "ending_creator",
-            "stamina": "ending_vitality",
+            "stamina": "ending_vibrant",
         }
         best_key, best_value = ranked[0]
         if best_value < 30:
@@ -348,7 +357,13 @@ class GameFlow:
         LOG.info("[FLOW] activity %s ok=%s deltas=%s slot=%d",
                  result.activity_id, result.ok, result.deltas, state.action_slot)
         if result.ok and result.triggered_event_id:
-            state.pending_event_id = result.triggered_event_id
+            if is_immediate_event(result.triggered_event_id):
+                # B 的日常事件是"立即结算"，不进 EventScene（见 B_delivery 第 3 节第 5 条）。
+                # 效果已经在 start() 里结算过，这里只把文案补成结果面板的第二行。
+                result.text_ids.append(f"evt.{result.triggered_event_id}.body.1")
+                LOG.info("[FLOW] immediate event %s（不推 EventScene）", result.triggered_event_id)
+            else:
+                state.pending_event_id = result.triggered_event_id
 
     def activity_log_today(self) -> list[str]:
         """当天已完成的 action_id 列表（顺序即执行顺序），供日结算面板显示。"""
@@ -361,6 +376,12 @@ class GameFlow:
         if not isinstance(payload, ActivityResult) or not payload.ok:
             return
         if payload.triggered_event_id:
+            if is_immediate_event(payload.triggered_event_id):
+                # 日常事件已经在规则层结算完，这里只推进日期，不能改 phase
+                state.pending_event_id = None
+                if payload.day_finished:
+                    self.finish_day()
+                return
             state.pending_event_id = payload.triggered_event_id
             state.phase = "event"
             self.scenes.push("EventScene", event_id=payload.triggered_event_id)

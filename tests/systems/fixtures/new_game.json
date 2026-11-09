@@ -1,0 +1,35 @@
+{
+  "save_version": 1,
+  "seed": 42,
+  "day_index": 0,
+  "action_slot": 0,
+  "stats": {
+    "academic": 10,
+    "interest": 10,
+    "social": 10,
+    "stamina": 20
+  },
+  "mood": 60,
+  "energy": 84,
+  "relationships": {
+    "npc_chenlang": 0,
+    "npc_sumo": 0,
+    "npc_xiaoyou": 0
+  },
+  "flags": [],
+  "counters": {},
+  "today_counts": {},
+  "talked_today": [],
+  "event_log": [],
+  "pending_event_id": null,
+  "phase": "campus",
+  "ending_id": null,
+  "world": {
+    "location_id": "loc_gate",
+    "x": 40.0,
+    "y": 5.0,
+    "facing": "n"
+  },
+  "tutorial_done": [],
+  "play_seconds": 0.0
+}

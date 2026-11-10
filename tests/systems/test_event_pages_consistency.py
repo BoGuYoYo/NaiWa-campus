@@ -125,3 +125,60 @@ def test_event_pages_are_ordered_starting_at_one() -> None:
             broken[event["id"]] = numbers
 
     assert broken == {}, f"pages 编号不连续/不从 1 起：{broken}"
+
+
+# --------------------------------------------------------------------------- #
+# 第三态的正面防线（BUG-25）：告示里"有 portrait 但加载失败"会静默落成灰块，
+# 所以数据侧必须保证每个 portrait id 既登记在 manifest、文件也真的存在。
+# 同类：speaker 必须有名字文案与立牌资源（与 BUG-15 串起来）。
+# --------------------------------------------------------------------------- #
+def _manifest() -> dict[str, dict]:
+    import json
+
+    path = config.resource_root() / "assets" / "manifest.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    entries = data["assets"] if isinstance(data, dict) else data
+    return {e["id"]: e for e in entries}
+
+
+def test_dialogue_portraits_are_registered_and_on_disk() -> None:
+    dial = _load("text/zh_CN/dialogues.json")
+    entries = _manifest()
+    assets_root = config.resource_root() / "assets"
+
+    unregistered, missing_files = [], []
+    for key, page in dial.items():
+        pid = page.get("portrait")
+        if not pid:
+            continue
+        entry = entries.get(pid)
+        if entry is None:
+            unregistered.append((key, pid))
+            continue
+        if not (assets_root / entry["path"]).exists():
+            missing_files.append((key, pid, entry["path"]))
+
+    assert unregistered == [], f"portrait 未在 manifest 登记：{unregistered}"
+    assert missing_files == [], f"portrait 文件不存在：{missing_files}"
+
+
+def test_dialogue_speakers_have_name_text_and_idle_asset() -> None:
+    dial = _load("text/zh_CN/dialogues.json")
+    strings = _load("text/zh_CN/strings.json")
+    entries = _manifest()
+
+    problems = []
+    for key, page in dial.items():
+        speaker = page.get("speaker")
+        if not speaker:
+            continue
+        short = str(speaker).replace("npc_", "")
+        if f"npc.{short}.name" not in strings:
+            problems.append((key, speaker, "缺名字文案"))
+        if f"char_npc_{short}_idle" not in entries:
+            problems.append((key, speaker, "缺 char_npc_*_idle 立牌资源"))
+
+    assert problems == [], (
+        "说话人缺文案/资源（会出现：有人在说话但没有名字或没有立牌）："
+        f"{problems}"
+    )

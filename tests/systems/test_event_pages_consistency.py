@@ -88,3 +88,40 @@ def test_pages_have_portraits_after_first_page() -> None:
     )
     portrait_pages = [k for k, p in dial.items() if p.get("portrait")]
     assert portrait_pages, "dialogues 里一个带立绘的页都没有"
+
+
+# --------------------------------------------------------------------------- #
+# 同一"rules 与 TextDB 各写一份"的对偶性，在 choices / result / lock 上也成立。
+# 这三类现在是齐的（实测 0 缺失），所以是**常驻绿守卫**：将来谁漏配一条，
+# 界面就会显示 `#evt.xxx.result.yyy` 这类原始 id（与 BUG-10 同一症状）。
+# --------------------------------------------------------------------------- #
+def test_every_choice_has_choice_result_and_lock_text() -> None:
+    events = _load("rules/events.json")
+    strings = _load("text/zh_CN/strings.json")
+
+    missing: dict[str, list[str]] = {}
+    for event in events:
+        for choice in event.get("choices", []):
+            for kind in ("choice", "result", "lock"):
+                key = f"evt.{event['id']}.{kind}.{choice['id']}"
+                if key not in strings:
+                    missing.setdefault(kind, []).append(key)
+
+    assert missing == {}, f"选项文案缺失（界面会显示原始 id）：{missing}"
+
+
+def test_event_pages_are_ordered_starting_at_one() -> None:
+    """声明的页必须从 body.1 起连续编号——防手写 pages 时漏中间页/跳号。"""
+    events = _load("rules/events.json")
+
+    broken = {}
+    for event in events:
+        numbers = []
+        for page_id in event.get("pages", []):
+            if ".body." in page_id:
+                tail = page_id.rsplit(".", 1)[-1]
+                numbers.append(int(tail) if tail.isdigit() else -1)
+        if numbers and numbers != list(range(1, len(numbers) + 1)):
+            broken[event["id"]] = numbers
+
+    assert broken == {}, f"pages 编号不连续/不从 1 起：{broken}"

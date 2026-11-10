@@ -88,11 +88,6 @@ class _Scene(WorldSceneBase):
         return None
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG-23：覆盖层打开时 tutorial_overlay 未被隐藏（横幅压对话框）；"
-           "修复后本条会 XPASS，请删掉 xfail 标记",
-)
 def test_tutorial_overlay_hidden_while_overlay_open() -> None:
     state = GameState()
     scene = _Scene(state, locked=True)

@@ -219,11 +219,11 @@ class WorldSceneBase:
         )
         self.tutorial = TutorialController(self._state, self.app.text)
         self.tutorial_overlay = TutorialOverlay(
-            self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry
+            self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry,
+            is_locked=lambda: self.app.scenes.input_locked,
         )
         self.tutorial_overlay.attach(self.tutorial)
         self.tutorial.notify("enter_campus")
-        self.tutorial_overlay.refresh()
         self._last_player_position = (self.player.motion.x, self.player.motion.y)
         self._tutorial_day_handler = self.app.bus.subscribe(
             TOPIC_DAY_ENDED, self._on_tutorial_day_ended
@@ -284,6 +284,15 @@ class WorldSceneBase:
         self.player.update(dt, locked=locked)
         after = (self.player.motion.x, self.player.motion.y)
         self._last_player_position = after
+        if locked:
+            # 模态 UI 打开时隐藏世界 HUD、交互提示与教程横幅。
+            if self.hud is not None:
+                self.hud.hide()
+            if self.prompt is not None:
+                self.prompt.hide_prompt()
+            if self.tutorial_overlay is not None:
+                self.tutorial_overlay.hide()
+            return
         distance = math.hypot(after[0] - before[0], after[1] - before[1])
         if distance > 0.0:
             self.tutorial.notify("player_moved", distance_m=distance)
@@ -292,13 +301,6 @@ class WorldSceneBase:
         self.tutorial.notify("tick", dt=dt)
         if self.tutorial_overlay is not None:
             self.tutorial_overlay.refresh()
-        if locked:
-            # 覆盖层（对话框 / 结果面板 / 菜单）打开时把 HUD 与提示框收起来
-            if self.hud is not None:
-                self.hud.hide()
-            if self.prompt is not None:
-                self.prompt.hide_prompt()
-            return
         if self.hud is not None and not self.hud.visible:
             self.hud.show()
         self.animator.tick(dt)
@@ -310,9 +312,9 @@ class WorldSceneBase:
 
     def _on_tutorial_day_ended(self, **_data: Any) -> None:
         if self.tutorial is not None:
+            # DaySummary is pushed immediately after this bus event; defer rendering
+            # until the next frame so the modal-state guard can hide the banner.
             self.tutorial.notify("day_ended")
-            if self.tutorial_overlay is not None:
-                self.tutorial_overlay.refresh()
 
     # ------------------------------------------------------------------ 子类实现
     scene_id = "campus"
@@ -661,9 +663,6 @@ class ResultPanelSceneAdapter(WidgetSceneBase):
         tutorial = getattr(base_scene, "tutorial", None)
         if tutorial is not None:
             tutorial.notify("result_closed")
-            overlay = getattr(base_scene, "tutorial_overlay", None)
-            if overlay is not None:
-                overlay.refresh()
         self.app.flow.close_result_panel(result)
 
 

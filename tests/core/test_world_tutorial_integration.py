@@ -44,9 +44,14 @@ class _FakeOverlay:
     def __init__(self, controller) -> None:
         self.controller = controller
         self.refresh_count = 0
+        self.visible = False
 
     def refresh(self) -> None:
         self.refresh_count += 1
+        self.visible = True
+
+    def hide(self) -> None:
+        self.visible = False
 
 
 class _HarnessScene(WorldSceneBase):
@@ -112,15 +117,25 @@ def test_world_scene_wires_movement_result_and_day_tutorial_steps():
     panel = ResultPanelSceneAdapter.__new__(ResultPanelSceneAdapter)
     panel.app = scene.app
     panel.kwargs = {"result": result}
+    refresh_before_close = scene.tutorial_overlay.refresh_count
     panel._close()
     assert popped == [True]
     assert closed == [result]
     assert scene.tutorial.active_step == "tut.slots"
-    assert scene.tutorial_overlay.refresh_count >= 1
+    assert scene.tutorial_overlay.refresh_count == refresh_before_close
+    state.energy = 60
+    scene.on_update(0.1)  # the only render refresh runs on the next unlocked frame
+    state.energy = 39
+    assert scene.tutorial_overlay.visible is True
 
-    # Day end queues tab instead of dropping it; key_space completed slots first.
+    # Day end queues tab instead of dropping it; a modal DaySummary hides the banner.
+    scene.app.scenes.input_locked = True
     scene._on_tutorial_day_ended()
     assert scene.tutorial.active_step == "tut.slots"
-    scene._on_interact()
+    scene.on_update(0.1)
+    assert scene.tutorial_overlay.visible is False
+    scene.tutorial.notify("key_space")
     assert scene.tutorial.active_step == "tut.tab"
-    assert scene.tutorial_overlay.refresh_count >= 2
+    scene.app.scenes.input_locked = False
+    scene.on_update(0.1)
+    assert scene.tutorial_overlay.visible is True

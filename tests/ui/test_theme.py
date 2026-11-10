@@ -29,12 +29,48 @@ def test_tutorial_banner_and_interaction_prompt_are_separated():
     banner = TutorialOverlay.BANNER_RECT
     prompt = theme.RECTS["prompt"]
     assert not theme.rect_overlaps(banner, prompt)
+    assert not theme.rect_overlaps(banner, theme.RECTS["dialogue"])
+    assert not theme.rect_overlaps(banner, theme.RECTS["event_choices"])
+    assert not theme.rect_overlaps(banner, theme.RECTS["hud_date"])
+    assert not theme.rect_overlaps(banner, theme.RECTS["hud_gauges"])
+    assert not theme.rect_overlaps(banner, theme.RECTS["hud_key_hint"])
 
     # Label glyphs occupy 12 logical pixels below their top-left anchors.
     banner_label_y = banner[1] + 6
     prompt_title_y = prompt[1] + 2
     assert banner_label_y + 12 <= prompt_title_y
     assert prompt[1] + prompt[3] <= theme.RECTS["hud_key_hint"][1]
+
+
+def test_prompt_details_wrap_to_measured_width():
+    measured = {
+        "精力 -12": 54.0,
+        "精力 -12  心情 -2": 116.0,
+        "精力 -12  心情 -2  社交 +4": 171.0,
+        "精力 -12  心情 -2  社交 +4  兴趣 +1": 240.1,
+        "兴趣 +1": 50.0,
+        "兴趣 +1  与陈朗的关系 +3": 122.0,
+    }
+    lines = theme.wrap_prompt_details(
+        ["精力 -12", "心情 -2", "社交 +4", "兴趣 +1", "与陈朗的关系 +3"],
+        204.0,
+        measured.__getitem__,
+    )
+    assert lines == ["精力 -12  心情 -2  社交 +4", "兴趣 +1  与陈朗的关系 +3"]
+    assert all(measured[line] <= 204.0 for line in lines)
+
+
+def test_rel_dot_prefix_is_sorted_and_formatted_as_relationship():
+    key = "rel.npc_chenlang"
+    assert theme._rel_sort_key(key)[0] == ""
+    assert theme.ordered_deltas({key: 3, "social": 4}) == [
+        ("social", 4), (key, 3),
+    ]
+    formatted = theme.format_deltas(
+        {key: 3}, {key: "与陈朗的关系"}
+    )
+    assert formatted[0][2] == "与陈朗的关系 +3"
+    assert "rel." not in formatted[0][2]
 
 
 def test_format_deltas_order_and_sign():

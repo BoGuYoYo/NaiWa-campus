@@ -1,7 +1,7 @@
-"""交互提示框（D2）：底部居中，宽 220、高 40，避开教程横幅与按键提示。
+"""交互提示框：底部居中，宽 220、高 64，支持活动预览最多三行。
 
 - 第 1 行「[E] 图书馆学习」；
-- 第 2 行 preview 变化「精力 -20  学业 +5」；
+- 后续最多三行 preview 变化（按当前字体实际宽度折行）；
 - 禁用时整体变灰并显示原因（err.* 文本，来自 error_code）。
 
 文案 ID 由 C 的 InteractionService 产出：
@@ -38,9 +38,17 @@ class InteractionPrompt(UIWidget):
         self.panel = UIPanel(root, transform, rect, asset_registry)
         self.title = UILabel(root, transform, rect[0] + 8, rect[1] + 2, "")
         self.detail = UILabel(
-            root, transform, rect[0] + 8, rect[1] + 18, "",
+            root, transform, rect[0] + 8, rect[1] + 17, "",
             color=theme.COLOR_SECONDARY,
         )
+        self.detail_lines = [self.detail]
+        for row in range(1, 3):
+            label = UILabel(
+                root, transform, rect[0] + 8, rect[1] + 17 + row * 13, "",
+                color=theme.COLOR_SECONDARY,
+            )
+            label.hide()
+            self.detail_lines.append(label)
         self._id: str | None = None
         super().__init__(root)
         self.hide()
@@ -63,15 +71,31 @@ class InteractionPrompt(UIWidget):
                 )
             else:
                 reason = self.text_db.get(reason_id) if reason_id else self.text_db.get("ui.prompt.disabled")
-            self.detail.set_text(reason)
-            self.detail.set_color(theme.COLOR_DISABLED)
+            self._set_detail_lines([reason], theme.COLOR_DISABLED)
         else:
             preview = getattr(prompt_view, "cost_preview", None) or {}
             name_of = {k: self.text_db.get_raw(t) for k, t in theme.STAT_NAME_IDS.items()}
-            parts = [text for _k, _v, text in theme.format_deltas(preview, name_of)]
-            self.detail.set_text("  ".join(parts))
-            self.detail.set_color(theme.COLOR_SECONDARY)
+            for key in preview:
+                if theme._rel_sort_key(key)[0] == "":
+                    npc_id = theme._rel_sort_key(key)[1]
+                    short_id = npc_id.removeprefix("npc_")
+                    npc_name = self.text_db.get_raw(f"npc.{short_id}.name")
+                    name_of[key] = f"与{npc_name}的关系"
+            parts = [text for _key, _value, text in theme.format_deltas(preview, name_of)]
+            def measure_text(text: str) -> float:
+                self.detail.node.set_text(text)
+                return self.detail.node.get_width()
+
+            lines = theme.wrap_prompt_details(parts, rect[2] - 16, measure_text)
+            self._set_detail_lines(lines, theme.COLOR_SECONDARY)
         self.show()
+
+    def _set_detail_lines(self, lines: list[str], color) -> None:
+        for index, label in enumerate(self.detail_lines):
+            text = lines[index] if index < len(lines) else ""
+            label.set_text(text)
+            label.set_color(color)
+            (label.show if text else label.hide)()
 
     def current_id(self) -> str | None:
         return self._id

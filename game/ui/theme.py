@@ -11,7 +11,7 @@
 
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Callable, Iterable
 
 # ----------------------------------------------------------------------
 # 画布
@@ -74,8 +74,8 @@ RECTS: dict[str, tuple[int, int, int, int]] = {
     "hud_date": (4, 4, 156, 36),
     "hud_gauges": (320, 4, 156, 36),
     "hud_key_hint": (4, 252, 200, 16),
-    # 提示框底部居中：标题与一行数值，避开教程横幅和底部按键提示。
-    "prompt": (130, 210, 220, 40),
+    # 提示框底部居中：标题 + 最多三行实测明细，避开底部按键提示。
+    "prompt": (130, 186, 220, 64),
     "result": (100, 40, 280, 190),
     "result_illustration": (160, 48, 160, 90),
     "dialogue": (4, 166, 472, 100),
@@ -152,8 +152,8 @@ PROMPT_SAVE_ID = "ui.prompt.save"
 
 
 def _rel_sort_key(key: str) -> tuple[str, str]:
-    """关系键（rel_<npc_id> / relationship:<npc_id> / relationship_<id>）。"""
-    for prefix in ("rel_", "relationship:", "relationship_", "relationship."):
+    """关系键（rel.<npc_id> / rel_<npc_id> / relationship:<npc_id> 等）。"""
+    for prefix in ("rel.", "rel_", "relationship:", "relationship_", "relationship."):
         if key.startswith(prefix):
             return ("", key[len(prefix):])
     return ("~", key)  # 未知键排在关系之后
@@ -178,6 +178,24 @@ def format_delta(stat_name: str, value: int) -> str:
     """“学业 +5”“精力 -20”：名称 + 空格 + 带符号整数。"""
     sign = "+" if value > 0 else "-"
     return f"{stat_name} {sign}{abs(value)}"
+
+
+def wrap_prompt_details(
+    parts: Iterable[str], max_width: float, measure_text: Callable[[str], float]
+) -> list[str]:
+    """Greedily wrap prompt deltas using the active font's measured pixel width."""
+    lines: list[str] = []
+    current = ""
+    for part in parts:
+        candidate = f"{current}  {part}" if current else part
+        if current and measure_text(candidate) > max_width:
+            lines.append(current)
+            current = part
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines
 
 
 def format_deltas(

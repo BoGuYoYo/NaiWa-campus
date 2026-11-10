@@ -1,12 +1,7 @@
-"""守卫：覆盖层（对话框/结果面板/菜单）打开时，教程横幅必须跟着隐藏。
+"""守卫：模态覆盖层打开时，教程横幅隐藏；解锁后横幅仍真实可见。
 
-背景（BUG-23，BUG-13 修复引出的回归）：
-`TutorialOverlay.BANNER_RECT = (120, 180, 240, 24)`（y 180..204）**整个落在**
-`theme.RECTS["dialogue"] = (4, 166, 472, 100)`（y 166..266）里面；
-而 `WorldSceneBase.on_update()` 里 `tutorial_overlay.refresh()` 在 `if locked` **之前**执行，
-`locked` 分支又只隐藏 `hud` 与 `prompt`、**不隐藏 tutorial_overlay** ——
-于是开局剧情（`enter_campus` 触发 `tut.move` 后立刻 push 开场 EventScene）会出现
-"横幅压在对话框/头像/正文上"的第一屏。
+BUG-23 修复路径：教程横幅通过场景锁定谓词自我隐藏，并由 on_update 统一刷新，
+防止开场剧情或日结算时出现横幅闪帧、遮挡对话内容。
 
 **为什么这里断言"可见性状态"而不是"调用次数"**：只数 `refresh()` 被调过几次，挡不住
 "先 refresh 再无条件 hide"这种把教程变成哑巴的实现——调用发生了，画面却是空的。
@@ -44,6 +39,25 @@ class _RecOverlay:
 
     def hide(self) -> None:
         self.visible = False
+
+
+class _FakeNode:
+    def __init__(self) -> None:
+        self.hidden = False
+
+    def hide(self) -> None:
+        self.hidden = True
+
+    def show(self) -> None:
+        self.hidden = False
+
+
+class _FakeLabel:
+    def __init__(self) -> None:
+        self.text = ""
+
+    def set_text(self, text: str) -> None:
+        self.text = text
 
 
 class _RecTutorial:
@@ -86,6 +100,19 @@ class _Scene(WorldSceneBase):
 
     def _refresh_prompt(self, force=False):
         return None
+
+
+def test_tutorial_overlay_refresh_obeys_injected_lock_predicate() -> None:
+    overlay = TutorialOverlay.__new__(TutorialOverlay)
+    overlay.is_locked = lambda: True
+    overlay.controller = SimpleNamespace(banner_text=lambda: "tutorial")
+    overlay.root = _FakeNode()
+    overlay.label = _FakeLabel()
+
+    overlay.refresh()
+
+    assert overlay.root.hidden is True
+    assert overlay.label.text == ""
 
 
 def test_tutorial_overlay_hidden_while_overlay_open() -> None:

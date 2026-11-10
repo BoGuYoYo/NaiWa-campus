@@ -16,6 +16,7 @@ TutorialController 是纯逻辑类（可独立测试）；TutorialOverlay 负责
 from __future__ import annotations
 
 import logging
+from typing import Callable
 
 from game.ui import theme
 
@@ -131,13 +132,17 @@ class TutorialController:
 class TutorialOverlay:
     """教程横幅渲染层。仅集成环境使用（依赖 widgets / panda3d）。"""
 
-    BANNER_RECT = (120, 180, 240, 24)
+    BANNER_RECT = (120, 44, 240, 24)
 
-    def __init__(self, parent, transform, text_db, asset_registry=None) -> None:
+    def __init__(
+        self, parent, transform, text_db, asset_registry=None,
+        is_locked: Callable[[], bool] | None = None,
+    ) -> None:
         from game.ui.widgets import UILabel, UIPanel
 
         self.transform = transform
         self.text_db = text_db
+        self.is_locked = is_locked
         self.root = parent.attach_new_node("tutorial_overlay")
         self.panel = UIPanel(self.root, transform, self.BANNER_RECT, asset_registry)
         self.label = UILabel(
@@ -151,7 +156,8 @@ class TutorialOverlay:
         self.controller = controller
 
     def refresh(self) -> None:
-        if not self.controller:
+        if (self.is_locked and self.is_locked()) or not self.controller:
+            self.hide()
             return
         text = self.controller.banner_text()
         if text:

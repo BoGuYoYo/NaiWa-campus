@@ -1,4 +1,4 @@
-"""交互提示框（D2）：居中，y=218，宽 ≤220，高 30。
+"""交互提示框（D2）：底部居中，宽 220、高 40，避开教程横幅与按键提示。
 
 - 第 1 行「[E] 图书馆学习」；
 - 第 2 行 preview 变化「精力 -20  学业 +5」；
@@ -37,8 +37,10 @@ class InteractionPrompt(UIWidget):
         rect = theme.RECTS["prompt"]
         self.panel = UIPanel(root, transform, rect, asset_registry)
         self.title = UILabel(root, transform, rect[0] + 8, rect[1] + 2, "")
-        self.detail = UILabel(root, transform, rect[0] + 8, rect[1] + 2 + theme.LINE_HEIGHT, "",
-                              color=theme.COLOR_SECONDARY)
+        self.detail = UILabel(
+            root, transform, rect[0] + 8, rect[1] + 18, "",
+            color=theme.COLOR_SECONDARY,
+        )
         self._id: str | None = None
         super().__init__(root)
         self.hide()

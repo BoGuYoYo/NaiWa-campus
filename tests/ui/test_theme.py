@@ -23,6 +23,20 @@ def test_panels_do_not_overlap_when_co_visible():
     assert not theme.rect_overlaps(theme.RECTS["dialogue"], theme.RECTS["event_choices"])
 
 
+def test_tutorial_banner_and_interaction_prompt_are_separated():
+    from game.ui.tutorial import TutorialOverlay
+
+    banner = TutorialOverlay.BANNER_RECT
+    prompt = theme.RECTS["prompt"]
+    assert not theme.rect_overlaps(banner, prompt)
+
+    # Label glyphs occupy 12 logical pixels below their top-left anchors.
+    banner_label_y = banner[1] + 6
+    prompt_title_y = prompt[1] + 2
+    assert banner_label_y + 12 <= prompt_title_y
+    assert prompt[1] + prompt[3] <= theme.RECTS["hud_key_hint"][1]
+
+
 def test_format_deltas_order_and_sign():
     """D-ST-02：顺序 = 精力、心情、学业……；格式 = 名称 + 带符号整数。"""
     name_of = {k: k for k in theme.STAT_NAME_IDS}

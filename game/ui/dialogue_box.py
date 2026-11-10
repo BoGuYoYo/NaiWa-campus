@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 
-from panda3d.core import CardMaker, TransparencyAttrib
+from panda3d.core import CardMaker, TextNode, TransparencyAttrib
 
 from game.ui import theme
 from game.ui.widgets import UILabel, MultilineLabel, UIPanel, UITransform, UIWidget
@@ -33,6 +33,11 @@ class DialogueBox(UIWidget):
         self.name_label = UILabel(
             root, transform, name_rect[0], name_rect[1], "", color=theme.COLOR_WARN
         )
+        self.page_label = UILabel(
+            root, transform, rect[0] + rect[2] - 14, rect[1] + 4, "",
+            color=theme.COLOR_SECONDARY, align=TextNode.A_right,
+        )
+        self.page_label.hide()
         body_rect = theme.RECTS["dialogue_body"]
         self.body = MultilineLabel(
             root, transform, body_rect[0], body_rect[1], [],
@@ -64,6 +69,22 @@ class DialogueBox(UIWidget):
         node.set_pos(ax, 0, ay)
         return node
 
+    def set_page_indicator(self, current: int, total: int) -> None:
+        if total > 1:
+            self.page_label.set_text(f"{current}/{total}")
+            self.page_label.show()
+        else:
+            self.page_label.set_text("")
+            self.page_label.hide()
+
+    def _set_body_portrait_layout(self, has_portrait: bool) -> None:
+        x = theme.RECTS["dialogue_body"][0] if has_portrait else 12
+        self.body._x = x
+        for index, label in enumerate(self.body.labels):
+            y = self.body._y + index * self.body._line_height
+            ax, ay = self.transform.to_aspect2d(x, y + label._size)
+            label.text_node.set_pos(ax, 0, ay)
+
     # ------------------------------------------------------------------
     def set_text_speed(self, speed_name: str) -> None:
         self._cps = theme.chars_per_second(speed_name)
@@ -86,20 +107,37 @@ class DialogueBox(UIWidget):
             self.name_label.set_text("")
 
         portrait_id = page.get("portrait")
-        if portrait_id and self.assets is not None:
+        if not portrait_id:
+            if speaker:
+                speaker_id = str(speaker)
+                if speaker_id.startswith("npc_"):
+                    short = speaker_id.removeprefix("npc_")
+                    portrait_id = f"portrait_npc_{short}_neutral"
+                else:
+                    portrait_id = "portrait_naiwan_neutral"
+            else:
+                # Narration is voiced by the protagonist in this product style.
+                portrait_id = "portrait_naiwan_neutral"
+
+        if portrait_id:
+            self._set_body_portrait_layout(True)
             tex = None
-            try:
-                tex = self.assets.load_texture(portrait_id)
-            except Exception:
-                tex = None
+            if self.assets is not None:
+                try:
+                    tex = self.assets.load_texture(portrait_id)
+                except Exception:
+                    tex = None
             if tex is not None:
                 self.portrait.set_texture(tex)
                 self.portrait.set_color(1, 1, 1, 1)
+                self.portrait.show()
             else:
+                # Keep the placeholder visible only for an actual requested portrait
+                # that failed to load; this remains a clear QA signal.
                 _log.warning("asset.missing asset_id=%s", portrait_id)
+                self.portrait.clear_texture()
                 self.portrait.set_color(*theme.hex_to_rgba("#4A5578"))
-        else:
-            self.portrait.set_color(*theme.hex_to_rgba("#4A5578"))
+                self.portrait.show()
 
         self._full_lines = list(lines)
         self._total_chars = sum(len(line) for line in self._full_lines)

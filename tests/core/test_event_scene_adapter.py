@@ -4,10 +4,12 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from game import config
 from game.core.results import EventResult
 from game.core.state import GameState
 from game.core.world_scene import EventSceneAdapter
 from game.systems.event_service import EventService
+from game.ui.text_db import TextDB
 
 
 class _FakeDialogue:
@@ -105,6 +107,24 @@ def test_real_adapter_builds_rule_aware_view_and_settles_event():
     assert len(handled) == 0
     assert len(adapter.widget.results) == 1
     assert isinstance(adapter.widget.results[0], EventResult)
+
+
+def test_adapter_uses_all_pages_from_real_textdb():
+    adapter, _, _ = _adapter(GameState())
+    adapter.app.text = TextDB.load(str(config.resource_root() / "content"))
+
+    opening = adapter._build_view("story_opening")
+    fair = adapter._build_view("sem_1_club_fair")
+
+    assert opening.page_text_ids == [
+        f"evt.story_opening.body.{i}" for i in range(1, 6)
+    ]
+    assert fair.page_text_ids == [
+        f"evt.sem_1_club_fair.body.{i}" for i in range(1, 5)
+    ]
+    assert adapter.app.text.get_dialogue(fair.page_text_ids[1])["portrait"] == "portrait_npc_chenlang_happy"
+    assert adapter.app.text.get_dialogue(fair.page_text_ids[2])["portrait"] == "portrait_npc_sumo_neutral"
+    assert adapter.app.text.get_dialogue(fair.page_text_ids[3])["portrait"] == "portrait_npc_xiaoyou_surprised"
 
 
 def test_real_adapter_marks_locked_choices_disabled():

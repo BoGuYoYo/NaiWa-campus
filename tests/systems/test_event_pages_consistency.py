@@ -1,27 +1,15 @@
-"""数据一致性守卫：`events.json` 声明的 pages 必须覆盖 `dialogues.json` 里该事件的全部正文本。
+"""守卫事件规则与 TextDB 文案对偶，并确认正文页序列完整连续。
 
-背景（BUG-26，BUG-0 修复引出的回归）：
-`EventSceneAdapter._build_view()` 改成从 `EventService.get_view()` 取视图后，分页来源
-从"扫描 TextDB 的 `evt.<id>.body.*`"变成"`events.json` 的 `pages` 列表"。
-而 `events.json` 里每个事件**只登记了 `body.1`**，`dialogues.json` 却有 2~5 页：
-
-    sem_1_club_fair 声明 1 页 / 实际 4 页
-    story_opening   声明 1 页 / 实际 5 页
-    rel_npc_sumo_2  声明 1 页 / 实际 4 页
-    …共 17 个事件、丢失 33 页正文
-
-后果不只是"少看几页新闻"：
-1. 只有 1 页 = 永远是"最后一页" → **选项面板在第 1 页就弹出来**（玩家正文没看完就能选）；
-2. 带 `speaker` / `portrait` 的页全部在 body.2 之后（body.1 一律是旁白）→
-   **玩家永远看不到任何立绘**，观感就是"人物头像消失"。
+BUG-26 背景：`EventSceneAdapter._build_view()` 从规则服务取得 choices/enabled，
+但事件正文分页默认以 TextDB 的 `evt.<id>.body.*` 为唯一来源；只有事件显式声明
+`pages_source: rules` 时才采用规则文件里的 pages。此策略避免 rules.pages 陈旧时
+截断正文、提前显示选择面板或漏掉后续角色立绘。
 """
 
 from __future__ import annotations
 
 import json
 import re
-
-import pytest
 
 import game.config as config
 
@@ -30,33 +18,28 @@ def _load(name: str):
     return json.loads((config.resource_root() / "content" / name).read_text(encoding="utf-8"))
 
 
-def _actual_pages() -> dict[str, int]:
-    dial = _load("text/zh_CN/dialogues.json")
-    counts: dict[str, int] = {}
-    for key in dial:
-        m = re.match(r"evt\.(.+)\.body\.(\d+)$", key)
-        if m:
-            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
-    return counts
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG-26：events.json 每个事件只登记 body.1，dialogues.json 有 2~5 页 → "
-           "正文丢失 33 页、选项提前出现、立绘永远不显示；修好后本条会 XPASS，请删掉 xfail 标记",
-)
-def test_event_pages_cover_all_dialogue_bodies() -> None:
+def test_dialogue_text_is_canonical_and_page_sequences_are_complete() -> None:
+    """每个事件正文由 TextDB 完整提供；UI 默认按这些实际页生成分页。"""
     events = _load("rules/events.json")
-    actual = _actual_pages()
+    dial = _load("text/zh_CN/dialogues.json")
+    event_ids = {event["id"] for event in events}
+    numbers_by_event: dict[str, list[int]] = {}
+    for key in dial:
+        match = re.match(r"evt\.(.+)\.body\.(\d+)$", key)
+        if not match:
+            continue
+        event_id, page_number = match.groups()
+        assert event_id in event_ids, f"对话页引用了未知事件：{key}"
+        numbers_by_event.setdefault(event_id, []).append(int(page_number))
 
-    short = {}
-    for event in events:
-        eid = event["id"]
-        declared = len([p for p in event.get("pages", []) if ".body." in p])
-        if eid in actual and declared < actual[eid]:
-            short[eid] = f"声明 {declared} 页 / 实际 {actual[eid]} 页"
-
-    assert short == {}, f"以下事件的正文本没有全部登记进 pages：{short}"
+    missing = sorted(event_id for event_id in event_ids if event_id not in numbers_by_event)
+    assert missing == [], f"事件缺少 TextDB 正文页：{missing}"
+    broken = {
+        event_id: sorted(numbers)
+        for event_id, numbers in numbers_by_event.items()
+        if sorted(numbers) != list(range(1, len(numbers) + 1))
+    }
+    assert broken == {}, f"TextDB 正文页编号不连续：{broken}"
 
 
 def test_declared_pages_exist_in_dialogues() -> None:
@@ -139,6 +122,15 @@ def _manifest() -> dict[str, dict]:
     data = json.loads(path.read_text(encoding="utf-8"))
     entries = data["assets"] if isinstance(data, dict) else data
     return {e["id"]: e for e in entries}
+
+
+def test_narration_default_portrait_is_registered_and_on_disk() -> None:
+    entries = _manifest()
+    entry = entries.get("portrait_naiwan_neutral")
+    assert entry is not None, "旁白默认 portrait_naiwan_neutral 未登记"
+    assert (config.resource_root() / "assets" / entry["path"]).is_file(), (
+        "旁白默认 portrait_naiwan_neutral 文件缺失"
+    )
 
 
 def test_dialogue_portraits_are_registered_and_on_disk() -> None:

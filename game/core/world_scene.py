@@ -691,9 +691,23 @@ class EventSceneAdapter(WidgetSceneBase):
         self.widget.load_event(view)
 
     def _build_view(self, event_id: str) -> EventView:
-        """从事件服务取得规则计算后的视图，包含真实的锁定状态。"""
+        """从规则服务取选择状态；分页默认由 TextDB 的实际正文页唯一决定。"""
         state = self.app.flow.require_state()
-        return self.app.services.event.get_view(state, event_id)
+        service = self.app.services.event
+        view = service.get_view(state, event_id)
+        db = getattr(service, "db", None)
+        event_spec = db.event(event_id) if db is not None else None
+        if event_spec and event_spec.get("pages_source") == "rules":
+            return view
+
+        # Localized dialogue content owns the rendered pagination by default.
+        # Rules may opt in explicitly when a page sequence is intentionally curated.
+        dialogue_keys = getattr(self.app.text, "dialogues", {})
+        prefix = f"evt.{event_id}.body."
+        pages = [key for key in dialogue_keys if key.startswith(prefix)]
+        pages.sort(key=lambda key: int(key.rsplit(".", 1)[-1]))
+        view.page_text_ids = pages
+        return view
 
     def _show_content_error(self, event_id: str, choice_id: str, error: ContentError) -> None:
         """把服务层拒绝显示给玩家，而不是让场景回调冒泡到主循环。"""

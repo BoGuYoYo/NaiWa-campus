@@ -59,6 +59,7 @@ class EventScene(UIWidget):
         self._pages: list[dict] = []
         self._page_index = 0
         self._cursor = None
+        self._choice_stage = False
         self._showing_result = False
         super().__init__(root)
         self.hide()
@@ -74,6 +75,7 @@ class EventScene(UIWidget):
         """
         self.show()
         self._showing_result = False
+        self._choice_stage = False
         if isinstance(event_view, dict):
             self._event_id = event_view.get("event_id")
             page_ids = event_view.get("page_text_ids") or []
@@ -87,6 +89,7 @@ class EventScene(UIWidget):
             self.text_db.get_dialogue(pid) or {"lines": [self.text_db.get("err.unknown_id", id=pid)]}
             for pid in page_ids
         ]
+        self.dialogue.set_page_indicator(1, len(self._pages))
         self._page_index = 0
         self._choice_text_ids = {}
         items = []
@@ -174,11 +177,21 @@ class EventScene(UIWidget):
     def _show_current_page(self) -> None:
         page = self._pages[self._page_index]
         self.dialogue.show_page(page)
-        if self._cursor and self._page_index >= len(self._pages) - 1:
-            self.panel.show()
-            for label in self.choice_labels:
-                label.show()
+        self.dialogue.set_page_indicator(self._page_index + 1, len(self._pages))
+        self._choice_stage = bool(
+            self._cursor and self._page_index >= len(self._pages) - 1
+        )
+        if self._choice_stage:
             self.page_hint.hide()
+            if len(self._cursor.items) <= 1:
+                # A single implicit continue choice needs no remote empty panel.
+                self.panel.hide()
+                for label in self.choice_labels:
+                    label.hide()
+            else:
+                self.panel.show()
+                for label in self.choice_labels:
+                    label.show()
         else:
             self.panel.hide()
             for label in self.choice_labels:
@@ -201,11 +214,14 @@ class EventScene(UIWidget):
             return
         if self.dialogue.advance():
             return
-        if self._cursor is None or not self.panel.is_shown():
-            if not self._next_page() and self._cursor is None:
+        if self._cursor is None:
+            if not self._next_page():
                 self._finish()
             return
-        self._confirm_choice()
+        if self._choice_stage:
+            self._confirm_choice()
+            return
+        self._next_page()
 
     def on_move(self, direction: int) -> None:
         if self._cursor and self.panel.is_shown():
@@ -231,7 +247,7 @@ class EventScene(UIWidget):
             return
         if self.dialogue.advance():
             return
-        if self._cursor is not None and self.panel.is_shown():
+        if self._choice_stage:
             self._show_lock_hint(self.text_db.get("ui.event.escape_hint"))
             return
         if self._next_page():
@@ -250,6 +266,7 @@ class EventScene(UIWidget):
         self._emit_choice(choice_id)
 
     def _emit_choice(self, choice_id: str) -> None:
+        self._choice_stage = False
         self.panel.hide()
         for label in self.choice_labels:
             label.hide()
@@ -262,6 +279,7 @@ class EventScene(UIWidget):
     def show_event_result(self, event_result) -> None:
         """显示 EventResult.result_text_ids（B 返回，D 不计算）。"""
         self._showing_result = True
+        self.dialogue.set_page_indicator(1, 1)
         lines = [self.text_db.get(tid) for tid in (getattr(event_result, "result_text_ids", None) or [])]
         self.dialogue.show_page({"speaker": None, "portrait": None, "lines": lines})
 

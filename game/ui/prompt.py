@@ -82,9 +82,11 @@ class InteractionPrompt(UIWidget):
                     npc_name = self.text_db.get_raw(f"npc.{short_id}.name")
                     name_of[key] = f"与{npc_name}的关系"
             parts = [text for _key, _value, text in theme.format_deltas(preview, name_of)]
+
             def measure_text(text: str) -> float:
                 self.detail.node.set_text(text)
-                return self.detail.node.get_width()
+                # TextNode width is in font-height units; UILabel scales it to 12px.
+                return self.detail.node.get_width() * self.detail._size
 
             lines = theme.wrap_prompt_details(parts, rect[2] - 16, measure_text)
             self._set_detail_lines(lines, theme.COLOR_SECONDARY)

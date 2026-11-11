@@ -119,6 +119,9 @@ def test_speaker_without_portrait_uses_neutral_fallback():
     assert box.assets.requested == ["portrait_npc_sumo_neutral"]
     assert box.portrait.visible is True
     assert box.portrait.texture == "loaded-texture"
+    # 与旁白那条对齐：成功路径必须把颜色复位成白色。
+    # 若有人把复位逻辑挪进"仅旁白"分支，这条会红——它守的是"所有成功路径都复位"。
+    assert box.portrait.color == (1, 1, 1, 1)
     assert box.body._x == 108
 
 

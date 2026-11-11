@@ -513,7 +513,13 @@ class CampusSceneAdapter(WorldSceneBase):
 
 
 class InteriorSceneAdapter(WorldSceneBase):
-    scene_id = "campus"  # 由 on_enter 覆盖
+    scene_id: str = "campus"  # 由 on_enter 覆盖
+
+    #: npc_marks 里的显示名 -> 角色立绘资产名（旧名保留，兼容老存档/老地图）
+    NPC_ART = {
+        "符闹吃": "sumo", "苏墨": "sumo",
+        "李振兴": "chenlang", "陈朗": "chenlang",
+    }
 
     def on_enter(self, building_id: str | None = None, state: GameState | None = None,
                  **kwargs: Any) -> None:
@@ -528,6 +534,39 @@ class InteriorSceneAdapter(WorldSceneBase):
         self.rig.set_interior((ox + self.md.interior(self.scene_id).center[0],
                                oy + self.md.interior(self.scene_id).center[1]))
         self.app.pipeline.align_camera(*self.rig.target)
+        self._place_npc_sprites()
+
+    def _place_npc_sprites(self) -> None:
+        """在 npc_marks 的位置摆上 NPC 立牌。
+
+        以前室内只画一个蓝圈表示"有人站这儿"，玩家看不到 NPC 长什么样；
+        接入角色立绘后把 `char_npc_<short>_idle` 贴成正面朝相机的一张卡。
+        """
+        if self.scene is None:
+            return
+        from panda3d.core import TextureStage
+
+        interior = self.md.interior(self.scene_id)
+        ox, oy = interior.origin
+        for mark in interior.npc_marks:
+            short = self.NPC_ART.get(mark.name)
+            if short is None:
+                continue
+            try:
+                sheet = self.app.registry.load_sprite(f"char_npc_{short}_idle")
+            except Exception as exc:  # 缺资源时保持原来的站位圈，不影响进房间
+                LOG.warning("[WORLD] NPC 立绘加载失败 %s: %s", short, exc)
+                continue
+            if sheet is None:
+                continue
+            card = self.app.pipeline.make_character_card(self.scene.root, f"npc_{short}")
+            card.set_texture(sheet.texture, 1)
+            stage = TextureStage.getDefault()
+            u0, v0, u1, v1 = sheet.frame_uv("s", 0)
+            card.set_tex_offset(stage, u0, v0)
+            card.set_tex_scale(stage, u1 - u0, v1 - v0)
+            card.set_pos(ox + mark.x, oy + mark.y, 0.0)
+            card.set_h(0.0)
 
     def build_scene(self, parent):
         from game.world.interior_scene import InteriorScene

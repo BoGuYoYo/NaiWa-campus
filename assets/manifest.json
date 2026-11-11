@@ -341,120 +341,124 @@
       "id": "char_npc_sumo_idle",
       "type": "sprite_sheet",
       "path": "characters/npc/sumo_idle.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "frame_w": 48,
       "frame_h": 48,
-      "cols": 2,
-      "rows": 4,
-      "fps": 2,
+      "cols": 1,
+      "rows": 1,
+      "fps": 0,
       "pivot": [
         24,
         46
       ],
       "row_order": [
-        "s",
-        "e",
-        "n",
-        "w"
+        "s"
       ],
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_sumo_neutral",
       "type": "image",
       "path": "portraits/sumo/neutral.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_sumo_happy",
       "type": "image",
       "path": "portraits/sumo/happy.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_sumo_sad",
       "type": "image",
       "path": "portraits/sumo/sad.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_sumo_surprised",
       "type": "image",
       "path": "portraits/sumo/surprised.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "char_npc_chenlang_idle",
       "type": "sprite_sheet",
       "path": "characters/npc/chenlang_idle.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "frame_w": 48,
       "frame_h": 48,
-      "cols": 2,
-      "rows": 4,
-      "fps": 2,
+      "cols": 1,
+      "rows": 1,
+      "fps": 0,
       "pivot": [
         24,
         46
       ],
       "row_order": [
-        "s",
-        "e",
-        "n",
-        "w"
+        "s"
       ],
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_chenlang_neutral",
       "type": "image",
       "path": "portraits/chenlang/neutral.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_chenlang_happy",
       "type": "image",
       "path": "portraits/chenlang/happy.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_chenlang_sad",
       "type": "image",
       "path": "portraits/chenlang/sad.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_chenlang_surprised",
       "type": "image",
       "path": "portraits/chenlang/surprised.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0211",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {

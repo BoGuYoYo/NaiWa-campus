@@ -197,15 +197,15 @@ REL_STAGES: list[dict[str, Any]] = [
 NPCS: list[dict[str, Any]] = [
     {
         "id": "npc_sumo",
-        "name": "苏墨",
-        "role": "同班同学，学习方向",
+        "name": "符闹吃",
+        "role": "同班同学，学习方向，嘴硬心软的抬杠担当",
         "location": "loc_library",
         "relation_sources": ["library_study", "talk", "semester_event"],
     },
     {
         "id": "npc_chenlang",
-        "name": "陈朗",
-        "role": "社团联合会干事，社交方向",
+        "name": "李振兴",
+        "role": "社团联合会干事，爱张罗活动的壮汉",
         "location": "loc_clubroom",
         "relation_sources": ["join_club", "talk", "semester_event"],
     },
@@ -494,7 +494,7 @@ ENDINGS: list[dict[str, Any]] = [
             {"type": "rel", "key": "npc_chenlang", "op": ">=", "value": 60},
             {"type": "flag", "key": "ran_for_president"},
         ],
-        "matched": ["社交 60+", "参加社团 10 次以上", "陈朗关系 60+", "参加社长竞选"],
+        "matched": ["社交 60+", "参加社团 10 次以上", "李振兴关系 60+", "参加社长竞选"],
     },
     {
         "id": "ending_creator",

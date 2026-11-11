@@ -1,8 +1,8 @@
 [
   {
     "id": "npc_sumo",
-    "name": "苏墨",
-    "role": "同班同学，学习方向",
+    "name": "符闹吃",
+    "role": "同班同学，学习方向，嘴硬心软的抬杠担当",
     "location": "loc_library",
     "relation_sources": [
       "library_study",
@@ -12,8 +12,8 @@
   },
   {
     "id": "npc_chenlang",
-    "name": "陈朗",
-    "role": "社团联合会干事，社交方向",
+    "name": "李振兴",
+    "role": "社团联合会干事，爱张罗活动的壮汉",
     "location": "loc_clubroom",
     "relation_sources": [
       "join_club",

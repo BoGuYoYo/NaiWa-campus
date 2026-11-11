@@ -35,6 +35,8 @@ class InteractionPrompt(UIWidget):
         self.transform = transform
         root = parent.attach_new_node("interaction_prompt")
         rect = theme.RECTS["prompt"]
+        # show_prompt() 里折行要用面板内宽，把它留在实例上（局部 rect 已经出过 NameError）
+        self._rect = rect
         self.panel = UIPanel(root, transform, rect, asset_registry)
         self.title = UILabel(root, transform, rect[0] + 8, rect[1] + 2, "")
         self.detail = UILabel(
@@ -88,7 +90,7 @@ class InteractionPrompt(UIWidget):
                 # TextNode width is in font-height units; UILabel scales it to 12px.
                 return self.detail.node.get_width() * self.detail._size
 
-            lines = theme.wrap_prompt_details(parts, rect[2] - 16, measure_text)
+            lines = theme.wrap_prompt_details(parts, self._rect[2] - 16, measure_text)
             self._set_detail_lines(lines, theme.COLOR_SECONDARY)
         self.show()
 

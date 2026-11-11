@@ -257,6 +257,9 @@ def make_building_card(
     texture,
     name: str = "building_front",
     facing: str = "s",
+    *,
+    position=None,
+    width: float | None = None,
 ) -> NodePath:
     """把三视图裁出的正面立面作为相机可读的建筑卡片。
 
@@ -272,9 +275,12 @@ def make_building_card(
     # CampusScene uses a fixed north-facing orthographic camera. Keep the
     # elevation card parallel to that camera so the extracted facade remains
     # readable at every building; the map's door_facing still drives gameplay.
-    width = max(1.0, rect.x1 - rect.x0)
-    x = (rect.x0 + rect.x1) / 2.0
-    y = rect.y0
+    # Blender exports the card anchor at the mesh bounds' lower edge. Keep
+    # the PNG aspect ratio while using that exported world placement.
+    width = max(1.0, rect.x1 - rect.x0 if width is None else width)
+    x, y, z = position if position is not None else (
+        (rect.x0 + rect.x1) / 2.0, rect.y0, 0.0,
+    )
     heading = 0.0
 
     ratio = texture.getYSize() / max(1, texture.getXSize())
@@ -286,43 +292,26 @@ def make_building_card(
     card.set_transparency(TransparencyAttrib.M_binary)
     card.set_light_off()
     card.set_hpr(heading, config.CAMERA_TILT_DEGREES, 0.0)
-    card.set_pos(x, y, 0.0)
+    card.set_pos(x, y, z)
     return card
 
 
-def make_side_card(
-    parent: NodePath,
-    rect: Rect,
-    texture,
-    name: str,
-    facing: str,
-) -> NodePath:
-    """Place a separate right-side elevation from the supplied three-view sheet."""
-    from game import config
+def make_door_mat(parent: NodePath, dx: float, dy: float, color, facing: str = "s",
+                  name: str = "door_mat") -> NodePath:
+    """贴了立面图之后，门不再用红色立块，改成贴在门口地面上的一块地垫。
 
-    # The supplied side drawings are left elevations.  For an east-facing
-    # front that side is the north edge; for a west-facing front it is south.
-    side_edge = "n" if facing == "e" else "s"
-    width = max(1.0, rect.x1 - rect.x0)
-    x = (rect.x0 + rect.x1) / 2.0
-    y = rect.y1 if side_edge == "n" else rect.y0
-    heading = 180.0 if side_edge == "n" else 0.0
-    ratio = texture.getYSize() / max(1, texture.getXSize())
-    height = width * ratio
-    cm = CardMaker(name)
-    cm.set_frame(-width / 2.0, width / 2.0, 0.0, height)
-    card = parent.attach_new_node(cm.generate())
-    card.set_texture(texture)
-    card.set_transparency(TransparencyAttrib.M_binary)
-    card.set_light_off()
-    card.set_hpr(heading, config.CAMERA_TILT_DEGREES, 0.0)
-    card.set_pos(x, y, 0.0)
-    return card
-
-
-def make_door_mat(parent: NodePath, dx: float, dy: float, color, name: str = "door_mat") -> NodePath:
-    """贴了正面图之后，门不再用红色立块，改成地面上的一块地垫。"""
-    return make_ground(parent, dx - 1.2, dy - 0.35, dx + 1.2, dy + 0.35, 0.05, color)
+    地垫沿门朝向铺在墙外（不是压在墙线上），这样它和立面上画出来的入口
+    处在同一侧，玩家走过去看到的就是「门口那块垫子」。
+    """
+    facing = (facing or "s").lower()
+    half_w, depth, gap = 1.2, 1.0, 0.02
+    if facing in ("e", "w"):
+        x0, x1 = (dx + gap, dx + gap + depth) if facing == "e" else (dx - gap - depth, dx - gap)
+        y0, y1 = dy - half_w, dy + half_w
+    else:
+        y0, y1 = (dy - gap - depth, dy - gap) if facing == "s" else (dy + gap, dy + gap + depth)
+        x0, x1 = dx - half_w, dx + half_w
+    return make_ground(parent, x0, y0, x1, y1, 0.05, color)
 
 
 # --------------------------------------------------------------- 场景本体
@@ -339,7 +328,7 @@ class CampusScene:
 
     def __init__(self, map_data, parent: NodePath, *, dev: bool = False,
                  ground_texture=None, prop_art=None, building_art=None,
-                 building_side_art=None):
+                 building_side_art=None, building_visuals=None):
         self.map_data = map_data
         self.root = parent.attachNewNode("CampusScene")
         self.dev = dev
@@ -347,6 +336,7 @@ class CampusScene:
         self.prop_art = prop_art
         self.building_art = building_art
         self.building_side_art = building_side_art
+        self.building_visuals = building_visuals or {}
         self.colliders = map_data.colliders_for(CAMPUS_SCENE)
         self.bounds = map_data.bounds
         self._build()
@@ -376,7 +366,7 @@ class CampusScene:
             if art is None:
                 make_box(self.root, dx - 1.2, dy - 0.15, dx + 1.2, dy + 0.15, 0.0, DOOR_HEIGHT, DOOR_COLOR)
             else:
-                make_door_mat(self.root, dx, dy, DOOR_COLOR)
+                make_door_mat(self.root, dx, dy, DOOR_COLOR, facing=building.door_facing)
 
         art_props = []
         for prop in self.map_data.props:
@@ -392,22 +382,24 @@ class CampusScene:
 
         self.root.flattenStrong()
 
-        # 带 alpha 的立牌不参与 flatten：合并进同一个 GeomNode 会丢 transparency 排序
-        for building, texture, _side_texture in art_buildings:
-            # Blender GameScene_Sync 的入口方向与 map.json door_facing 对齐：
-            # dorm/classroom=e，library/clubroom=w，canteen=s。
+        # 带 alpha 的立牌不参与 flatten：合并进同一个 GeomNode 会丢 transparency 排序。
+        # Blender 的 Game_Building 根节点已经把宿舍、教学楼、图书馆和社团楼的
+        # 入口放在东西两侧；固定的游戏镜头从南侧看过去时，真正可见的立面是
+        # 用户提供的侧视图。因此只要登记了 side_art，就用它替换旧的 front
+        # 卡片；食堂没有侧视图，继续使用原正面图。
+        for building, front_texture, side_texture in art_buildings:
+            texture = side_texture or front_texture
+            prefix = "side" if side_texture is not None else "front"
+            visual = self.building_visuals.get(building.id, {})
             make_building_card(
                 self.root,
                 building.rect,
                 texture,
-                name=f"front_{building.id}",
+                name=f"{prefix}_{building.id}",
                 facing=building.door_facing,
+                position=visual.get("position"),
+                width=visual.get("width"),
             )
-            # The game camera is fixed to the north-facing 2.5D view. A
-            # cardinal side card would therefore be edge-on for east/west
-            # buildings and produce a paper-thin seam. Keep side elevations as
-            # registered source art for a future 3/4 composite, but render the
-            # clean front elevation card here.
         for prop, (texture, height) in art_props:
             make_prop_card(self.root, prop.rect, texture, height, name=f"prop_{prop.id}")
 

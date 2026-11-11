@@ -329,9 +329,29 @@ class GameFlow:
         self.state = state
         self.paused = False
         state.phase = "campus"
+        self._restore_outdoor_after_indoor_save(state)
         self.enter_campus(spawn=state.world.location_id, keep_position=True)
         LOG.info("[FLOW] loaded %s day=%d slot=%d", slot, state.day_index, state.action_slot)
         return state
+
+    def _restore_outdoor_after_indoor_save(self, state: GameState) -> None:
+        """存档是在室内存的：读档后必须落回门外，并把地点改成室外区域。
+
+        存档里的坐标是室内世界坐标（200+），location_id 是建筑 id。直接拿去建
+        校园场景会让玩家站在房间坐标上、scene_of() 判成室内，户外交互点全部
+        显示「内容缺失」。
+        """
+        md = getattr(self.app, "map_data", None)
+        if md is None or not md.has_interior(state.world.location_id):
+            return
+        building_id = state.world.location_id
+        exit_x, exit_y, facing = md.exit_point(building_id)
+        state.world.x = exit_x
+        state.world.y = exit_y
+        state.world.facing = facing
+        state.world.location_id = md.outdoor_location_at(exit_x, exit_y)
+        LOG.info("[FLOW] load from indoor %s -> outdoor %s (%.2f, %.2f)",
+                 building_id, state.world.location_id, exit_x, exit_y)
 
     def require_state(self) -> GameState:
         if self.state is None:

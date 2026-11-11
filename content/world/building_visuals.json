@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "source": "blender_reconstructed_campus.blend",
+  "view": "south",
+  "buildings": {
+    "loc_dorm": {
+      "blender_object": "Game_Building_loc_dorm",
+      "world_bounds": [
+        [
+          3.914962,
+          9.723123,
+          0.0
+        ],
+        [
+          18.055477,
+          23.939325,
+          14.09
+        ]
+      ],
+      "position": [
+        10.98522,
+        9.723123,
+        0.0
+      ],
+      "width": 14.140515,
+      "height": 14.09,
+      "door_anchor_u": 0.92
+    },
+    "loc_classroom": {
+      "blender_object": "Game_Building_loc_classroom",
+      "world_bounds": [
+        [
+          4.675628,
+          31.672998,
+          0.028468
+        ],
+        [
+          20.668869,
+          47.725979,
+          16.693777
+        ]
+      ],
+      "position": [
+        12.672248,
+        31.672998,
+        0.028468
+      ],
+      "width": 15.993241,
+      "height": 16.665309,
+      "door_anchor_u": 0.855
+    },
+    "loc_library": {
+      "blender_object": "Game_Building_loc_library",
+      "world_bounds": [
+        [
+          59.602116,
+          31.816898,
+          -0.0
+        ],
+        [
+          75.778374,
+          48.007679,
+          13.5
+        ]
+      ],
+      "position": [
+        67.690245,
+        31.816898,
+        -0.0
+      ],
+      "width": 16.176258,
+      "height": 13.5,
+      "door_anchor_u": 0.08
+    },
+    "loc_clubroom": {
+      "blender_object": "Game_Building_loc_clubroom",
+      "world_bounds": [
+        [
+          61.560444,
+          12.92329,
+          0.0
+        ],
+        [
+          76.106758,
+          27.428772,
+          10.5
+        ]
+      ],
+      "position": [
+        68.833601,
+        12.92329,
+        0.0
+      ],
+      "width": 14.546314,
+      "height": 10.5,
+      "door_anchor_u": 0.17
+    },
+    "loc_canteen": {
+      "blender_object": "Game_Building_loc_canteen",
+      "world_bounds": [
+        [
+          30.0,
+          48.0,
+          0.0
+        ],
+        [
+          50.000004,
+          58.0,
+          9.400001
+        ]
+      ],
+      "position": [
+        40.000002,
+        48.0,
+        0.0
+      ],
+      "width": 20.000004,
+      "height": 9.400001
+    }
+  }
+}

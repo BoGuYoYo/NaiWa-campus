@@ -59,6 +59,43 @@ def test_campus_scene_builds(base, map_data):
         scene.destroy()
 
 
+def test_interaction_prompt_renders_enabled_and_disabled(base):
+    """回归：提示框的折行宽度必须取自实例面板矩形。
+
+    2026-11-11 的 BUG：show_prompt() 里引用了 __init__ 的局部变量 rect，
+    一按到可交互点就抛 NameError，提示框永远不显示、on_update 每帧中断。
+    """
+    from game.core.results import PromptView
+    from game.ui.prompt import InteractionPrompt
+    from game.ui.widgets import UITransform
+
+    class _Text:
+        def get(self, key, **kw):
+            return kw.get("label", key)
+
+        def get_raw(self, key):
+            return key
+
+    prompt = InteractionPrompt(base.aspect2d, UITransform.from_base(base), _Text())
+    try:
+        prompt.show_prompt(PromptView("ia_plaza_bench", "act.campus_walk.name", True,
+                                      None, {"energy": -4, "mood": 3}))
+        assert prompt.visible
+        assert prompt.current_id() == "ia_plaza_bench"
+
+        prompt.show_prompt(PromptView("ia_door_dorm", "ui.prompt.enter"))
+        assert prompt.visible
+        assert prompt.current_id() == "ia_door_dorm"
+
+        prompt.show_prompt(PromptView("ia_bed", "act.rest_dorm.name", False, "E_LOW_ENERGY"))
+        assert prompt.visible
+
+        prompt.hide_prompt()
+        assert not prompt.visible
+    finally:
+        prompt.destroy()
+
+
 def test_campus_scene_is_flattened(base, map_data):
     from game.world.campus_scene import CampusScene
 
@@ -80,7 +117,7 @@ def test_interior_scene_world_bounds_and_points(base, map_data):
         assert scene.bounds_world() == Rect(200.0, 0.0, 216.0, 10.0)
         assert scene.entry_world() == (208.0, 1.6, "n")
         assert scene.mat_world() == pytest.approx((208.0, 0.6, 0.8))
-        assert scene.exit_world() == map_data.exit_point("loc_dorm") == (19.8, 17.0, "e")
+        assert scene.exit_world() == map_data.exit_point("loc_dorm") == (16.924, 7.923, "s")
     finally:
         scene.destroy()
 

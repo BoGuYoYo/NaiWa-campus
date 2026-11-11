@@ -437,6 +437,27 @@ class MapData:
                 return a.id
         return None
 
+    def nearest_area(self, x: float, y: float) -> str | None:
+        """离该点最近的区域 id（点在区域外时用）。
+
+        建筑门口、绿地这些没有登记区域的位置也要有个室外归属：否则
+        ``WorldPos.location_id`` 会停在建筑 id 上，``scene_of()`` 一直判成室内，
+        户外交互点全部查不到（提示框显示「内容缺失」）。
+        """
+        best_id: str | None = None
+        best_dist: float | None = None
+        for a in self._areas:
+            dx = max(a.rect.x0 - x, 0.0, x - a.rect.x1)
+            dy = max(a.rect.y0 - y, 0.0, y - a.rect.y1)
+            dist = (dx * dx + dy * dy) ** 0.5
+            if best_dist is None or dist < best_dist:
+                best_id, best_dist = a.id, dist
+        return best_id
+
+    def outdoor_location_at(self, x: float, y: float, fallback: str = "loc_gate") -> str:
+        """室外坐标 → 地点 id：先找所在区域，再找最近区域，最后用 fallback。"""
+        return self.area_at(x, y) or self.nearest_area(x, y) or fallback
+
     def interactable(self, ia_id: str) -> Interactable:
         for ia in self._interactables:
             if ia.id == ia_id:

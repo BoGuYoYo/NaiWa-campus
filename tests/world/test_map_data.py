@@ -31,11 +31,14 @@ def _raw_ia() -> dict:
 
 # --------------------------------------------------------------- 表 11 建筑
 
+# 2026-11-11 起：占地取 Blender 世界包围盒，门取立面图上画出来的入口
+# （content/world/building_visuals.json 的 door_anchor_u），统一开在南侧；
+# 由 tools/align_building_doors.py 生成，改图后重跑该脚本并同步本表。
 DOC_BUILDINGS = {
-    "loc_dorm": ((4.0, 10.0, 18.0, 24.0), (18.0, 17.0), "e", (18.8, 17.0)),
-    "loc_classroom": ((4.0, 32.0, 20.0, 48.0), (20.0, 40.0), "e", (20.8, 40.0)),
-    "loc_library": ((60.0, 32.0, 76.0, 48.0), (60.0, 40.0), "w", (59.2, 40.0)),
-    "loc_clubroom": ((62.0, 10.0, 76.0, 24.0), (62.0, 17.0), "w", (61.2, 17.0)),
+    "loc_dorm": ((3.915, 9.723, 18.055, 23.939), (16.924, 9.723), "s", (16.924, 8.923)),
+    "loc_classroom": ((4.676, 31.673, 20.669, 47.726), (18.35, 31.673), "s", (18.35, 30.873)),
+    "loc_library": ((59.602, 31.817, 75.778, 48.008), (60.896, 31.817), "s", (60.896, 31.017)),
+    "loc_clubroom": ((61.56, 12.923, 76.107, 27.429), (64.033, 12.923), "s", (64.033, 12.123)),
     "loc_canteen": ((30.0, 48.0, 50.0, 58.0), (40.0, 48.0), "s", (40.0, 47.2)),
 }
 
@@ -81,10 +84,10 @@ DOC_INTERACTABLES = {
     "ia_food_window": ("loc_canteen", 8.0, 8.5, 1.5, "activity", "eat_canteen"),
     "ia_npc_xiaoyou": ("loc_canteen", 13.0, 4.0, 1.3, "npc", "npc_xiaoyou"),
     "ia_canteen_aunt": ("loc_canteen", 5.0, 8.5, 1.3, "inspect", "inspect.canteen_aunt"),
-    "ia_door_dorm": ("campus", 18.8, 17.0, 1.2, "door", "loc_dorm"),
-    "ia_door_classroom": ("campus", 20.8, 40.0, 1.2, "door", "loc_classroom"),
-    "ia_door_library": ("campus", 59.2, 40.0, 1.2, "door", "loc_library"),
-    "ia_door_clubroom": ("campus", 61.2, 17.0, 1.2, "door", "loc_clubroom"),
+    "ia_door_dorm": ("campus", 16.924, 8.923, 1.2, "door", "loc_dorm"),
+    "ia_door_classroom": ("campus", 18.35, 30.873, 1.2, "door", "loc_classroom"),
+    "ia_door_library": ("campus", 60.896, 31.017, 1.2, "door", "loc_library"),
+    "ia_door_clubroom": ("campus", 64.033, 12.123, 1.2, "door", "loc_clubroom"),
     "ia_door_canteen": ("campus", 40.0, 47.2, 1.2, "door", "loc_canteen"),
 }
 
@@ -173,9 +176,30 @@ def test_area_at_returns_first_matching_area(map_data):
     assert map_data.area_at(50.0, 50.0) is None
 
 
+def test_nearest_area_falls_back_for_points_outside_every_area(map_data):
+    assert map_data.area_at(16.924, 7.923) is None      # 宿舍楼门前的草地不在任何区域内
+    assert map_data.nearest_area(16.924, 7.923) == "loc_playground"
+    assert map_data.outdoor_location_at(16.924, 7.923) == "loc_playground"
+    # 区域内仍以 area_at 为准
+    assert map_data.outdoor_location_at(40.0, 5.0) == "loc_gate"
+
+
+def test_exit_points_always_land_outside(map_data):
+    """回归：出口地点不能停在建筑 id 上。
+
+    BUG-25：宿舍楼门挪到南侧后，出口 (16.924, 7.923) 不落在任何登记区域里，
+    location_id 于是保留成 loc_dorm，scene_of() 一直判成室内，
+    户外交互点全部变成「内容缺失」。
+    """
+    for building in map_data.buildings:
+        ex, ey, _facing = map_data.exit_point(building.id)
+        location = map_data.outdoor_location_at(ex, ey)
+        assert not map_data.has_interior(location), f"{building.id} 出口地点仍是室内：{location}"
+
+
 def test_exit_point_is_one_metre_outside_the_door(map_data):
-    assert map_data.exit_point("loc_dorm") == (19.8, 17.0, "e")
-    assert map_data.exit_point("loc_library") == (58.2, 40.0, "w")
+    assert map_data.exit_point("loc_dorm") == (16.924, 7.923, "s")
+    assert map_data.exit_point("loc_library") == (60.896, 30.017, "s")
     assert map_data.exit_point("loc_canteen") == (40.0, 46.2, "s")
 
 
@@ -227,13 +251,13 @@ def test_route_waypoints_are_free(map_data):
     """C-R1 路线的关键落点必须可站立。"""
     waypoints = [
         (40.0, 5.0),
-        (19.8, 17.0),
+        (16.924, 8.923),
         (28.0, 17.0),
         (40.0, 33.0),
-        (20.8, 40.0),
-        (59.2, 40.0),
+        (18.35, 30.873),
+        (60.896, 31.017),
         (58.0, 30.0),
-        (61.2, 17.0),
+        (64.033, 12.123),
         (40.0, 47.2),
     ]
     rects = map_data.colliders_for(CAMPUS_SCENE)

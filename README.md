@@ -30,6 +30,15 @@ python -m game --dev --scene CampusScene --skip-intro --offscreen --seed 42 --fr
 原始 JFIF 的棋盘格已按外轮廓抠除，墙面保持不透明；角色可走到建筑前方或被建筑遮挡。
 可用 `python tools/process_building_textures.py` 重新导入当前这批原图；详细流程见 `docs/art/README.md`。
 
+2026-11-11 建筑更新：宿舍、教学楼、图书馆、社团楼改用用户提供的 PNG 侧视图，原样拷贝为
+`assets/campus/textures/{dorm,teaching,library,club}_side.png`（不重绘、不抠图），食堂继续使用正面图。
+四栋建筑的位置与宽度读取 `content/world/building_visuals.json`，该文件由 Blender 场景
+`Game_Building_*` 的世界包围盒导出（`tools/export_blender_building_layout.py`）；
+重新导入这批 PNG 用 `python tools/process_building_side_textures.py`。
+门、门口地垫与触发点按立面图上画出来的入口对齐：`door_anchor_u` 记在 `building_visuals.json`
+（0 = 图片左边缘，1 = 右边缘），由 `python tools/align_building_doors.py` 写回 `map.json` 与
+`interactables.json`；换图后重跑该脚本，再用 `--check` 确认三者一致。
+
 ## 验收命令（A）
 
 ```powershell

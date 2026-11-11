@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import math
 from typing import Any, Callable
@@ -199,7 +200,9 @@ class WorldSceneBase:
                 self._state.world.facing = facing
                 # 落点决定所在地点：从室内出来时必须回到室外的区域 id，
                 # 否则 scene_of() 会认为玩家还在室内，户外交互点全部查不到。
-                self._state.world.location_id = self.md.area_at(exit_x, exit_y) or self._state.world.location_id
+                # 注意不能用 self._state.world.location_id 兜底——上面按 spawn
+                # 刚把它写成了建筑 id（loc_dorm 之类），兜底就等于没改。
+                self._state.world.location_id = self.md.outdoor_location_at(exit_x, exit_y)
         # 建好场景就把角色卡片摆到出生点并贴上待机帧：覆盖层（开场事件）在场时
         # on_update 会提前 return，卡片会一直停在原点 (0, 0)——镜头里就是"人物消失"。
         self.player.apply_pose()
@@ -399,7 +402,11 @@ class WorldSceneBase:
             return
         self._last_ia = ia_id
         view = self.interaction.query(self._state, ia_id)
-        self.prompt.show_prompt(view)
+        try:
+            self.prompt.show_prompt(view)
+        except Exception as exc:  # 提示框画不出来不能让整帧 on_update 中断（E 会跟着一起死）
+            self.log.exception("[WORLD] prompt render failed for %s: %s", ia_id, exc)
+            self.prompt.hide_prompt()
         self.tutorial.notify("near_interactable")
 
 
@@ -479,6 +486,11 @@ class CampusSceneAdapter(WorldSceneBase):
     def build_scene(self, parent):
         from game.world.campus_scene import CampusScene
 
+        layout_path = config.resource_root() / "content" / "world" / "building_visuals.json"
+        building_visuals = (
+            json.loads(layout_path.read_text(encoding="utf-8"))["buildings"]
+            if layout_path.is_file() else {}
+        )
         return CampusScene(
             self.md, parent,
             dev=bool(self.app.options.dev),
@@ -486,6 +498,7 @@ class CampusSceneAdapter(WorldSceneBase):
             prop_art=self._prop_art,
             building_art=self._building_art,
             building_side_art=self._building_side_art,
+            building_visuals=building_visuals,
         )
 
     def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:
@@ -593,7 +606,7 @@ class InteriorSceneAdapter(WorldSceneBase):
         building_id = self.scene_id
         state = self._state
         LOG.info("[WORLD] 离开 %s -> (%.1f, %.1f) %s", building_id, exit_x, exit_y, facing)
-        state.world.location_id = self.md.area_at(exit_x, exit_y) or "loc_gate"
+        state.world.location_id = self.md.outdoor_location_at(exit_x, exit_y)
         self.app.scenes.change(
             "CampusScene",
             spawn=building_id,

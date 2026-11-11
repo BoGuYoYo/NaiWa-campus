@@ -277,6 +277,9 @@ def run_route(map_data: MapData, route_id: str, out_path: Path) -> dict:
     r.exit("loc_library", vias_local=[(3.0, 5.0), (3.0, 1.6)])
 
     # → 社团楼（进出）
+    # 社团楼的入口在立面南侧，从图书馆方向过来要先沿楼西侧绕到前门
+    r.walk(60.4, 29.0, label="社团楼绕行 1")
+    r.walk(60.4, 11.0, label="社团楼绕行 2")
     r.walk_to_interactable("ia_door_clubroom")
     if r.interact("ia_door_clubroom") != "door":
         r.problems.append("社团楼门未返回 door")

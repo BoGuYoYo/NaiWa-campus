@@ -270,6 +270,55 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 
 ---
 
+## BUG-24（2026-11-11）：E 键所有交互失效 —— 交互提示框 NameError
+
+**现象**：走到任何可交互点都不弹提示，按 E 也不进建筑、打不开告示牌；日志每帧刷
+`[SCENE] on_update failed: name 'rect' is not defined`。
+
+**根因**：`game/ui/prompt.py` 的 `show_prompt()` 用了 `__init__` 里的局部变量 `rect`
+（`theme.wrap_prompt_details(parts, rect[2] - 16, ...)`）。`enabled=True` 的提示一定会走这行，
+于是 `NameError` 从 `_refresh_prompt()` 抛到 `on_update()`：提示框不显示，同帧后面的
+`hud.update()` / `_check_autostep()` 也一起被跳过。`enabled=False`（能量不足等）走另一分支，
+所以只有"可以交互"的提示会炸。
+
+**修复**：
+
+| 文件 | 变更 |
+| --- | --- |
+| `game/ui/prompt.py` | `__init__` 保存 `self._rect = theme.RECTS["prompt"]`，`show_prompt()` 用 `self._rect[2] - 16` 折行 |
+| `game/core/world_scene.py` | `_refresh_prompt()` 里给 `show_prompt()` 加兜底 try/except：提示框渲染失败只记日志并隐藏，不再中断整帧（否则 E 会跟着一起死） |
+| `tests/world/test_gui_scene.py` | 新增 `test_interaction_prompt_renders_enabled_and_disabled`：活动预览、门、禁用态三种提示都必须可见 |
+
+**证据**：`reports/review/prompt_fixed.png`（门口显示「[E] 进入」、告示牌显示「[E] 校门告示牌」）。
+
+---
+
+## BUG-25（2026-11-11）：进出建筑后提示框显示「内容缺失」
+
+**现象**：进入任一建筑再走出来，站在门口（或走到任何户外交互点）提示框变成
+`[E] #ia.ia_door_dorm.name` / `内容缺失：ia_door_dorm`。
+
+**根因**：`WorldSceneBase.on_enter()` 先按 `spawn` 写 `WorldPos.location_id`
+（从室内回来时 `spawn` 传的是建筑 id），随后 `position` 分支用
+`area_at(exit) or self._state.world.location_id` 兜底——新出口（如宿舍 16.924, 7.923）
+不在任何登记区域内，`area_at` 返回 None，于是 location_id 保留成 `loc_dorm`。
+`trigger_zone.scene_of()` 据此判成「室内」，户外交互点全部查不到，
+`InteractionService.query()` 只能给 unknown 占位文案。
+
+**修复**：
+
+| 文件 | 变更 |
+| --- | --- |
+| `game/world/map_data.py` | 新增 `nearest_area(x, y)`（点到矩形距离）与 `outdoor_location_at(x, y, fallback="loc_gate")` |
+| `game/core/world_scene.py` | 出口落点改用 `map_data.outdoor_location_at(...)`，不再拿旧的 location_id 兜底；室内地垫退出（`_check_autostep`）同样走这个函数 |
+| `game/core/flow.py` | `load_game()` 新增 `_restore_outdoor_after_indoor_save()`：存档是在室内存的（坐标 200+、location_id 是建筑 id）时，读档落回该楼门外并改回室外地点 |
+| `tests/world/test_map_data.py` | 新增 `test_nearest_area_falls_back_for_points_outside_every_area` 与 `test_exit_points_always_land_outside`（遍历 5 栋楼的出口，断言地点不是室内 id） |
+| `tests/world/test_outdoor_location.py` | 新增：出口地点必须室外、室内存档读档后落在门外、室外存档保持原位置 |
+
+**证据**：`reports/review/exit_prompt_fixed.png`（进出宿舍后提示框为「[E] 进入」）。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

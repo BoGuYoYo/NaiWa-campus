@@ -101,6 +101,7 @@ def test_pure_narration_uses_protagonist_neutral_portrait():
     assert box.assets.requested == ["portrait_naiwan_neutral"]
     assert box.portrait.visible is True
     assert box.portrait.texture == "naiwan-neutral"
+    assert box.portrait.color == (1, 1, 1, 1)
     assert box.body._x == 108
 
 

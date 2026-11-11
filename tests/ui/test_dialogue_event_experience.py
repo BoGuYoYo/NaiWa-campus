@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from game.ui.dialogue_box import DialogueBox
+from game.ui.dialogue_box import DialogueBox, _resolve_portrait_id
 from game.ui.event_scene import EventScene
 
 
@@ -93,6 +93,12 @@ def _dialogue(assets=None):
     return box
 
 
+def test_portrait_id_resolution_covers_all_fallback_states():
+    assert _resolve_portrait_id({"speaker": None, "portrait": None}) == "portrait_naiwan_neutral"
+    assert _resolve_portrait_id({"speaker": "npc_sumo", "portrait": None}) == "portrait_npc_sumo_neutral"
+    assert _resolve_portrait_id({"speaker": "npc_sumo", "portrait": "portrait_npc_sumo_happy"}) == "portrait_npc_sumo_happy"
+
+
 def test_pure_narration_uses_protagonist_neutral_portrait():
     box = _dialogue(_Assets(texture="naiwan-neutral"))
 
@@ -124,6 +130,11 @@ def test_requested_portrait_load_failure_keeps_diagnostic_placeholder(caplog):
     assert box.portrait.visible is True
     assert box.portrait.texture is None
     assert "asset.missing asset_id=portrait_npc_sumo_happy" in caplog.text
+    # 灰块是"加载失败"的**唯一**诊断信号：成功分支必须复位成白色，
+    # 失败分支必须显式涂成 #4A5578。两条都要断言，否则语义会静默漂移。
+    from game.ui import theme as _theme
+
+    assert box.portrait.color == _theme.hex_to_rgba("#4A5578")
 
 
 def test_dialogue_page_indicator_only_shows_for_multi_page_event():

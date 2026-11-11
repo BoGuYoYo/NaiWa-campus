@@ -71,15 +71,18 @@ PANEL_GAP_MIN = 4  # 面板之间最小间隔
 # 界面布局矩形（D2，逻辑像素 x, y, w, h；原点左上）
 # ----------------------------------------------------------------------
 RECTS: dict[str, tuple[int, int, int, int]] = {
-    "hud_date": (4, 4, 156, 36),
-    "hud_gauges": (320, 4, 156, 36),
+    # HUD 两块底板 40 高：内容上下各留 8 px，文字/图标不再压到金边上
+    "hud_date": (4, 4, 156, 40),
+    "hud_gauges": (320, 4, 156, 40),
     "hud_key_hint": (4, 252, 200, 16),
     # 提示框底部居中：标题 + 最多三行实测明细，避开底部按键提示。
     "prompt": (130, 186, 220, 64),
     "result": (100, 40, 280, 190),
     "result_illustration": (160, 48, 160, 90),
     "dialogue": (4, 166, 472, 100),
-    "dialogue_portrait": (6, 168, 96, 96),
+    # Portrait stays inside the dialogue panel's 8 px inner padding instead of
+    # touching the outer frame, which made full-body art look like it spilled out.
+    "dialogue_portrait": (12, 174, 84, 84),
     "dialogue_name": (108, 170, 360, 16),
     "dialogue_body": (108, 188, 362, 72),
     "event_choices": (276, 92, 200, 68),
@@ -102,15 +105,37 @@ def rect_overlaps(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) ->
     return not (ax + aw <= bx or bx + bw <= ax or ay + ah <= by or by + bh <= ay)
 
 
-def ui_px(x: float, y: float, scale: float, window_w: int, window_h: int) -> tuple[float, float]:
+def canvas_offset(scale: float, window_w: int, window_h: int) -> tuple[float, float]:
+    """480×270 逻辑画布在窗口里的居中偏移（像素）。
+
+    窗口不是 16:9 时（例如 1282×752、或被拖大），画布按宽度等比缩放后高度
+    小于窗口；不补偏移的话整块 UI 会贴着窗口顶部，Tab 状态面板看起来"偏上"。
+    这里把剩余空间均分到两侧，水平方向同理。
+    """
+    return (
+        (window_w - CANVAS_W * scale) / 2.0,
+        (window_h - CANVAS_H * scale) / 2.0,
+    )
+
+
+def ui_px(
+    x: float,
+    y: float,
+    scale: float,
+    window_w: int,
+    window_h: int,
+    offset_x: float = 0.0,
+    offset_y: float = 0.0,
+) -> tuple[float, float]:
     """把逻辑画布坐标换算到 aspect2d 坐标。
 
     scale 是 A 的 render_pipeline 提供的最近邻放大系数
-    （例如 480→1920 时 scale=4）。返回 (ax, ay)：aspect2d 的 y
-    向上为正，而逻辑画布 y 向下为正。
+    （例如 480→1920 时 scale=4）。offset_x/offset_y 是画布居中偏移，
+    见 canvas_offset()。返回 (ax, ay)：aspect2d 的 y 向上为正，
+    而逻辑画布 y 向下为正。
     """
-    px = x * scale
-    py = y * scale
+    px = x * scale + offset_x
+    py = y * scale + offset_y
     ax = (px - window_w / 2) / (window_h / 2)
     ay = (window_h / 2 - py) / (window_h / 2)
     return ax, ay

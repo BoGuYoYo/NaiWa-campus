@@ -132,7 +132,7 @@ class TutorialController:
 class TutorialOverlay:
     """教程横幅渲染层。仅集成环境使用（依赖 widgets / panda3d）。"""
 
-    BANNER_RECT = (120, 44, 240, 24)
+    BANNER_RECT = (120, 48, 240, 24)
 
     def __init__(
         self, parent, transform, text_db, asset_registry=None,

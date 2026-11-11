@@ -58,6 +58,8 @@ class UITransform:
         self.scale = scale
         self.window_w = window_w
         self.window_h = window_h
+        #: 画布在窗口里的居中偏移（窗口不是 16:9 时用来补边，见 theme.canvas_offset）
+        self.offset_x, self.offset_y = theme.canvas_offset(scale, window_w, window_h)
 
     @classmethod
     def from_base(cls, base) -> "UITransform":
@@ -67,7 +69,9 @@ class UITransform:
         return cls(scale=w / theme.CANVAS_W, window_w=w, window_h=h)
 
     def to_aspect2d(self, x: float, y: float) -> tuple[float, float]:
-        return theme.ui_px(x, y, self.scale, self.window_w, self.window_h)
+        return theme.ui_px(
+            x, y, self.scale, self.window_w, self.window_h, self.offset_x, self.offset_y
+        )
 
     def px(self, logical_px: float) -> float:
         """逻辑像素尺寸 -> aspect2d 单位（垂直方向）。"""

@@ -23,6 +23,16 @@ def test_panels_do_not_overlap_when_co_visible():
     assert not theme.rect_overlaps(theme.RECTS["dialogue"], theme.RECTS["event_choices"])
 
 
+def test_dialogue_portrait_stays_inside_panel_padding():
+    panel = theme.RECTS["dialogue"]
+    portrait = theme.RECTS["dialogue_portrait"]
+    padding = theme.PANEL_PADDING
+    assert portrait[0] >= panel[0] + padding
+    assert portrait[1] >= panel[1] + padding
+    assert portrait[0] + portrait[2] <= panel[0] + panel[2] - padding
+    assert portrait[1] + portrait[3] <= panel[1] + panel[3] - padding
+
+
 def test_tutorial_banner_and_interaction_prompt_are_separated():
     from game.ui.tutorial import TutorialOverlay
 
@@ -118,3 +128,23 @@ def test_typewriter_speed_settings():
     assert theme.chars_per_second("instant") == 0.0  # 0 = 立即显示整页
     assert theme.chars_per_second("unknown") == theme.chars_per_second("normal")
     assert set(theme.TEXT_SPEED_ORDER) == set(TEXT_SPEED_TABLE)
+
+
+def test_hud_panels_leave_inner_padding_for_content():
+    """HUD 两块底板：上下各留 8 px，内容不再压到金边（40 = 8 + 12/8 + 8 + 余量）。"""
+    for name in ("hud_date", "hud_gauges"):
+        _x, _y, _w, h = theme.RECTS[name]
+        assert h >= 40, f"{name} 太矮，放不下 8 px 内边距 + 两行内容"
+
+
+def test_canvas_offset_centers_non_16_9_window():
+    """非 16:9 窗口（如 1282×752）画布要垂直居中，Tab 面板才不会看起来偏上。"""
+    window_w, window_h = 1282, 752
+    scale = window_w / theme.CANVAS_W
+    offset_x, offset_y = theme.canvas_offset(scale, window_w, window_h)
+    assert offset_x == pytest.approx(0.0)
+    assert offset_y == pytest.approx((window_h - theme.CANVAS_H * scale) / 2.0)
+    assert offset_y > 0  # 窗口比 16:9 高，多出来的高度平均分到上下
+
+    # 16:9 窗口不应有偏移
+    assert theme.canvas_offset(1280 / theme.CANVAS_W, 1280, 720) == pytest.approx((0.0, 0.0))

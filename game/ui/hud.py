@@ -1,9 +1,10 @@
 """HUD（D2）：日期框、精力/心情条、行动时段圆点、按键提示。
 
 布局（逻辑像素，全部取自 theme.RECTS）：
-- 日期框 4, 4, 156, 36：底板 + 第 1 行「大一 · 上学期 · 第 1 天」+
+- 日期框 4, 4, 156, 40：底板 + 第 1 行「大一 · 上学期 · 第 1 天」+
   第 2 行 3 个时段圆点（已用为实心）；
-- 精力/心情 320, 4, 156, 36：底板 + 图标(ui_icon_energy/mood) + 100 像素条 + 数字；
+- 精力/心情 320, 4, 156, 40：底板 + 图标(ui_icon_energy/mood) + 100 像素条 + 数字；
+- 两块底板的内容统一内缩 12 px（4 px 边框 + 8 px 内缘留白），文字不再压金边；
   精力条按当前上限（80 + 体力/5）计算，精力 < 20 时用警告色并闪烁；
 - 按键提示 4, 252, 200, 16：仅前 3 天显示。
 """
@@ -37,9 +38,9 @@ class HUD(UIWidget):
         self.assets = asset_registry
         root = parent.attach_new_node("hud")
 
-        # 日期框
+        # 日期框：内容统一从底板外缘内缩 12 px（4 px 边框 + 8 px 内缘留白）
         self.date_panel = self._make_panel(root, theme.RECTS["hud_date"])
-        self.date_label = UILabel(root, transform, 8, 6, "", color=theme.COLOR_TEXT)
+        self.date_label = UILabel(root, transform, 16, 12, "", color=theme.COLOR_TEXT)
 
         self.slot_dots: list = []
         for i in range(3):
@@ -47,24 +48,24 @@ class HUD(UIWidget):
             cm.set_frame(0, 1, -1, 0)
             dot = root.attach_new_node(cm.generate())
             dot.set_transparency(TransparencyAttrib.M_alpha)
-            ax, ay = transform.to_aspect2d(10 + i * 12, 28)
+            ax, ay = transform.to_aspect2d(16 + i * 12, 27)
             dot.set_pos(ax, 0, ay)
             dot.set_scale(transform.px(8), 1, transform.px(8))
             self.slot_dots.append(dot)
 
         # 精力 / 心情
         self.gauge_panel = self._make_panel(root, theme.RECTS["hud_gauges"])
-        self.energy_icon = UIIcon(root, transform, 324, 8, theme.STAT_ICON_IDS["energy"],
-                                  12.0, asset_registry)
-        self.energy_bar = StatBar(root, transform, 340, 10, fill_color=theme.COLOR_GAIN,
+        self.energy_icon = UIIcon(root, transform, 332, 14, theme.STAT_ICON_IDS["energy"],
+                                  8.0, asset_registry)
+        self.energy_bar = StatBar(root, transform, 344, 14, fill_color=theme.COLOR_GAIN,
                                   asset_registry=asset_registry)
-        self.energy_label = UILabel(root, transform, 446, 8, "", color=theme.COLOR_TEXT)
-        self.mood_icon = UIIcon(root, transform, 324, 26, theme.STAT_ICON_IDS["mood"],
-                                12.0, asset_registry, fallback_color=theme.COLOR_WARN)
-        self.mood_bar = StatBar(root, transform, 340, 28,
+        self.energy_label = UILabel(root, transform, 446, 13, "", color=theme.COLOR_TEXT)
+        self.mood_icon = UIIcon(root, transform, 332, 26, theme.STAT_ICON_IDS["mood"],
+                                8.0, asset_registry, fallback_color=theme.COLOR_WARN)
+        self.mood_bar = StatBar(root, transform, 344, 26,
                                 fill_color=theme.hex_to_rgba(theme.HEX["warn"]),
                                 asset_registry=asset_registry)
-        self.mood_label = UILabel(root, transform, 446, 26, "", color=theme.COLOR_TEXT)
+        self.mood_label = UILabel(root, transform, 446, 25, "", color=theme.COLOR_TEXT)
 
         # 按键提示（前 3 天显示）
         self.key_hint = UILabel(

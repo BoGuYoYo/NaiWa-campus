@@ -442,6 +442,13 @@ class CampusSceneAdapter(WorldSceneBase):
         "loc_canteen": "campus_texture_canteen",
     }
 
+    BUILDING_SIDE_ART = {
+        "loc_dorm": "campus_texture_dorm_side",
+        "loc_classroom": "campus_texture_teaching_side",
+        "loc_library": "campus_texture_library_side",
+        "loc_clubroom": "campus_texture_club_side",
+    }
+
     def _building_art(self, building_id: str):
         asset_id = self.BUILDING_ART.get(building_id)
         if asset_id is None:
@@ -456,6 +463,19 @@ class CampusSceneAdapter(WorldSceneBase):
         texture.set_magfilter(SamplerState.FT_linear)
         return texture
 
+    def _building_side_art(self, building_id: str):
+        asset_id = self.BUILDING_SIDE_ART.get(building_id)
+        if asset_id is None:
+            return None
+        texture = self._texture(asset_id)
+        if texture is None:
+            return None
+        from panda3d.core import SamplerState
+
+        texture.set_minfilter(SamplerState.FT_linear_mipmap_linear)
+        texture.set_magfilter(SamplerState.FT_linear)
+        return texture
+
     def build_scene(self, parent):
         from game.world.campus_scene import CampusScene
 
@@ -465,6 +485,7 @@ class CampusSceneAdapter(WorldSceneBase):
             ground_texture=self._texture("campus_texture_ground"),
             prop_art=self._prop_art,
             building_art=self._building_art,
+            building_side_art=self._building_side_art,
         )
 
     def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:
@@ -832,15 +853,36 @@ class PauseMenuSceneAdapter(WidgetSceneBase):
 class SettingsMenuSceneAdapter(WidgetSceneBase):
     scene_id = "SettingsMenu"
 
+    def on_enter(self, **kwargs: Any) -> None:
+        # Settings is a pushed overlay for both the main menu and pause menu.
+        # Hide the screen underneath while it is open, otherwise both sets of
+        # labels occupy the same 480x270 canvas and appear on top of each other.
+        overlays = [
+            scene
+            for _scene_id, scene in getattr(self.app.scenes, "overlays", ())
+            if scene is not self
+        ]
+        underlay = overlays[-1] if overlays else getattr(self.app.scenes, "base_scene", None)
+        self._underlay_widget = getattr(underlay, "widget", None)
+        if self._underlay_widget is not None:
+            self._underlay_widget.hide()
+
+        super().on_enter(**kwargs)
+        self.widget.on_back = self._back
+
+    def on_exit(self) -> None:
+        super().on_exit()
+        # PauseMenu.confirm hides its widget before dispatching any menu action.
+        # Restore the underlying menu after settings closes, including that case.
+        if self._underlay_widget is not None:
+            self._underlay_widget.show()
+        self._underlay_widget = None
+
     def _make_widget(self):
         return SettingsMenu(
             self.app.ui_root, self.app.ui_transform, self.app.text,
             self.app.settings, self.app.registry,
         )
-
-    def on_enter(self, **kwargs: Any) -> None:
-        super().on_enter(**kwargs)
-        self.widget.on_back = self._back
 
     def bind_input(self) -> None:
         self.bind("arrow_up", lambda: self.widget.move(-1))

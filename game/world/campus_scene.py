@@ -251,15 +251,32 @@ def make_prop_card(parent: NodePath, rect: Rect, texture, height: float, name: s
     return card
 
 
-def make_building_card(parent: NodePath, rect: Rect, texture, name: str = "building_front") -> NodePath:
-    """建筑正面图卡片：宽度 = 占地宽，高度按贴图比例。
+def make_building_card(
+    parent: NodePath,
+    rect: Rect,
+    texture,
+    name: str = "building_front",
+    facing: str = "s",
+) -> NodePath:
+    """把三视图裁出的正面立面作为相机可读的建筑卡片。
 
-    正面图来自用户素材（`campus_texture_*`）。卡片立在南侧边上并按 −40° 俯角
-    朝镜头，所以正面美术能正对正交相机；占地碰撞仍由 map.json 的 rect 负责。
+    游戏校园是固定北向的 2.5D 正交视图，因此建筑立面卡片保持平行于
+    相机；地图中的 door_facing 继续负责碰撞与交互方向。
     """
     from game import config
 
+    facing = facing.lower()
+    if facing not in {"s", "e", "w", "n"}:
+        facing = "s"
+
+    # CampusScene uses a fixed north-facing orthographic camera. Keep the
+    # elevation card parallel to that camera so the extracted facade remains
+    # readable at every building; the map's door_facing still drives gameplay.
     width = max(1.0, rect.x1 - rect.x0)
+    x = (rect.x0 + rect.x1) / 2.0
+    y = rect.y0
+    heading = 0.0
+
     ratio = texture.getYSize() / max(1, texture.getXSize())
     height = width * ratio
     cm = CardMaker(name)
@@ -268,8 +285,38 @@ def make_building_card(parent: NodePath, rect: Rect, texture, name: str = "build
     card.set_texture(texture)
     card.set_transparency(TransparencyAttrib.M_binary)
     card.set_light_off()
-    card.set_p(config.CAMERA_TILT_DEGREES)
-    card.set_pos((rect.x0 + rect.x1) / 2.0, rect.y0, 0.0)
+    card.set_hpr(heading, config.CAMERA_TILT_DEGREES, 0.0)
+    card.set_pos(x, y, 0.0)
+    return card
+
+
+def make_side_card(
+    parent: NodePath,
+    rect: Rect,
+    texture,
+    name: str,
+    facing: str,
+) -> NodePath:
+    """Place a separate right-side elevation from the supplied three-view sheet."""
+    from game import config
+
+    # The supplied side drawings are left elevations.  For an east-facing
+    # front that side is the north edge; for a west-facing front it is south.
+    side_edge = "n" if facing == "e" else "s"
+    width = max(1.0, rect.x1 - rect.x0)
+    x = (rect.x0 + rect.x1) / 2.0
+    y = rect.y1 if side_edge == "n" else rect.y0
+    heading = 180.0 if side_edge == "n" else 0.0
+    ratio = texture.getYSize() / max(1, texture.getXSize())
+    height = width * ratio
+    cm = CardMaker(name)
+    cm.set_frame(-width / 2.0, width / 2.0, 0.0, height)
+    card = parent.attach_new_node(cm.generate())
+    card.set_texture(texture)
+    card.set_transparency(TransparencyAttrib.M_binary)
+    card.set_light_off()
+    card.set_hpr(heading, config.CAMERA_TILT_DEGREES, 0.0)
+    card.set_pos(x, y, 0.0)
     return card
 
 
@@ -291,13 +338,15 @@ class CampusScene:
     scene_id = "CampusScene"
 
     def __init__(self, map_data, parent: NodePath, *, dev: bool = False,
-                 ground_texture=None, prop_art=None, building_art=None):
+                 ground_texture=None, prop_art=None, building_art=None,
+                 building_side_art=None):
         self.map_data = map_data
         self.root = parent.attachNewNode("CampusScene")
         self.dev = dev
         self.ground_texture = ground_texture
         self.prop_art = prop_art
         self.building_art = building_art
+        self.building_side_art = building_side_art
         self.colliders = map_data.colliders_for(CAMPUS_SCENE)
         self.bounds = map_data.bounds
         self._build()
@@ -318,10 +367,11 @@ class CampusScene:
         for building in self.map_data.buildings:
             r = building.rect
             art = self.building_art(building.id) if callable(self.building_art) else None
+            side_art = self.building_side_art(building.id) if callable(self.building_side_art) else None
             if art is None:
                 make_box(self.root, r.x0, r.y0, r.x1, r.y1, 0.0, BUILDING_HEIGHT, BUILDING_COLOR)
             else:
-                art_buildings.append((building, art))
+                art_buildings.append((building, art, side_art))
             dx, dy = building.door
             if art is None:
                 make_box(self.root, dx - 1.2, dy - 0.15, dx + 1.2, dy + 0.15, 0.0, DOOR_HEIGHT, DOOR_COLOR)
@@ -343,8 +393,21 @@ class CampusScene:
         self.root.flattenStrong()
 
         # 带 alpha 的立牌不参与 flatten：合并进同一个 GeomNode 会丢 transparency 排序
-        for building, texture in art_buildings:
-            make_building_card(self.root, building.rect, texture, name=f"front_{building.id}")
+        for building, texture, _side_texture in art_buildings:
+            # Blender GameScene_Sync 的入口方向与 map.json door_facing 对齐：
+            # dorm/classroom=e，library/clubroom=w，canteen=s。
+            make_building_card(
+                self.root,
+                building.rect,
+                texture,
+                name=f"front_{building.id}",
+                facing=building.door_facing,
+            )
+            # The game camera is fixed to the north-facing 2.5D view. A
+            # cardinal side card would therefore be edge-on for east/west
+            # buildings and produce a paper-thin seam. Keep side elevations as
+            # registered source art for a future 3/4 composite, but render the
+            # clean front elevation card here.
         for prop, (texture, height) in art_props:
             make_prop_card(self.root, prop.rect, texture, height, name=f"prop_{prop.id}")
 

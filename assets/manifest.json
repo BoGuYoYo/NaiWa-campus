@@ -57,6 +57,50 @@
       ]
     },
     {
+      "id": "campus_texture_teaching_side",
+      "type": "image",
+      "path": "campus/textures/teaching_side.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "side_elevation",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_dorm_side",
+      "type": "image",
+      "path": "campus/textures/dorm_side.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "side_elevation",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_library_side",
+      "type": "image",
+      "path": "campus/textures/library_side.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "side_elevation",
+        "generated_texture"
+      ]
+    },
+    {
+      "id": "campus_texture_club_side",
+      "type": "image",
+      "path": "campus/textures/club_side.png",
+      "license_id": "LIC-0208",
+      "tags": [
+        "final",
+        "side_elevation",
+        "generated_texture"
+      ]
+    },
+    {
       "id": "char_naiwan_walk",
       "type": "sprite_sheet",
       "path": "characters/naiwan/walk.png",

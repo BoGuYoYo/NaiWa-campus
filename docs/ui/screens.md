@@ -57,7 +57,7 @@ python -m tests.standalone_d --event event_fixture_01 --offscreen
 - `triggered_event_id` 非空时底部提示“有事情发生了……”。
 
 ### 对话框 dialogue_box（事件内）
-- 矩形 `4,166,472,100`；头像 96×96 @(6,168)；名字条 @(108,170)；正文区 `(108,188,362,72)` 4 行。
+- 矩形 `4,166,472,100`；头像 84×84 @(12,174)，与面板四边保留 8px 内边距；名字条 @(108,170)；正文区 `(108,188,362,72)` 4 行。
 - 打字机速度读 `settings.text_speed`（instant=即时，normal=20 字/秒，slow=10 字/秒）。
 - Space/E：打字中 → 整页；整页 → 下一页。
 

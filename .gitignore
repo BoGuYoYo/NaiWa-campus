@@ -31,3 +31,21 @@ desktop.ini
 /build_*.png
 /build_*.py
 
+
+# PyInstaller 产物：仓库里只留 build/_launcher.py（spec 的入口），构建输出不入库
+build/*
+!build/.gitkeep
+!build/_launcher.py
+dist-fixed/
+
+# Blender 自动备份文件
+*.blend1
+
+# 本地字体：微软雅黑受版权保护，不进公开仓库（缺失时游戏回退系统字体）
+assets/fonts/FusionPixel12.ttf
+
+# 打包产物副本（发布验证用，不入库）
+reports/review/packaged_dist/
+
+# 打包产物副本（发布验证用，不入库）
+reports/review/packaged_build/

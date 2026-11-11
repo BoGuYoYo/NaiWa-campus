@@ -150,10 +150,12 @@ def blocked(x, y):
 - 报"重名定义"之前，先确认第二次出现是不是 `import`（对方补）；
 - 报行号之前先**读到那一行的原文**——本次我误判 `flow.py:26` 是第二份定义，就是转述了别人给的行号、没读原文，这正是我一直劝别人别做的事（我补）。
 
-## 两条 P3（建议并入唯一清单的 BUG-3）
+## 两条 P3——**均已在当前树修复，留档备查**
 
-- **教程步骤会被吞**：`game/ui/tutorial.py:43-50` `_start()` 在 `active_step` 非空时直接 `return`，不排队。`tut.move` 卡住期间玩家靠近交互点，`tut.interact` 永久丢失。
-- **死代码**：`game/core/world_scene.py:362-365` 的 `if not view.enabled: notify("near_interactable") else: notify("near_interactable")` 两分支完全相同，会掩盖 BUG-3 那类判定错误。
+- ~~教程步骤会被吞~~ → **已修**：`tutorial.py:45-63` 现在用 `_pending_steps` 队列 + `_activate_next()`，触发不再静默丢失（即清单 BUG-05，已闭环）；`tut.tab` 的 `_tab_timer` 也在 `_start` 里重置（`:54-55`）。
+- ~~`_refresh_prompt` 两分支完全相同（死代码）~~ → **已修**：现在只有一处 `world_scene.py:403 self.tutorial.notify("near_interactable")`。
+
+**队列带来的新观察（P3，可选，未派修）**：入队后没有时效校验——`tut.interact` 可能在玩家已离开交互点之后才被 `_activate_next()` 激活，横幅短暂提示"按 E 互动"而附近没有东西。因为 `near_interactable` 每帧都发，过期项很快被顶掉，影响有限；要做干净可在 `_activate_next()` 里按当前上下文过滤。
 
 
 ## 验证来源声明（不要据此认为有人重复劳动）

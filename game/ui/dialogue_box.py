@@ -1,6 +1,6 @@
 """对话框（D2）：整体 4, 166, 472, 100。
 
-- 头像 96×96 位于 (6,168)；
+- 头像 84×84 位于 (12,174)，在对话框内缘留 8px 边距；
 - 名字条 (108,170)；
 - 正文区 (108,188,362,72)，4 行；
 - 打字机速度读 settings.text_speed（instant=0 → 立即整页）；
@@ -17,6 +17,17 @@ from game.ui import theme
 from game.ui.widgets import UILabel, MultilineLabel, UIPanel, UITransform, UIWidget
 
 _log = logging.getLogger("naiwa.ui.dialogue_box")
+
+
+def _resolve_portrait_id(page: dict) -> str:
+    """Resolve explicit or speaker-based portrait fallback for a dialogue page."""
+    portrait_id = page.get("portrait")
+    if portrait_id:
+        return str(portrait_id)
+    speaker = page.get("speaker")
+    if speaker and str(speaker).startswith("npc_"):
+        return f"portrait_npc_{str(speaker).removeprefix('npc_')}_neutral"
+    return "portrait_naiwan_neutral"
 
 
 class DialogueBox(UIWidget):
@@ -77,8 +88,8 @@ class DialogueBox(UIWidget):
             self.page_label.set_text("")
             self.page_label.hide()
 
-    def _set_body_portrait_layout(self, has_portrait: bool) -> None:
-        x = theme.RECTS["dialogue_body"][0] if has_portrait else 12
+    def _set_body_portrait_layout(self) -> None:
+        x = theme.RECTS["dialogue_body"][0]
         self.body._x = x
         for index, label in enumerate(self.body.labels):
             y = self.body._y + index * self.body._line_height
@@ -106,38 +117,26 @@ class DialogueBox(UIWidget):
         else:
             self.name_label.set_text("")
 
-        portrait_id = page.get("portrait")
-        if not portrait_id:
-            if speaker:
-                speaker_id = str(speaker)
-                if speaker_id.startswith("npc_"):
-                    short = speaker_id.removeprefix("npc_")
-                    portrait_id = f"portrait_npc_{short}_neutral"
-                else:
-                    portrait_id = "portrait_naiwan_neutral"
-            else:
-                # Narration is voiced by the protagonist in this product style.
-                portrait_id = "portrait_naiwan_neutral"
+        portrait_id = _resolve_portrait_id(page)
 
-        if portrait_id:
-            self._set_body_portrait_layout(True)
-            tex = None
-            if self.assets is not None:
-                try:
-                    tex = self.assets.load_texture(portrait_id)
-                except Exception:
-                    tex = None
-            if tex is not None:
-                self.portrait.set_texture(tex)
-                self.portrait.set_color(1, 1, 1, 1)
-                self.portrait.show()
-            else:
-                # Keep the placeholder visible only for an actual requested portrait
-                # that failed to load; this remains a clear QA signal.
-                _log.warning("asset.missing asset_id=%s", portrait_id)
-                self.portrait.clear_texture()
-                self.portrait.set_color(*theme.hex_to_rgba("#4A5578"))
-                self.portrait.show()
+        self._set_body_portrait_layout()
+        tex = None
+        if self.assets is not None:
+            try:
+                tex = self.assets.load_texture(portrait_id)
+            except Exception:
+                tex = None
+        if tex is not None:
+            self.portrait.set_texture(tex)
+            self.portrait.set_color(1, 1, 1, 1)
+            self.portrait.show()
+        else:
+            # Keep the placeholder visible only for an actual requested portrait
+            # that failed to load; this remains a clear QA signal.
+            _log.warning("asset.missing asset_id=%s", portrait_id)
+            self.portrait.clear_texture()
+            self.portrait.set_color(*theme.hex_to_rgba("#4A5578"))
+            self.portrait.show()
 
         self._full_lines = list(lines)
         self._total_chars = sum(len(line) for line in self._full_lines)

@@ -332,7 +332,7 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 | `portrait_npc_xiaoyou_sad` | 96×96 | 本轮暂复用正面头像 |
 | `portrait_npc_xiaoyou_surprised` | 96×96 | 本轮暂复用正面头像 |
 
-处理工具：`tools/import_nailong_character.py`。使用边界泛洪去除白底，最近邻缩放到目标尺寸；
+处理工具：`tools/import_nailong_character.py`。直接使用 `01_FRONT.png` 的透明 Alpha，最近邻缩放到目标尺寸；
 对照图见 `reports/review/npc/nailong_sheet.png`。
 
 ---

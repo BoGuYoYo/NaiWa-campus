@@ -1,63 +1,34 @@
-"""Import the user-provided Nailong pixel character sheet.
+"""Import Nailong from the user-provided transparent direction PNGs.
 
-The third NPC keeps its existing internal ids (`npc_xiaoyou`), so save data and
-relationship rules remain compatible.  The display name is 奈珑.
+The third NPC keeps its existing `xiaoyou` asset ids for save compatibility.
+Only `01_FRONT.png` is used for the current portrait and scene card; the other
+transparent views remain available for a future directional animation sheet.
 """
 
 from __future__ import annotations
 
 import argparse
-from collections import deque
 from pathlib import Path
 
-import numpy as np
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT.parent / "素材" / "人物" / "奈珑八向图.jfif"
-PORTRAIT_BOX = (80, 50, 700, 670)
-FULL_BOX = (70, 40, 710, 1950)
+SOURCE_DIR = ROOT.parent / "素材" / "人物"
+FRONT_SOURCE = "01_FRONT.png"
+PORTRAIT_BOX = (20, 0, 620, 600)
 PORTRAIT_SIZE = 96
 FRAME_SIZE = 48
 BODY_HEIGHT = 40
 FEET_Y = 46
 
 
-def remove_connected_background(image: Image.Image) -> Image.Image:
-    """Remove white paper connected to the crop border while keeping white clothing."""
-    rgb = np.asarray(image.convert("RGB"))
-    pale = (rgb.min(axis=2) >= 242) & ((rgb.max(axis=2) - rgb.min(axis=2)) <= 20)
-    h, w = pale.shape
-    background = np.zeros_like(pale, dtype=bool)
-    queue: deque[tuple[int, int]] = deque()
-    for x in range(w):
-        if pale[0, x]:
-            queue.append((0, x))
-        if pale[h - 1, x]:
-            queue.append((h - 1, x))
-    for y in range(h):
-        if pale[y, 0]:
-            queue.append((y, 0))
-        if pale[y, w - 1]:
-            queue.append((y, w - 1))
-    while queue:
-        y, x = queue.popleft()
-        if background[y, x] or not pale[y, x]:
-            continue
-        background[y, x] = True
-        if y:
-            queue.append((y - 1, x))
-        if y + 1 < h:
-            queue.append((y + 1, x))
-        if x:
-            queue.append((y, x - 1))
-        if x + 1 < w:
-            queue.append((y, x + 1))
-    rgba = np.dstack((rgb, np.where(background, 0, 255).astype(np.uint8)))
-    rgba[background, :3] = 0
-    result = Image.fromarray(rgba, mode="RGBA")
-    bbox = result.getchannel("A").getbbox()
-    return result.crop(bbox) if bbox else result
+def load_front(source_dir: Path) -> Image.Image:
+    source = source_dir / FRONT_SOURCE
+    image = Image.open(source).convert("RGBA")
+    bbox = image.getchannel("A").getbbox()
+    if bbox is None:
+        raise RuntimeError(f"{source}: alpha channel is empty")
+    return image.crop(bbox)
 
 
 def fit_idle(full_body: Image.Image) -> Image.Image:
@@ -71,30 +42,37 @@ def fit_idle(full_body: Image.Image) -> Image.Image:
     return frame
 
 
+def make_portrait(source: Image.Image) -> Image.Image:
+    x0, y0, x1, y1 = PORTRAIT_BOX
+    crop = source.crop((x0, y0, min(x1, source.width), min(y1, source.height)))
+    side = max(crop.width, crop.height)
+    canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    canvas.alpha_composite(crop, ((side - crop.width) // 2, 0))
+    return canvas.resize((PORTRAIT_SIZE, PORTRAIT_SIZE), Image.Resampling.NEAREST)
+
+
 def make_contact_sheet(idle: Image.Image, portraits: dict[str, Image.Image], target: Path) -> None:
     cell = 96
     sheet = Image.new("RGB", (cell * 5, cell + 24), (26, 28, 34))
+    draw = ImageDraw.Draw(sheet)
     sheet.paste(idle.resize((cell, cell), Image.Resampling.NEAREST), (0, 24), idle.resize((cell, cell), Image.Resampling.NEAREST))
     for index, (mood, portrait) in enumerate(portraits.items(), start=1):
         tile = portrait.resize((cell, cell), Image.Resampling.NEAREST)
         sheet.paste(tile, (cell * index, 24), tile)
-        ImageDraw.Draw(sheet).text((cell * index + 3, 6), mood, fill=(240, 220, 140))
+        draw.text((cell * index + 3, 6), mood, fill=(240, 220, 140))
     target.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(target, format="PNG", optimize=True)
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=SOURCE)
+    parser.add_argument("--source", type=Path, default=SOURCE_DIR)
     parser.add_argument("--verify", action="store_true", help="only write the review sheet")
     args = parser.parse_args(argv)
 
-    sheet = Image.open(args.source).convert("RGB")
-    portrait = remove_connected_background(sheet.crop(PORTRAIT_BOX)).resize(
-        (PORTRAIT_SIZE, PORTRAIT_SIZE), Image.Resampling.NEAREST
-    )
-    full_body = remove_connected_background(sheet.crop(FULL_BOX))
-    idle = fit_idle(full_body)
+    front = load_front(args.source)
+    idle = fit_idle(front)
+    portrait = make_portrait(front)
     portraits = {mood: portrait.copy() for mood in ("neutral", "happy", "sad", "surprised")}
 
     review = ROOT / "reports" / "review" / "npc" / "nailong_sheet.png"

@@ -282,40 +282,31 @@ def quantize_palette(image):
 
 
 def render_frame(rgb_crop, alpha, scale: float):
-    """按统一 scale 做面积（BOX）缩放 -> 48×48 画布（脚点 24,46）-> 描边 -> 调色板量化。
+    """按**整数倍**把源图色块降到 48×48 画布（脚点 24,46）。
 
-    用面积缩放而不是块众数：新素材的放大倍数不是整数（约 15.3），块众数会随网格漂移，
-    细小的眼睛/描边会被“少数服从多数”吃掉；面积平均后再量化反而更稳。
-    缩放前先 alpha 预乘，避免透明区的灰底混进边缘。
+    用户的素材本身就是像素画：每个"美术像素"是源图上的 N×N 色块。旧实现用 BOX
+    面积平均 + 事后描边 + 调色板量化，等于把色块重新采样了一遍（就是"二次像素化"）。
+    现在改成按整数倍取块中位色，保留原始硬边与原始配色，不再补描边、不再量化。
     """
     import numpy as np
     from PIL import Image
 
+    from pixel_downscale import integer_downscale
+
     height, width = alpha.shape
-    target_w = max(1, int(round(width * scale)))
     target_h = max(1, int(round(height * scale)))
-
-    rgba = np.dstack([rgb_crop, (alpha * 255).astype(np.int16)]).astype(np.float32)
-    premultiplied = rgba.copy()
-    premultiplied[:, :, :3] *= rgba[:, :, 3:4] / 255.0
-    source = Image.fromarray(np.clip(premultiplied, 0, 255).astype(np.uint8), "RGBA")
-    small = np.asarray(source.resize((target_w, target_h), Image.BOX)).astype(np.float32)
-    small_alpha = small[:, :, 3:4] / 255.0
-    rgb_out = np.where(small_alpha > 0.02, small[:, :, :3] / np.maximum(small_alpha, 1e-6), 0.0)
-    opaque = np.where(small_alpha[:, :, 0] > 0.5, 255, 0)
-    composed = Image.fromarray(
-        np.dstack([np.clip(rgb_out, 0, 255), opaque]).astype(np.uint8), "RGBA")
-
-    if target_w > CANVAS - 2 or target_h > CANVAS - 1:
-        factor = min((CANVAS - 2) / target_w, (CANVAS - 1) / target_h)
-        composed = composed.resize((max(1, int(target_w * factor)), max(1, int(target_h * factor))),
-                                   Image.NEAREST)
-        target_w, target_h = composed.size
+    rgba = Image.fromarray(
+        np.dstack([rgb_crop, (alpha * 255).astype(np.uint8)]).astype(np.uint8), "RGBA"
+    )
+    fig = integer_downscale(rgba, target_h)
+    if fig.width > CANVAS - 2:  # 张开手臂的帧才需要再收一点
+        factor = (CANVAS - 2) / fig.width
+        fig = fig.resize((CANVAS - 2, max(1, round(fig.height * factor))), Image.LANCZOS)
 
     canvas = Image.new("RGBA", (CANVAS, CANVAS), (0, 0, 0, 0))
-    left = min(max(0, PIVOT[0] - target_w // 2), max(0, CANVAS - target_w))
-    canvas.alpha_composite(composed, (left, max(0, PIVOT[1] - target_h)))
-    return quantize_palette(add_outline(canvas))
+    left = min(max(0, PIVOT[0] - fig.width // 2), max(0, CANVAS - fig.width))
+    canvas.alpha_composite(fig, (left, max(0, PIVOT[1] - fig.height)))
+    return canvas
 
 
 # --------------------------------------------------------------------------- #

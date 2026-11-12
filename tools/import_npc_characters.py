@@ -23,6 +23,8 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
+from pixel_downscale import integer_downscale
+
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT.parent / "素材" / "人物"
 
@@ -108,12 +110,14 @@ def _drop_specks(img: Image.Image, min_area: int = 60) -> Image.Image:
 
 
 def fit_frame(figure: Image.Image) -> Image.Image:
-    """缩到 40 px 高（太宽按宽度收），脚底贴 y=46，水平居中放进 48×48。"""
-    scale = BODY_HEIGHT / figure.height
-    if figure.width * scale > FRAME - 4:
-        scale = (FRAME - 4) / figure.width
-    size = (max(1, round(figure.width * scale)), max(1, round(figure.height * scale)))
-    fig = figure.resize(size, Image.NEAREST)
+    """按整数倍降到 40 px 高（保留原图色块），脚底贴 y=46，水平居中放进 48×48。
+
+    素材本身就是像素画，非整数倍缩放会把每个色块切碎，看起来像"二次像素化"。
+    """
+    fig = integer_downscale(figure, BODY_HEIGHT)
+    if fig.width > FRAME - 4:
+        scale = (FRAME - 4) / fig.width
+        fig = fig.resize((FRAME - 4, max(1, round(fig.height * scale))), Image.LANCZOS)
     frame = Image.new("RGBA", (FRAME, FRAME), (0, 0, 0, 0))
     frame.alpha_composite(fig, ((FRAME - fig.width) // 2, max(0, FEET_Y - fig.height)))
     # 缩到 48 后再清一次孤立点（原始大图里的标签残渣会缩成 1~2 px）
@@ -121,7 +125,7 @@ def fit_frame(figure: Image.Image) -> Image.Image:
 
 
 def make_portrait(figure: Image.Image) -> Image.Image:
-    """头肩特写：取上方 46%，按 1:1 居中裁切。"""
+    """头肩特写：先按原生像素比例裁方形，再整数倍降到 96×96（不插值）。"""
     w, h = figure.size
     head_h = max(1, int(h * 0.46))
     head_w = min(w, head_h)
@@ -130,14 +134,20 @@ def make_portrait(figure: Image.Image) -> Image.Image:
     side = max(crop.width, crop.height)
     canvas = Image.new("RGBA", (side, side), (0, 0, 0, 0))
     canvas.alpha_composite(crop, ((side - crop.width) // 2, 0))
-    return canvas.resize((PORTRAIT, PORTRAIT), Image.NEAREST)
+    small = integer_downscale(canvas, PORTRAIT)
+    out = Image.new("RGBA", (PORTRAIT, PORTRAIT), (0, 0, 0, 0))
+    out.alpha_composite(small, ((PORTRAIT - small.width) // 2, (PORTRAIT - small.height) // 2))
+    return out
 
 
 def make_portrait_from_bust(bust: Image.Image) -> Image.Image:
     w, h = bust.size
     side = min(w, h)
     crop = bust.crop(((w - side) // 2, 0, (w - side) // 2 + side, side))
-    return crop.resize((PORTRAIT, PORTRAIT), Image.NEAREST)
+    small = integer_downscale(crop, PORTRAIT)
+    out = Image.new("RGBA", (PORTRAIT, PORTRAIT), (0, 0, 0, 0))
+    out.alpha_composite(small, ((PORTRAIT - small.width) // 2, (PORTRAIT - small.height) // 2))
+    return out
 
 
 def process(short: str, spec: dict, *, write: bool) -> dict:

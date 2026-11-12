@@ -20,6 +20,8 @@ import sys
 from collections import deque
 from pathlib import Path
 
+from pixel_downscale import integer_downscale
+
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -228,17 +230,14 @@ def import_portrait(path: Path):
     rgb_crop = array[cy0:cy1, cx0:cx1]
     alpha_crop = alpha[cy0:cy1, cx0:cx1]
 
-    rgba = np.dstack([rgb_crop, (alpha_crop * 255).astype(np.int16)]).astype(np.float32)
-    premultiplied = rgba.copy()
-    premultiplied[:, :, :3] *= rgba[:, :, 3:4] / 255.0
-    source = Image.fromarray(np.clip(premultiplied, 0, 255).astype(np.uint8), "RGBA")
-    small = np.asarray(source.resize((PORTRAIT_SIZE, PORTRAIT_SIZE), Image.BOX)).astype(np.float32)
-    small_alpha = small[:, :, 3:4] / 255.0
-    rgb_out = np.where(small_alpha > 0.02, small[:, :, :3] / np.maximum(small_alpha, 1e-6), 0.0)
-    composed = Image.fromarray(
-        np.dstack([np.clip(rgb_out, 0, 255),
-                   np.where(small_alpha[:, :, 0] > 0.5, 255, 0)]).astype(np.uint8), "RGBA")
-    return quantize_with_alpha(composed)
+    source = Image.fromarray(
+        np.dstack([rgb_crop, (alpha_crop * 255).astype(np.uint8)]).astype(np.uint8), "RGBA")
+    # 素材本身就是像素画：按整数倍取块中位色降到 96×96，不再走 BOX 面积平均 + 调色板量化
+    small = integer_downscale(source, PORTRAIT_SIZE)
+    canvas = Image.new("RGBA", (PORTRAIT_SIZE, PORTRAIT_SIZE), (0, 0, 0, 0))
+    canvas.alpha_composite(small, ((PORTRAIT_SIZE - small.width) // 2,
+                                   (PORTRAIT_SIZE - small.height) // 2))
+    return canvas
 
 
 # --------------------------------------------------------------------------- #

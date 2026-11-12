@@ -241,6 +241,7 @@ ui.day_summary.actions_title,9,日结算
 ui.day_summary.energy_recovered,14,日结算
 ui.day_summary.continue,10,日结算
 ui.day_summary.semester_event,13,日结算
+ui.day_summary.talk,13,日结算
 ui.tab.title,4,状态面板
 ui.tab.stats_title,2,状态面板
 ui.tab.rel_title,2,状态面板

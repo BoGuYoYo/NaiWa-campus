@@ -21,6 +21,7 @@ from game.world.trigger_zone import scene_of
 REPEAT_LOCK_SECONDS = 0.3  # E 键 0.3 秒内的重复按键忽略
 
 E_UNKNOWN_ID = "E_UNKNOWN_ID"
+E_WRONG_PHASE = "E_WRONG_PHASE"  # 交互点存在，但不在当前场景
 E_ALREADY_TALKED = "E_ALREADY_TALKED"
 E_LOW_ENERGY = "E_LOW_ENERGY"   # 由 B 的 RelationshipService 返回，C 只透传
 
@@ -50,6 +51,18 @@ class InteractionService:
     def query(self, state, interactable_id: str) -> PromptView:
         ia = self._lookup(state, interactable_id)
         if ia is None:
+            known = self._known(interactable_id)
+            if known is not None:
+                # 交互点本身存在，只是当前 location_id 与实际所在场景不一致。
+                # 仍然给出可读的交互名（如 act.rest_dorm.name），不要把内部
+                # ID（ia.ia_bed.name）暴露给玩家。
+                return PromptView(
+                    interactable_id=known.id,
+                    label_text_id=self._label_for(known),
+                    enabled=False,
+                    reason_code=E_WRONG_PHASE,
+                    cost_preview={},
+                )
             return PromptView(
                 interactable_id=interactable_id,
                 label_text_id=f"ia.{interactable_id}.name",
@@ -67,7 +80,6 @@ class InteractionService:
             cost = dict(self._activity.preview(state, ia.target))
             enabled = bool(ok)
             reason = None if ok else error_code
-            label = f"act.{ia.target}.name"
         elif ia.type == "npc":
             if ia.target in state.talked_today:
                 enabled, reason = False, E_ALREADY_TALKED
@@ -81,19 +93,13 @@ class InteractionService:
             preview = getattr(self._relationship, "preview", None)
             if callable(preview):
                 cost = dict(preview(state, ia.target) or {})
-            label = f"npc.{ia.target.removeprefix('npc_')}.talk"
-        elif ia.type == "door":
-            label = "ui.prompt.enter"
-        elif ia.type == "save":
-            label = "ui.prompt.save"
-        elif ia.type == "inspect":
-            label = f"insp.{self._inspect_short_id(ia)}.name"
-        else:  # pragma: no cover - MapData 已在加载时校验 type
+        elif ia.type not in ("door", "save", "inspect"):
+            # pragma: no cover - MapData 已在加载时校验 type
             raise MapDataError(f"未知交互点类型：{ia.type}")
 
         return PromptView(
             interactable_id=ia.id,
-            label_text_id=label,
+            label_text_id=self._label_for(ia),
             enabled=enabled,
             reason_code=reason,
             cost_preview=cost,
@@ -140,12 +146,30 @@ class InteractionService:
     # ---------------------------------------------------------------- 内部
 
     def _lookup(self, state, interactable_id: str) -> Interactable | None:
-        """按当前场景查交互点；场景不匹配视为未知 ID。"""
-        try:
-            ia = self.map_data.interactable(interactable_id)
-        except MapDataError:
+        """按当前场景查交互点；场景不匹配返回 None。"""
+        ia = self._known(interactable_id)
+        if ia is None:
             return None
         return ia if ia.scene == scene_of(state, self.map_data) else None
+
+    def _known(self, interactable_id: str) -> Interactable | None:
+        try:
+            return self.map_data.interactable(interactable_id)
+        except MapDataError:
+            return None
+
+    def _label_for(self, ia: Interactable) -> str:
+        if ia.type == "activity":
+            return f"act.{ia.target}.name"
+        if ia.type == "npc":
+            return f"npc.{ia.target.removeprefix('npc_')}.talk"
+        if ia.type == "door":
+            return "ui.prompt.enter"
+        if ia.type == "save":
+            return "ui.prompt.save"
+        if ia.type == "inspect":
+            return f"insp.{self._inspect_short_id(ia)}.name"
+        raise MapDataError(f"未知交互点类型：{ia.type}")  # pragma: no cover
 
     @staticmethod
     def _inspect_short_id(ia: Interactable) -> str:

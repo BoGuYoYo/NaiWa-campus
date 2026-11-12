@@ -139,3 +139,50 @@ def test_world_scene_wires_movement_result_and_day_tutorial_steps():
     scene.app.scenes.input_locked = False
     scene.on_update(0.1)
     assert scene.tutorial_overlay.visible is True
+
+
+def test_npc_interaction_shows_result_and_finishes_interact_tutorial():
+    """NPC 交谈也必须走结果面板，并结束「按 E 互动」教程横幅。"""
+    state = GameState()
+    scene = _HarnessScene.__new__(_HarnessScene)
+    pushed = []
+    handled = []
+    hidden = []
+    scene.app = SimpleNamespace(
+        scenes=SimpleNamespace(
+            input_locked=False,
+            push=lambda *args, **kwargs: pushed.append((args, kwargs)),
+        ),
+        flow=SimpleNamespace(handle_activity_result=lambda result: handled.append(result)),
+        audio=SimpleNamespace(play_sfx=lambda _asset: None),
+    )
+    scene._state = state
+    scene.log = logging.getLogger("test.world_tutorial")
+    scene.prompt = SimpleNamespace(hide_prompt=lambda: hidden.append(True))
+    scene.tutorial = TutorialController(state, SimpleNamespace())
+    scene.tracker = SimpleNamespace(active_id="ia_npc_sumo")
+
+    payload = SimpleNamespace(
+        ok=True,
+        activity_id="talk.npc_sumo",
+        error_code=None,
+        deltas={"energy": -5, "mood": 2},
+        triggered_event_id=None,
+        day_finished=False,
+    )
+    scene.interaction = SimpleNamespace(
+        interact=lambda _state, _id: SimpleNamespace(kind="npc", payload=payload)
+    )
+
+    scene.tutorial.notify("enter_campus")
+    scene.tutorial.notify("near_interactable")
+    assert scene.tutorial.active_step == "tut.move"
+
+    scene._on_interact()
+
+    assert handled == [payload]
+    assert pushed == [(("ResultPanel",), {"result": payload})]
+    assert hidden == [True]
+    assert "tut.move" in state.tutorial_done
+    assert "tut.interact" in state.tutorial_done
+    assert scene.tutorial.active_step is None

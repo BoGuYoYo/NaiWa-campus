@@ -209,21 +209,44 @@ def check_flow() -> None:
             state = flow.require_state()
             for _ in range(config.TOTAL_DAYS * (config.ACTIONS_PER_DAY + 2)):
                 state = flow.require_state()
+                if flow.scenes.top_overlay_id == "DaySummary":
+                    flow.scenes.pop()
+                    flow.close_day_summary()
+                    continue
                 if state.phase == "graduation":
                     break
                 if state.phase == "event":
                     event_id = state.pending_event_id or flow.story_opening_id
-                    flow.handle_event_result(flow.services.event.choose(state, event_id, "ok"))
+                    view = flow.services.event.get_view(state, event_id)
+                    choices = list(getattr(view, "choices", []))
+                    choice_id = next(
+                        (c.choice_id for c in choices if getattr(c, "enabled", True)),
+                        "ok",
+                    )
+                    result = flow.services.event.choose(state, event_id, choice_id)
+                    if flow.scenes.top_overlay_id == "EventScene":
+                        flow.scenes.pop()
+                    flow.handle_event_result(result)
                     continue
                 if not state.day_finished:
-                    result = flow.services.activity.start(state, "attend_class")
+                    activity_id = next(
+                        (aid for aid in ("attend_class", "rest_dorm")
+                         if flow.services.activity.can_start(state, aid)[0]),
+                        None,
+                    )
+                    assert activity_id is not None, (
+                        f"没有可执行活动 phase={state.phase} energy={state.energy}"
+                    )
+                    result = flow.services.activity.start(state, activity_id)
+                    assert result.ok, result.error_code
                     flow.handle_activity_result(result)
                     flow.close_result_panel(result)
                 else:
                     flow.finish_day()
             state = flow.require_state()
             assert state.phase == "graduation", state.phase
-            assert state.day_index == config.TOTAL_DAYS - 1
+            # B 的日历在最后一天结算后把 day_index 推到 TOTAL_DAYS。
+            assert config.TOTAL_DAYS - 1 <= state.day_index <= config.TOTAL_DAYS
             assert state.ending_id
 
         def pause_locks_time() -> None:

@@ -241,6 +241,7 @@
   "ui.day_summary.energy_recovered": "精力恢复 +{amount}",
   "ui.day_summary.continue": "[Space] 继续",
   "ui.day_summary.semester_event": "接下来，有一件重要的事……",
+  "ui.day_summary.talk": "与{npc_name}交谈",
   "ui.tab.title": "状态面板",
   "ui.tab.stats_title": "属性",
   "ui.tab.rel_title": "关系",

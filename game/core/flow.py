@@ -289,6 +289,8 @@ class GameFlow:
         self._day_start_emitted_for: int | None = None
         self._pending_day_start = False
         self._pending_graduation = False
+        # 日结算面板关闭后才播学期事件：两个覆盖层不能同时压在屏幕上。
+        self._pending_semester_event: DayEndResult | None = None
 
     # ------------------------------------------------------------------ #
     # 新游戏 / 读档
@@ -298,6 +300,7 @@ class GameFlow:
         state = new_state(actual_seed)
         self.state = state
         self.paused = False
+        self._reset_pending_modals()
         LOG.info("[FLOW] new game seed=%d skip_intro=%s", actual_seed, skip_intro)
         self.bus.emit(TOPIC_DAY_STARTED, state=state, day_index=state.day_index)
         self._day_start_emitted_for = state.day_index
@@ -328,6 +331,7 @@ class GameFlow:
         state = self.saves.load(slot, collision_check=collision_check)
         self.state = state
         self.paused = False
+        self._reset_pending_modals()
         state.phase = "campus"
         self._restore_outdoor_after_indoor_save(state)
         self.enter_campus(spawn=state.world.location_id, keep_position=True)
@@ -372,6 +376,13 @@ class GameFlow:
     def teleport_to_spawn(self) -> None:
         state = self.require_state()
         state.world = WorldPos(location_id=DEFAULT_SPAWN_LOCATION, x=40.0, y=5.0, facing="n")
+        # 在宿舍床上结束一天时，基础场景仍是 InteriorScene。只改
+        # state.world.location_id 而不离开室内，会让场景归属和坐标打架：
+        # 床还在旁边，但 scene_of() 已切到室外，提示框就显示
+        # 「#ia.ia_bed.name / 内容缺失：ia_bed」。换日必须先回到校园场景。
+        if self.scenes.base_id != "CampusScene":
+            self.scenes.change("CampusScene", spawn=DEFAULT_SPAWN_LOCATION, state=state)
+            return
         campus = self.scenes.base_scene
         hook = getattr(campus, "teleport", None)
         if callable(hook):
@@ -433,18 +444,43 @@ class GameFlow:
 
         if self.scenes.top_overlay_id == "DaySummary":
             self.scenes.pop()  # 上一天的结算面板还没关，先替换掉
+        self._pending_semester_event = None
+        self._pending_day_start = False
+        self._pending_graduation = False
         self.scenes.push("DaySummary", result=result)
         if result.semester_event_id:
             self._pending_day_start = not result.graduated
             self._pending_graduation = result.graduated
-            # 第 8 学期事件属于最后一天：先播事件，事件关闭后再进毕业界面
-            self._handle_semester_event(state, result)
+            # 先把学期事件挂起，等玩家关掉 DaySummary 再推 EventScene。
+            # 第 8 学期事件属于最后一天：事件关闭后再进毕业界面。
+            self._pending_semester_event = result
             return result
         if result.graduated:
             self._handle_graduation(state)
             return result
         self._begin_next_day(state)
         return result
+
+    def close_day_summary(self) -> None:
+        """DaySummary 关闭后继续：学期事件优先，否则执行已排好的换日/毕业。"""
+        state = self.require_state()
+        result, self._pending_semester_event = self._pending_semester_event, None
+        if result is not None:
+            self._handle_semester_event(state, result)
+            return
+        if self._pending_graduation:
+            self._pending_graduation = False
+            self._pending_day_start = False
+            self._handle_graduation(state)
+            return
+        if self._pending_day_start:
+            self._pending_day_start = False
+            self._begin_next_day(state)
+
+    def _reset_pending_modals(self) -> None:
+        self._pending_semester_event = None
+        self._pending_day_start = False
+        self._pending_graduation = False
 
     def _handle_semester_event(self, state: GameState, result: DayEndResult) -> None:
         event_id = result.semester_event_id
@@ -532,6 +568,7 @@ class GameFlow:
     def back_to_main_menu(self) -> None:
         self.state = None
         self.paused = False
+        self._reset_pending_modals()
         self.scenes.pop_all()
         self.scenes.change("MainMenu")
 

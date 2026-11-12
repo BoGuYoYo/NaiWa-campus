@@ -64,6 +64,7 @@
   "ui.day_summary.actions_title": "今天的 3 次行动",
   "ui.day_summary.energy_recovered": "精力恢复 +{amount}",
   "ui.day_summary.semester_event": "接下来，有一件重要的事……",
+  "ui.day_summary.talk": "与{npc_name}交谈",
   "ui.day_summary.continue": "[Space] 继续",
   "ui.main_menu.title": "奶娃：大学四年",
   "ui.main_menu.subtitle": "一段三十分钟的大学生活",

@@ -235,6 +235,13 @@ class WorldSceneBase:
         self._bind_input()
         self._refresh_prompt(force=True)
 
+    def teleport(self, world) -> None:
+        """把角色放到指定世界坐标（换日回出生点等由 A 触发的传送）。"""
+        if self.player is None:
+            return
+        self.player.teleport(world.x, world.y, world.facing)
+        self._last_player_position = (self.player.motion.x, self.player.motion.y)
+
     # ------------------------------------------------------------------ 调试绘制
     def _build_debug_draw(self):
         """--dev 下接 C 的 DebugDraw：F1 碰撞线框、F2 交互点、F3 状态、F5 传送、F6 时段。"""
@@ -367,10 +374,15 @@ class WorldSceneBase:
         self.tutorial.notify("key_space")
         result = self.interaction.interact(self._state, ia_id)
         self.log.info("[WORLD] E %s -> %s", ia_id, result.kind)
-        if result.kind == "activity":
+        if result.kind in ("activity", "npc"):
+            # NPC 交谈和活动一样占用一个时段、产生数值反馈；必须走同一条
+            # 结果面板/流程链路，否则教程的「按 E 互动」不会结束，交谈结果
+            # 也不会进入日结算的行动摘要。
             self.app.flow.handle_activity_result(result.payload)
             self.app.scenes.push("ResultPanel", result=result.payload)
             self.tutorial.notify("activity_done")
+            if self.prompt is not None:
+                self.prompt.hide_prompt()
         elif result.kind == "blocked":
             self.app.audio.play_sfx("sfx_ui_cancel")
 
@@ -841,12 +853,29 @@ class DaySummarySceneAdapter(WidgetSceneBase):
 
     def on_enter(self, **kwargs: Any) -> None:
         super().on_enter(**kwargs)
-        self.widget.on_close = self.app.scenes.pop
+        self.widget.on_close = self._close
+
+    def _close(self) -> None:
+        self.app.scenes.pop()
+        # 学期事件不能在日结算还没关时压上来；让 Flow 在面板关闭后
+        # 再推 EventScene（或继续下一天）。
+        handler = getattr(self.app.flow, "close_day_summary", None)
+        if callable(handler):
+            handler()
+
+    def _action_name(self, action_id: str) -> str:
+        if action_id.startswith("talk."):
+            short = action_id.split(".", 1)[1].removeprefix("npc_")
+            npc_name = self.app.text.get(f"npc.{short}.name")
+            return self.app.text.get("ui.day_summary.talk", npc_name=npc_name)
+        return self.app.text.get_raw(f"act.{action_id}.name")
 
     def apply(self, result=None, **kwargs: Any) -> None:
         state = self.app.flow.state
         day = state.day if state is not None else 1
-        names = [self.app.text.get_raw(f"act.{aid}.name") for aid in (self.app.flow.activity_log_today() if hasattr(self.app.flow, "activity_log_today") else [])]
+        activities = (self.app.flow.activity_log_today()
+                      if hasattr(self.app.flow, "activity_log_today") else [])
+        names = [self._action_name(aid) for aid in activities]
         self.widget.show_summary(result, day=day, action_names=names)
 
     def bind_input(self) -> None:

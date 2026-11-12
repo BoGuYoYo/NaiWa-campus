@@ -776,6 +776,7 @@ class StubDaySummary(StubScene):
 
     def _close(self) -> None:
         self.app.scenes.pop()
+        self.app.flow.close_day_summary()
 
 
 class StubPauseMenu(StubScene):
@@ -886,7 +887,11 @@ class AutoplayDriver:
             return self._finish(self.ok)
 
         while scenes.overlays and scenes.top_overlay_id != "EventScene":
-            scenes.pop()
+            if scenes.top_overlay_id == "DaySummary":
+                scenes.pop()
+                flow.close_day_summary()
+            else:
+                scenes.pop()
 
         if state.phase == "graduation":
             self.ending_id = state.ending_id

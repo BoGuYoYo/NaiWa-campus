@@ -2,7 +2,7 @@
 
 步骤表（触发 → 显示 → 完成条件）：
     tut.move     开场结束进入校园        「用 WASD 移动」         累计移动 3 米
-    tut.interact 第一次进入交互点范围    「按 E 互动」            完成第 1 次活动
+    tut.interact 第一次进入交互点范围    「按 E 互动」            完成第 1 次互动（活动或交谈）
     tut.slots    第 1 次结果面板关闭      高亮时段圆点             按 Space
     tut.energy   首次精力 < 40           高亮精力条               按 Space
     tut.tab      第 1 天日结算后         「按 Tab 查看属性」      打开 Tab 或 30 秒

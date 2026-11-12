@@ -133,6 +133,17 @@ def test_semester_event_pushes_overlay_and_autosaves_twice(flow):
 
     run_day(flow)  # day_index 0 -> 1
     run_day(flow)  # day_index 1 -> 2，触发 sem_1
+
+    # 日结算先单独显示；学期事件必须等它关闭后再压上来，
+    # 否则两块面板重叠、Space 的含义也会互相冲突。
+    # CalendarService.end_day 已经把 phase 守卫切到 event，但 EventScene
+    # 仍必须等 DaySummary 关闭后才出现。
+    assert state.phase == "event"
+    assert [sid for sid, _scene in flow.scenes.overlays] == ["DaySummary"]
+    assert "pre_event" not in reasons
+
+    flow.scenes.pop()
+    flow.close_day_summary()
     assert state.phase == "event"
     assert flow.scenes.top_overlay_id == "EventScene"
     assert "pre_event" in reasons
@@ -185,6 +196,27 @@ def test_daily_event_is_immediate_and_does_not_lock_the_day(flow):
     assert state.phase == "campus"
 
 
+def test_teleport_to_spawn_leaves_interior_scene(flow):
+    """在宿舍床上结束一天后，基础场景必须离开室内。
+
+    只重置 state.world.location_id 会让玩家仍站在宿舍里、床的提示框
+    查不到当前场景，最终显示「#ia.ia_bed.name / 内容缺失：ia_bed」。
+    """
+    flow.new_game(seed=42, skip_intro=True)
+    state = flow.require_state()
+    state.world.location_id = "loc_dorm"
+    state.world.x = 203.0
+    state.world.y = 7.0
+    flow.scenes.change("InteriorScene", building_id="loc_dorm", state=state)
+    assert flow.scenes.current_id == "InteriorScene"
+
+    flow.teleport_to_spawn()
+
+    assert flow.scenes.current_id == "CampusScene"
+    assert state.world.location_id == "loc_gate"
+    assert (state.world.x, state.world.y) == (40.0, 5.0)
+
+
 def test_full_run_reaches_graduation(flow):
     flow.new_game(seed=42, skip_intro=True)
     phases = []
@@ -194,6 +226,10 @@ def test_full_run_reaches_graduation(flow):
 
     for _ in range(config.TOTAL_DAYS * config.ACTIONS_PER_DAY + 32):
         state = flow.require_state()
+        if flow.scenes.top_overlay_id == "DaySummary":
+            flow.scenes.pop()
+            flow.close_day_summary()
+            continue
         if state.phase == "graduation":
             break
         if state.phase == "event":

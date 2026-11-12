@@ -8,6 +8,7 @@ from game.world.interaction_service import (
     E_ALREADY_TALKED,
     E_LOW_ENERGY,
     E_UNKNOWN_ID,
+    E_WRONG_PHASE,
     REPEAT_LOCK_SECONDS,
     InteractionService,
 )
@@ -129,9 +130,26 @@ def test_query_rejects_interactable_from_another_scene(test_map_data):
     service = make_service(test_map_data, Clock())
     outside = FakeState(location_id="loc_yard")
     inside = FakeState(location_id="loc_hall")
-    assert service.query(outside, "ia_test_bed").reason_code == E_UNKNOWN_ID
-    assert service.query(inside, "ia_test_desk").reason_code == E_UNKNOWN_ID
+
+    bed = service.query(outside, "ia_test_bed")
+    assert bed.reason_code == E_WRONG_PHASE
+    assert bed.label_text_id == "act.rest_dorm.name"  # 不暴露 ia.ia_test_bed.name
+
+    desk = service.query(inside, "ia_test_desk")
+    assert desk.reason_code == E_WRONG_PHASE
+    assert desk.label_text_id == "act.attend_class.name"
+
     assert service.query(inside, "ia_test_bed").enabled is True
+
+
+def test_bed_prompt_never_leaks_internal_id(map_data):
+    """宿舍床在地点/场景暂时不一致时也必须显示可读名称，而不是 ia.ia_bed.name。"""
+    service = make_service(map_data, Clock())
+    view = service.query(FakeState(location_id="loc_gate"), "ia_bed")
+    assert view.interactable_id == "ia_bed"
+    assert view.label_text_id == "act.rest_dorm.name"
+    assert view.reason_code == E_WRONG_PHASE
+    assert "ia.ia_bed.name" not in view.label_text_id
 
 
 def test_interact_activity_calls_only_activity_id(test_map_data):

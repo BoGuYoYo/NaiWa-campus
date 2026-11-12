@@ -223,9 +223,25 @@ def test_campus_colliders_include_walls_buildings_and_props(map_data):
 
 def test_interior_colliders_are_local(map_data):
     rects = map_data.colliders_for("loc_library")
-    assert len(rects) == 4 + 4
+    # 南墙被门口切成两段 → 5 段墙 + 4 件家具
+    assert len(rects) == 5 + 4
     assert max(r.x1 for r in rects) <= 16.0
     assert max(r.y1 for r in rects) <= 10.0
+
+
+def test_interior_south_wall_leaves_a_doorway(map_data):
+    """南墙必须给入口地垫留门洞，否则玩家只能贴着墙横着蹭才出得去。
+
+    （实机反馈：交互完"出不去，像有一道空气墙"。）
+    """
+    for building_id in ("loc_dorm", "loc_classroom", "loc_library",
+                        "loc_clubroom", "loc_canteen"):
+        interior = map_data.interior(building_id)
+        door_x = interior.entry_mat[0]
+        for r in map_data.colliders_for(building_id):
+            assert not (r.x0 <= door_x <= r.x1 and r.y0 <= interior.entry_mat[1] <= r.y1), (
+                f"{building_id} 的门口 ({door_x}, {interior.entry_mat[1]}) 被 {r} 堵住"
+            )
 
 
 def test_every_interactable_has_a_free_standing_spot(map_data):

@@ -133,24 +133,77 @@ class TutorialOverlay:
     """教程横幅渲染层。仅集成环境使用（依赖 widgets / panda3d）。"""
 
     BANNER_RECT = (120, 48, 240, 24)
+    BANNER_Y = 48
+    #: 24 高的横幅被九宫格金边吃掉上下各 6 px，12 px 正文会压在金边上 → 抬到 30
+    BANNER_HEIGHT = 30
+    BANNER_MIN_WIDTH = 120
+    BANNER_MAX_WIDTH = 320
 
     def __init__(
         self, parent, transform, text_db, asset_registry=None,
         is_locked: Callable[[], bool] | None = None,
     ) -> None:
-        from game.ui.widgets import UILabel, UIPanel
+        from panda3d.core import TextNode
+
+        from game.ui.widgets import UILabel, UIPanel, default_font
 
         self.transform = transform
         self.text_db = text_db
+        self.assets = asset_registry
         self.is_locked = is_locked
         self.root = parent.attach_new_node("tutorial_overlay")
-        self.panel = UIPanel(self.root, transform, self.BANNER_RECT, asset_registry)
+        self._measure = TextNode("tutorial_measure")
+        font = default_font()
+        if font is not None:
+            self._measure.set_font(font)
+        # 面板按文案宽度重建（宽度变了才重建），避免「用 WASD 移动」占 240 宽只写 1/3
+        self._panel = None
+        self._panel_width = 0.0
+        self._panel_x = self.BANNER_RECT[0]
+        self._ensure_banner(self.BANNER_MIN_WIDTH)
         self.label = UILabel(
-            self.root, transform, self.BANNER_RECT[0] + 8, self.BANNER_RECT[1] + 6, "",
+            self.root, transform, self.BANNER_RECT[0] + 8, self.BANNER_Y + 6, "",
             color=theme.COLOR_WARN,
         )
         self.controller: TutorialController | None = None
         self.hide()
+
+    @property
+    def panel(self):
+        return self._panel
+
+    def _text_width(self, text: str) -> float:
+        from game.ui.widgets import FONT_SIZE_BODY
+
+        self._measure.set_text(text)
+        return self._measure.get_width() * FONT_SIZE_BODY
+
+    def _ensure_banner(self, width: float) -> None:
+        from game.ui.widgets import UIPanel
+
+        width = max(self.BANNER_MIN_WIDTH, min(self.BANNER_MAX_WIDTH, width))
+        if self._panel is not None and abs(width - self._panel_width) < 0.5:
+            return
+        if self._panel is not None:
+            self._panel.destroy()
+        x = (theme.CANVAS_W - width) / 2.0
+        self._panel = UIPanel(
+            self.root, self.transform, (x, self.BANNER_Y, width, self.BANNER_HEIGHT),
+            self.assets,
+        )
+        self._panel_width = width
+        self._panel_x = x
+        self._place_label()
+
+    def _place_label(self) -> None:
+        if getattr(self, "label", None) is None or self._panel is None:
+            return
+        border_x, border_y = getattr(self._panel, "border", (4.0, 4.0))
+        # 文字从金边内侧开始；同 UILabel 的锚点规则，落点再下移一个字号
+        ax, ay = self.transform.to_aspect2d(
+            self._panel_x + border_x + 2.0, self.BANNER_Y + border_y + 1.0 + 12
+        )
+        self.label.text_node.set_pos(ax, 0, ay)
 
     def attach(self, controller: TutorialController) -> None:
         self.controller = controller
@@ -161,6 +214,8 @@ class TutorialOverlay:
             return
         text = self.controller.banner_text()
         if text:
+            self._ensure_banner(self._text_width(text) + 32.0)
+            self._place_label()
             self.label.set_text(text)
             self.show()
         else:

@@ -70,7 +70,7 @@ class MainMenu(UIWidget):
             enabled = self.enabled[key]
             self.labels[i].set_text(
                 self.text_db.get_raw(text_id) if enabled
-                else f"{self.text_db.get_raw(text_id)}（{self.text_db.get('ui.menu.reason.no_save')}）"
+                else f"{self.text_db.get_raw(text_id)}（{self.text_db.get('ui.menu.reason.no_save_short')}）"
             )
             self.labels[i].set_color(theme.COLOR_TEXT if enabled else theme.COLOR_DISABLED)
         if not self.enabled[ITEMS[self.index][1]]:

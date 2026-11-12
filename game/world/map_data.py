@@ -511,15 +511,29 @@ class MapData:
         )
 
     def interior_walls(self, building_id: str) -> tuple[Rect, ...]:
+        """房间四面墙；**南墙在门口留一个洞**。
+
+        旧版四面全封：玩家撞到南墙就停住，看不到门在哪，入口地垫只能靠贴着墙
+        横着蹭到 x=8 才踩得到，实机上就是"交互完出不去、像有空气墙"。
+        这里把南墙按地垫 x 切成两段，缺口本身也是出口的视觉提示。
+        """
         i = self.interior(building_id)
         t = self._interior_wall
         w, h = i.size
-        return (
-            make_rect(0.0, 0.0, w, t),
-            make_rect(0.0, h - t, w, h),
-            make_rect(0.0, 0.0, t, h),
-            make_rect(w - t, 0.0, w, h),
-        )
+        door_x = float(i.entry_mat[0])
+        gap = 1.2
+        left = max(0.0, door_x - gap)
+        right = min(w, door_x + gap)
+        walls = [
+            make_rect(0.0, h - t, w, h),      # 北墙
+            make_rect(0.0, 0.0, t, h),        # 西墙
+            make_rect(w - t, 0.0, w, h),      # 东墙
+        ]
+        if left > 0.0:
+            walls.append(make_rect(0.0, 0.0, left, t))     # 南墙·门西
+        if right < w:
+            walls.append(make_rect(right, 0.0, w, t))      # 南墙·门东
+        return tuple(walls)
 
     def colliders_for(self, scene: str) -> tuple[Rect, ...]:
         """返回该场景的阻挡矩形。campus 为世界坐标，室内为房间本地坐标。"""

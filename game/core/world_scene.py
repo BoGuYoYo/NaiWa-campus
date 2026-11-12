@@ -872,7 +872,9 @@ class DaySummarySceneAdapter(WidgetSceneBase):
 
     def apply(self, result=None, **kwargs: Any) -> None:
         state = self.app.flow.state
-        day = state.day if state is not None else 1
+        # finish_day() advances day_index before the summary opens, so this is
+        # the day that just ended, not the next day beginning underneath it.
+        day = max(1, state.day - 1) if state is not None else 1
         activities = (self.app.flow.activity_log_today()
                       if hasattr(self.app.flow, "activity_log_today") else [])
         names = [self._action_name(aid) for aid in activities]

@@ -23,7 +23,8 @@ class PauseMenu(UIWidget):
         self.panel = UIPanel(root, transform, rect, asset_registry)
         x, y = rect[0], rect[1]
 
-        self.title = UILabel(root, transform, x + 8, y + 6, text_db.get("ui.tab.title"),
+        # 标题曾经借用 ui.tab.title，暂停菜单顶上写着「状态面板」
+        self.title = UILabel(root, transform, x + 8, y + 6, text_db.get("ui.menu.pause_title"),
                              color=theme.COLOR_SECONDARY)
 
         self.item_keys = [
@@ -36,10 +37,14 @@ class PauseMenu(UIWidget):
         self.labels: list[UILabel] = []
         for i, key in enumerate(self.item_keys):
             self.labels.append(
-                UILabel(root, transform, x + 18, y + 26 + i * ITEM_HEIGHT,
+                UILabel(root, transform, x + 22, y + 26 + i * ITEM_HEIGHT,
                         text_db.get_raw(key))
             )
-        self.cursor = UILabel(root, transform, x + 8, y + 26, ">", color=theme.COLOR_CURSOR)
+        self.cursor = UILabel(root, transform, x + 12, y + 26, ">", color=theme.COLOR_CURSOR)
+        self.hint = UILabel(
+            root, transform, x + 10, y + rect[3] - 24,
+            text_db.get("ui.menu.hint.pause"), color=theme.COLOR_SECONDARY,
+        )
 
         self.on_resume: Callable[[], None] | None = None
         self.on_settings: Callable[[], None] | None = None
@@ -52,7 +57,7 @@ class PauseMenu(UIWidget):
 
     # ------------------------------------------------------------------
     def _move_cursor(self) -> None:
-        ax, ay = self.transform.to_aspect2d(RECT[0] + 8, RECT[1] + 26 + self.index * ITEM_HEIGHT + 12)
+        ax, ay = self.transform.to_aspect2d(RECT[0] + 12, RECT[1] + 26 + self.index * ITEM_HEIGHT + 12)
         self.cursor.root.set_pos(ax, 0, ay)
 
     def move(self, direction: int) -> None:

@@ -57,7 +57,7 @@ class TabPanel(UIWidget):
             "", color=theme.COLOR_SECONDARY,
         )
         self.close_hint = UILabel(
-            root, transform, x + w - 96, y + h - 18,
+            root, transform, x + w - 96, y + h - 26,
             text_db.get("ui.tab.close_hint"), color=theme.COLOR_SECONDARY,
         )
         super().__init__(root)
@@ -86,9 +86,15 @@ class TabPanel(UIWidget):
                 name = self.text_db.get(f"npc.{short}.name")
                 self.rel_labels[npc_id].set_text(f"{name}  {value}")
             else:
-                self.rel_labels[npc_id].set_text(self.text_db.get("ui.tab.unknown_npc"))
+                # 三行一模一样的「？？？」没有任何信息量；按常驻地点给个线索
+                clue_id = f"ui.tab.unknown.{short}"
+                if self.text_db.has(clue_id):
+                    self.rel_labels[npc_id].set_text(self.text_db.get(clue_id))
+                else:
+                    self.rel_labels[npc_id].set_text(self.text_db.get("ui.tab.unknown_npc"))
 
-        days_left = max(0, 2 - state.day)  # 每学期 2 天，当天进行中
+        # 每学期 2 天；当天还没过完，所以剩余天数要含今天（旧版第 2 天显示 0 天）
+        days_left = max(0, 2 - state.day + 1)
         self.semester_left_label.set_text(
             self.text_db.get("ui.tab.semester_left", days=days_left)
         )

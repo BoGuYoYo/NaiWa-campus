@@ -14,7 +14,15 @@ import logging
 from panda3d.core import CardMaker, TextNode, TransparencyAttrib
 
 from game.ui import theme
-from game.ui.widgets import UILabel, MultilineLabel, UIPanel, UITransform, UIWidget
+from game.ui.widgets import (
+    FONT_SIZE_BODY,
+    UILabel,
+    MultilineLabel,
+    UIPanel,
+    UITransform,
+    UIWidget,
+    default_font,
+)
 
 _log = logging.getLogger("naiwa.ui.dialogue_box")
 
@@ -59,6 +67,13 @@ class DialogueBox(UIWidget):
             text_db.get("ui.dialogue.continue"), color=theme.COLOR_SECONDARY,
         )
         self.continue_mark.hide()
+
+        #: 折行用的测量节点（与正文同字体同字号）；正文区宽度见 dialogue_body
+        self._measure_node = TextNode("dialogue_measure")
+        self._measure_node.set_align(TextNode.A_left)
+        chosen_font = default_font()
+        if chosen_font is not None:
+            self._measure_node.set_font(chosen_font)
 
         self._full_lines: list[str] = []
         self._revealed_chars = 0
@@ -138,11 +153,32 @@ class DialogueBox(UIWidget):
             self.portrait.set_color(*theme.hex_to_rgba("#4A5578"))
             self.portrait.show()
 
-        self._full_lines = list(lines)
+        self._full_lines = self._wrap_lines(lines)
         self._total_chars = sum(len(line) for line in self._full_lines)
         self._revealed_chars = 0 if self._cps > 0 else self._total_chars
         self._apply_typewriter()
         self.continue_mark.hide()
+
+    def _measure(self, text: str) -> float:
+        self._measure_node.set_text(text)
+        return self._measure_node.get_width() * FONT_SIZE_BODY
+
+    def _wrap_lines(self, lines: list[str]) -> list[str]:
+        """把过长的行按正文区宽度折开，最多 MAX_LINES_PER_PAGE 行。
+
+        正式剧情页在 dialogues.json 里已经手工分好行，这里对它们是空操作；
+        查看点（inspect）这类整段塞进来的文本才会真正折行——旧版会一路画出
+        对话框、画到屏幕外面去。
+        """
+        if getattr(self, "_measure_node", None) is None:
+            return list(lines)[: theme.MAX_LINES_PER_PAGE]
+        limit = float(theme.RECTS["dialogue_body"][2])
+        wrapped: list[str] = []
+        for line in lines:
+            wrapped.extend(theme.wrap_cjk(str(line), limit, self._measure))
+            if len(wrapped) >= theme.MAX_LINES_PER_PAGE:
+                break
+        return wrapped[: theme.MAX_LINES_PER_PAGE]
 
     def _apply_typewriter(self) -> None:
         """按已显示字符数渲染多行打字机文本。"""

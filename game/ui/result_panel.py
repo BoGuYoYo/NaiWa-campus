@@ -11,10 +11,18 @@ from __future__ import annotations
 
 import logging
 
-from panda3d.core import CardMaker, TransparencyAttrib
+from panda3d.core import CardMaker, TextNode, TransparencyAttrib
 
 from game.ui import theme
-from game.ui.widgets import UILabel, MultilineLabel, UIPanel, UITransform, UIWidget
+from game.ui.widgets import (
+    FONT_SIZE_BODY,
+    UILabel,
+    MultilineLabel,
+    UIPanel,
+    UITransform,
+    UIWidget,
+    default_font,
+)
 
 _log = logging.getLogger("naiwa.ui.result_panel")
 
@@ -38,6 +46,8 @@ class ResultPanel(UIWidget):
         self.assets = asset_registry
         root = parent.attach_new_node("result_panel")
         rect = theme.RECTS["result"]
+        self._assets = asset_registry
+        self._panel_h = float(rect[3])
         self.panel = UIPanel(root, transform, rect, asset_registry)
         x, y, w, _h = rect
 
@@ -45,10 +55,16 @@ class ResultPanel(UIWidget):
         self.illustration = self._make_illustration(root, theme.RECTS["result_illustration"])
         self.result_text = MultilineLabel(root, transform, x + 8, y + 110, [])
         self.delta_labels: list[UILabel] = []
+        # 提示放标题行右侧：底下整块留给正文 + 数值，条目多了也不会互相压
         self.continue_hint = UILabel(
-            root, transform, x + w - 96, y + 172,
+            root, transform, x + w - 96, y + 6,
             text_db.get("ui.result.continue"), color=theme.COLOR_SECONDARY,
         )
+        self._measure_node = TextNode("result_measure")
+        self._measure_node.set_align(TextNode.A_left)
+        chosen_font = default_font()
+        if chosen_font is not None:
+            self._measure_node.set_font(chosen_font)
         self._deltas: list[tuple[str, int, str]] = []
         self._reveal_count = 0
         self._accum = 0.0
@@ -69,23 +85,47 @@ class ResultPanel(UIWidget):
         return node
 
     # ------------------------------------------------------------------
-    def _apply_illustration(self, activity_id: str) -> None:
-        """按 cg_naiwan_<activity_id> 取活动插图；缺失时保留占位色块。"""
+    def _apply_illustration(self, activity_id: str) -> bool:
+        """按 cg_naiwan_<activity_id> 取活动插图；缺失时收起插图位并返回 False。"""
         if self.assets is None or not activity_id:
-            return
+            self.illustration.hide()
+            return False
         asset_id = f"cg_naiwan_{activity_id}"
         try:
             tex = self.assets.load_texture(asset_id)
         except Exception:
             tex = None
         if tex is None:
-            _log.warning("asset.missing asset_id=%s（结果面板使用占位色块）", asset_id)
-            self.illustration.set_color(*theme.hex_to_rgba("#3A4358"))
-            return
+            _log.warning("asset.missing asset_id=%s（结果面板不显示插图）", asset_id)
+            self.illustration.clear_texture()
+            self.illustration.hide()
+            return False
         self.illustration.set_texture(tex)
         self.illustration.set_color(1, 1, 1, 1)
+        self.illustration.show()
+        return True
 
     # ------------------------------------------------------------------
+    def _prepare_panel(self, has_illustration: bool) -> float:
+        """按有无插图决定面板高度，返回面板顶边的 y（逻辑像素）。
+
+        交谈没有 CG：旧版留一个空色块 + 半屏空白。这里把面板收到 84 高并居中。
+        """
+        x, y, w, h = theme.RECTS["result"]
+        height = float(h) if has_illustration else 84.0
+        new_y = y + (h - height) / 2.0
+        if abs(height - self._panel_h) > 0.5:
+            self.panel.destroy()
+            self.panel = UIPanel(
+                self.root, self.transform, (x, new_y, w, height), self._assets
+            )
+            self._panel_h = height
+        ax, ay = self.transform.to_aspect2d(x + 8, new_y + 6 + 12)
+        self.title.text_node.set_pos(ax, 0, ay)
+        ax, ay = self.transform.to_aspect2d(x + w - 96, new_y + 6 + 12)
+        self.continue_hint.text_node.set_pos(ax, 0, ay)
+        return new_y
+
     def show_result(self, activity_result) -> None:
         """activity_result: game.core.results.ActivityResult。"""
         self.show()
@@ -94,23 +134,31 @@ class ResultPanel(UIWidget):
 
         activity_id = getattr(activity_result, "activity_id", "") or ""
         talk_short = _talk_npc_short(activity_id)
+        rect_x, rect_y, rect_w, _rect_h = theme.RECTS["result"]
+        has_illustration = False
         if talk_short:
-            # 交谈复用 NPC 的文本键与占位色块（B 会给 talk.<npc>.result.1，
-            # 与 npc.<short>.talk 语义重复，只显示 D 的那句）
+            # 交谈复用 NPC 的文本键（B 会给 talk.<npc>.result.1，
+            # 与 npc.<short>.talk 语义重复，只显示 D 的那句）；交谈没有 CG，
+            # 插图位收起来，正文顶上去，别留一个空色块。
             self.title.set_text(self.text_db.get(f"npc.{talk_short}.name"))
             self.illustration.clear_texture()
-            self.illustration.set_color(*theme.hex_to_rgba("#3A4358"))
+            self.illustration.hide()
             text_ids = [f"npc.{talk_short}.talk"]
         else:
             self.title.set_text(self.text_db.get(f"act.{activity_id}.name"))
-            self._apply_illustration(activity_id)
+            has_illustration = self._apply_illustration(activity_id)
             text_ids = list(getattr(activity_result, "text_ids", None) or [])
 
         # 结果文本：text_ids 顺序显示，最多 2 行
         lines: list[str] = []
         for text_id in text_ids[:2]:
-            lines.extend(self.text_db.get(text_id).splitlines() or [""])
-        self.result_text.set_lines(lines[:2])
+            for line in self.text_db.get(text_id).splitlines() or [""]:
+                lines.extend(self._wrap_line(line))
+        lines = lines[:2]
+        self.result_text.set_lines(lines)
+        panel_y = self._prepare_panel(has_illustration)
+        text_top = panel_y + (110 if has_illustration else 26)
+        self.result_text.set_top(text_top)
 
         # 数值变化：deltas 全部非零项
         name_of = {k: self.text_db.get_raw(t) for k, t in theme.STAT_NAME_IDS.items()}
@@ -119,14 +167,24 @@ class ResultPanel(UIWidget):
         for label in self.delta_labels:
             label.destroy()
         self.delta_labels = []
-        x, y, _w, _h = theme.RECTS["result"]
-        for i, (_key, value, text) in enumerate(self._deltas):
+        x, w = rect_x, rect_w
+        # 数值改成「正文下方、从左往右排、超宽换行」的一整块：
+        # 旧版固定 x+168 / y+118，既压正文，条目多了还会盖住 [Space] 继续。
+        delta_top = text_top + max(1, len(self.result_text.labels)) * theme.LINE_HEIGHT + 4
+        cursor_x = x + 8.0
+        cursor_y = delta_top
+        for _key, value, text in self._deltas:
+            width = self._text_width(text)
+            if cursor_x > x + 8.0 and cursor_x + width > x + w - 8:
+                cursor_x = x + 8.0
+                cursor_y += theme.LINE_HEIGHT
             label = UILabel(
-                self.root, self.transform, x + 168, y + 118 + i * theme.LINE_HEIGHT,
+                self.root, self.transform, cursor_x, cursor_y,
                 text, color=theme.delta_color(value),
             )
             label.hide()
             self.delta_labels.append(label)
+            cursor_x += width + 12.0
         if not self._deltas:
             _log.debug("结果面板收到空 deltas: %s", activity_id)
 
@@ -139,6 +197,17 @@ class ResultPanel(UIWidget):
             self.continue_hint.set_text(self.text_db.get("ui.result.event_follow"))
         else:
             self.continue_hint.set_text(self.text_db.get("ui.result.continue"))
+
+    def _text_width(self, text: str) -> float:
+        self._measure_node.set_text(text)
+        return self._measure_node.get_width() * FONT_SIZE_BODY
+
+    def _wrap_line(self, text: str) -> list[str]:
+        self._measure_node.set_text(text)
+        width = theme.RECTS["result"][2] - 16
+        if self._measure_node.get_width() * FONT_SIZE_BODY <= width:
+            return [text]
+        return theme.wrap_cjk(text, float(width), self._text_width)
 
     def tick(self, dt: float) -> None:
         if not self.visible or self._reveal_count >= len(self._deltas):

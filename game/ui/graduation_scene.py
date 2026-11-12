@@ -53,6 +53,37 @@ class GraduationScene(UIWidget):
         self.show()
         self._render()
 
+    def _highlight_line(self, entry) -> str:
+        """把 EndingResult.highlights 的一行还原成玩家看得懂的文案。
+
+        highlights 由 B 产出，是「计数器×次数」或「事件:选项」两种内部键，
+        并不是 text_id；直接交给 get_raw() 会印成 `#class_count×3`。
+        这里逐种解析，解析不出来就返回空串——宁可不显示，也不把内部 ID 印给玩家。
+        """
+        text = str(entry or "").strip()
+        if not text:
+            return ""
+        if self.text_db.has(text):
+            return self.text_db.get_raw(text)
+        if "×" in text:
+            key, _, count = text.rpartition("×")
+            count = count.strip()
+            text_id = f"ending.counter.{key.strip()}"
+            if self.text_db.has(text_id):
+                return self.text_db.get(text_id, n=count, count=count)
+            return ""
+        if ":" in text:
+            event_id, _, choice_id = text.partition(":")
+            for text_id in (f"evt.{event_id}.choice.{choice_id}.review",
+                            f"evt.{event_id}.choice.{choice_id}"):
+                if self.text_db.has(text_id):
+                    return self.text_db.get_raw(text_id)
+            title_id = f"evt.{event_id}.title"
+            if self.text_db.has(title_id):
+                return self.text_db.get_raw(title_id)
+            return ""
+        return ""
+
     def _render(self) -> None:
         for widget in (self.content, self.ending_title, self.ending_body, self.credits):
             widget.hide()
@@ -69,16 +100,27 @@ class GraduationScene(UIWidget):
             for key in theme.PANEL_STAT_KEYS:
                 value = mood if key == "mood" else stats.get(key, 0)
                 lines.append(f"{self.text_db.get_raw(theme.STAT_NAME_IDS[key])}  {value}")
+            relationships = self._state_snapshot.get("relationships") or {}
+            if relationships:
+                lines.append("")
+                for npc_id, value in relationships.items():
+                    short = str(npc_id).removeprefix("npc_")
+                    name = self.text_db.get_raw(f"npc.{short}.name")
+                    lines.append(f"{name}  {int(value)}")
             self.content.set_lines(lines)
             self.content.show()
             self.page_hint.show()
         elif page == "review":
             self.page_title.set_text(self.text_db.get("ui.graduation.page2_title"))
-            highlights = [
-                self.text_db.get_raw(tid) for tid in (getattr(self._ending, "highlights", None) or [])[:10]
-            ]
+            highlights: list[str] = []
+            for entry in getattr(self._ending, "highlights", None) or []:
+                line = self._highlight_line(entry)
+                if line and line not in highlights:
+                    highlights.append(line)
+                if len(highlights) >= 10:
+                    break
             if not highlights:
-                highlights = [self.text_db.get("ui.graduation.credits")]
+                highlights = [self.text_db.get("ui.graduation.no_highlight")]
             self.content.set_lines(highlights)
             self.content.show()
             self.page_hint.show()

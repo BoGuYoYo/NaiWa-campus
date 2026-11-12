@@ -90,7 +90,7 @@ def test_query_npc_blocked_when_already_talked(test_map_data):
     view = make_service(test_map_data, Clock()).query(state, "ia_test_npc")
     assert view.enabled is False
     assert view.reason_code == E_ALREADY_TALKED
-    assert view.label_text_id == "npc.sumo.talk"
+    assert view.label_text_id == "npc.sumo.talk_prompt"
 
 
 def test_query_npc_blocked_by_relationship_service(test_map_data):

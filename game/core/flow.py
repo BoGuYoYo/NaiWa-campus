@@ -507,7 +507,13 @@ class GameFlow:
         state.action_slot = 0
         state.phase = "campus"
         self.today_activities = []
-        self.teleport_to_spawn()
+        # 结算时人可能还在室内：只改 state.world 会把 location_id 写成 loc_gate，
+        # 而场景仍是 InteriorScene —— 室内交互点全部查不到（"内容缺失"），
+        # 出口地垫还留在旧房间里。这里必须把场景一起切回校园。
+        if self.scenes.base_id not in (None, "CampusScene"):
+            self.enter_campus()
+        else:
+            self.teleport_to_spawn()
         self.bus.emit(TOPIC_DAY_STARTED, state=state, day_index=state.day_index)
         self._day_start_emitted_for = state.day_index
         LOG.info("[FLOW] new day index=%d (year=%d sem=%d day=%d)",

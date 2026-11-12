@@ -40,7 +40,7 @@ class SaveMenu(UIWidget):
             )
         self.cursor = UILabel(root, transform, x + 8,
                               y + 6 + 2 * theme.LINE_HEIGHT, ">", color=theme.COLOR_CURSOR)
-        self.hint = UILabel(root, transform, x + 8, y + rect[3] - 20,
+        self.hint = UILabel(root, transform, x + 10, y + rect[3] - 26,
                             text_db.get("ui.save.hint"), color=theme.COLOR_SECONDARY)
 
         self.mode = "save"

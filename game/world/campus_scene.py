@@ -41,7 +41,9 @@ BUILDING_COLOR = (0.82, 0.82, 0.84, 1.0)
 BUILDING_HEIGHT = 6.0
 PROP_COLOR = (0.55, 0.40, 0.24, 1.0)
 PROP_HEIGHT = 0.9
-DOOR_COLOR = (0.85, 0.24, 0.20, 1.0)
+#: 门口地垫：旧值 (0.85,0.24,0.20) 是纯红调试色，玩家会当成 bug；
+#: 正式资源未到位前先用深棕灰，和草地/台阶都能分开。
+DOOR_COLOR = (0.36, 0.31, 0.26, 1.0)
 DOOR_HEIGHT = 2.2
 SPAWN_COLOR = (0.96, 0.85, 0.18, 1.0)
 
@@ -378,7 +380,9 @@ class CampusScene:
                 art_props.append((prop, art))
 
         spawn_pos, _facing, _loc = self.map_data.spawn
-        make_triangle_marker(self.root, spawn_pos[0], spawn_pos[1], 0.3, 1.2, SPAWN_COLOR)
+        # 出生点三角是调试标记，正式画面里不该出现（玩家会以为是道具/异常）
+        if self.dev:
+            make_triangle_marker(self.root, spawn_pos[0], spawn_pos[1], 0.3, 1.2, SPAWN_COLOR)
 
         self.root.flattenStrong()
 

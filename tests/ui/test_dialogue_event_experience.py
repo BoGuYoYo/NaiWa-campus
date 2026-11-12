@@ -63,6 +63,12 @@ class _Text:
     def get(self, text_id, **kwargs):
         return text_id
 
+    def get_raw(self, text_id):
+        return text_id
+
+    def has(self, text_id):
+        return False
+
 
 class _Assets:
     def __init__(self, texture=None):
@@ -160,6 +166,8 @@ class _Panel(_Node):
 class _ChoiceCursor:
     def __init__(self, count):
         self.items = [(f"choice_{i}", True, None) for i in range(count)]
+        self.index = 0
+        self.lock_reason = None
         self.confirm_calls = 0
 
     def confirm(self):
@@ -206,9 +214,11 @@ def test_single_continue_choice_hides_panel_but_space_still_selects():
     scene = _event_scene(1)
 
     scene._show_current_page()
-    assert scene._choice_stage is True
+    # 最后一页只显示正文 + 翻页提示；再按一次 Space 才算"继续"
+    assert scene._choice_stage is False
     assert scene.panel.visible is False
     assert scene.choice_labels[0].visible is False
+    assert scene.page_hint.visible is True
 
     scene.on_space()
 
@@ -220,6 +230,12 @@ def test_multiple_choices_keep_choice_panel():
     scene = _event_scene(2)
 
     scene._show_current_page()
+    # 旧版最后一页就把面板摊开，玩家"读完这页"按一下 Space 就替自己选了第一项
+    assert scene._choice_stage is False
+    assert scene.panel.visible is False
+    assert not any(label.visible for label in scene.choice_labels)
+
+    scene.on_space()
 
     assert scene._choice_stage is True
     assert scene.panel.visible is True

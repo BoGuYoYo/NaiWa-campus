@@ -162,7 +162,7 @@ class InteractionService:
         if ia.type == "activity":
             return f"act.{ia.target}.name"
         if ia.type == "npc":
-            return f"npc.{ia.target.removeprefix('npc_')}.talk"
+            return f"npc.{ia.target.removeprefix('npc_')}.talk_prompt"
         if ia.type == "door":
             return "ui.prompt.enter"
         if ia.type == "save":

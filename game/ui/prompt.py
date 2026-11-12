@@ -37,6 +37,7 @@ class InteractionPrompt(UIWidget):
         rect = theme.RECTS["prompt"]
         # show_prompt() 里折行要用面板内宽，把它留在实例上（局部 rect 已经出过 NameError）
         self._rect = rect
+        self._assets = asset_registry
         self.panel = UIPanel(root, transform, rect, asset_registry)
         self.title = UILabel(root, transform, rect[0] + 8, rect[1] + 2, "")
         self.detail = UILabel(
@@ -52,8 +53,42 @@ class InteractionPrompt(UIWidget):
             label.hide()
             self.detail_lines.append(label)
         self._id: str | None = None
+        self._panel_height = float(rect[3])
         super().__init__(root)
         self.hide()
+
+    # ------------------------------------------------------------------
+    def _layout(self, detail_lines: int) -> None:
+        """按明细行数重排：面板底边固定贴住按键提示，向上收缩。
+
+        尺寸必须把九宫格金边算进去：边框占掉上下各 border_y，文字若从
+        panel_y+2 开始画，就会压在金边上（底下的提示框看起来"字比框还大"）。
+        """
+        detail_lines = max(1, min(3, int(detail_lines)))
+        border_x, border_y = getattr(self.panel, "border", (4.0, 4.0))
+        title_top = border_y + 1.0
+        detail_top = title_top + 15.0
+        content_bottom = detail_top + 13.0 * (detail_lines - 1) + 12.0
+        height = content_bottom + border_y + 2.0
+        x, y, w, _h = self._rect
+        bottom = y + self._rect[3]
+        new_rect = (x, bottom - height, w, height)
+        if abs(height - self._panel_height) > 0.5:
+            self.panel.destroy()
+            self.panel = UIPanel(self.root, self.transform, new_rect, self._assets)
+            self._panel_height = height
+        self._rect = new_rect
+        # UILabel 的坐标是「文字左上角」，内部按 y+字号 落基线，这里同理补一个字号
+        size = self.title._size
+        ax, ay = self.transform.to_aspect2d(
+            new_rect[0] + border_x + 2.0, new_rect[1] + title_top + size
+        )
+        self.title.text_node.set_pos(ax, 0, ay)
+        for index, label in enumerate(self.detail_lines):
+            ax, ay = self.transform.to_aspect2d(
+                new_rect[0] + border_x + 2.0, new_rect[1] + detail_top + index * 13 + size
+            )
+            label.text_node.set_pos(ax, 0, ay)
 
     # ------------------------------------------------------------------
     def show_prompt(self, prompt_view) -> None:
@@ -73,6 +108,7 @@ class InteractionPrompt(UIWidget):
                 )
             else:
                 reason = self.text_db.get(reason_id) if reason_id else self.text_db.get("ui.prompt.disabled")
+            self._layout(1)
             self._set_detail_lines([reason], theme.COLOR_DISABLED)
         else:
             preview = getattr(prompt_view, "cost_preview", None) or {}
@@ -91,6 +127,7 @@ class InteractionPrompt(UIWidget):
                 return self.detail.node.get_width() * self.detail._size
 
             lines = theme.wrap_prompt_details(parts, self._rect[2] - 16, measure_text)
+            self._layout(len(lines))
             self._set_detail_lines(lines, theme.COLOR_SECONDARY)
         self.show()
 

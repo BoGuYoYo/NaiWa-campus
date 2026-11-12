@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 
-from panda3d.core import CardMaker, TransparencyAttrib
+from panda3d.core import CardMaker, TextNode, TransparencyAttrib
 
 from game.ui import theme
 from game.ui.widgets import UILabel, StatBar, UIIcon, UIPanel, UITransform, UIWidget
@@ -42,13 +42,19 @@ class HUD(UIWidget):
         self.date_panel = self._make_panel(root, theme.RECTS["hud_date"])
         self.date_label = UILabel(root, transform, 16, 12, "", color=theme.COLOR_TEXT)
 
+        # 三个圆点＝今天还剩几次行动，加一行小字图例（旧版只有三个方块，没人看得懂）
+        self.slot_legend = UILabel(
+            root, transform, 56, 25, text_db.get("ui.hud.slot_legend"),
+            color=theme.COLOR_SECONDARY,
+        )
+
         self.slot_dots: list = []
         for i in range(3):
             cm = CardMaker("slot_dot")
             cm.set_frame(0, 1, -1, 0)
             dot = root.attach_new_node(cm.generate())
             dot.set_transparency(TransparencyAttrib.M_alpha)
-            ax, ay = transform.to_aspect2d(16 + i * 12, 27)
+            ax, ay = transform.to_aspect2d(16 + i * 12, 25)
             dot.set_pos(ax, 0, ay)
             dot.set_scale(transform.px(8), 1, transform.px(8))
             self.slot_dots.append(dot)
@@ -57,15 +63,18 @@ class HUD(UIWidget):
         self.gauge_panel = self._make_panel(root, theme.RECTS["hud_gauges"])
         self.energy_icon = UIIcon(root, transform, 332, 14, theme.STAT_ICON_IDS["energy"],
                                   8.0, asset_registry)
+        # 条宽从 100 收到 86：右边要腾出位置写「84/84」，否则数字会顶出画布
         self.energy_bar = StatBar(root, transform, 344, 14, fill_color=theme.COLOR_GAIN,
-                                  asset_registry=asset_registry)
-        self.energy_label = UILabel(root, transform, 446, 13, "", color=theme.COLOR_TEXT)
+                                  asset_registry=asset_registry, width=78)
+        self.energy_label = UILabel(root, transform, 468, 13, "", color=theme.COLOR_TEXT,
+                                    align=TextNode.A_right)
         self.mood_icon = UIIcon(root, transform, 332, 26, theme.STAT_ICON_IDS["mood"],
                                 8.0, asset_registry, fallback_color=theme.COLOR_WARN)
         self.mood_bar = StatBar(root, transform, 344, 26,
                                 fill_color=theme.hex_to_rgba(theme.HEX["warn"]),
-                                asset_registry=asset_registry)
-        self.mood_label = UILabel(root, transform, 446, 25, "", color=theme.COLOR_TEXT)
+                                asset_registry=asset_registry, width=78)
+        self.mood_label = UILabel(root, transform, 468, 25, "", color=theme.COLOR_TEXT,
+                                  align=TextNode.A_right)
 
         # 按键提示（前 3 天显示）
         self.key_hint = UILabel(
@@ -107,9 +116,11 @@ class HUD(UIWidget):
         self._max_energy = max(1, state.max_energy())
         self._energy_value = state.energy
         self.energy_bar.set_value(state.energy, self._max_energy)
-        self.energy_label.set_text(str(state.energy))
+        # 两条槽的满值不同（精力 80+体力/5、心情 100），只写当前值玩家会
+        # 以为「84 没满」。都写成 当前/上限，满格与否一眼可见。
+        self.energy_label.set_text(f"{state.energy}/{self._max_energy}")
         self.mood_bar.set_value(state.mood, 100.0)
-        self.mood_label.set_text(str(state.mood))
+        self.mood_label.set_text(f"{state.mood}/100")
 
         if state.day_index < theme.KEY_HINT_DAYS:
             self.key_hint.show()

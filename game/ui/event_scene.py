@@ -42,12 +42,19 @@ class EventScene(UIWidget):
         rect = theme.RECTS["event_choices"]
         self.panel = UIPanel(root, transform, rect, asset_registry)
         self.choice_labels: list[UILabel] = []
+        # 锁定原因提示挂在选项面板上方：旧位置在面板内部最后一行，
+        # 3 个选项时会直接把第三个选项压掉。
         self.lock_hint = UILabel(
-            root, transform, rect[0] + 8, rect[1] + rect[3] - 18,
+            root, transform, rect[0] + 8, rect[1] - 16,
             "", color=theme.COLOR_WARN,
         )
+        # 旧版按「选项面板」的坐标摆在 (276, 74)，实际效果是悬在画面正中；
+        # 翻页提示属于对话框，摆在对话框右下角、继续箭头（▾）左侧。
+        dialogue_rect = theme.RECTS["dialogue"]
         self.page_hint = UILabel(
-            root, transform, rect[0], rect[1] - 18,
+            root, transform,
+            dialogue_rect[0] + dialogue_rect[2] - 24 - 104,
+            dialogue_rect[1] + dialogue_rect[3] - 18,
             text_db.get("ui.event.page_hint"), color=theme.COLOR_SECONDARY,
         )
         self._lock_hint_timer = 0.0
@@ -178,25 +185,32 @@ class EventScene(UIWidget):
         page = self._pages[self._page_index]
         self.dialogue.show_page(page)
         self.dialogue.set_page_indicator(self._page_index + 1, len(self._pages))
-        self._choice_stage = bool(
-            self._cursor and self._page_index >= len(self._pages) - 1
-        )
-        if self._choice_stage:
-            self.page_hint.hide()
-            if len(self._cursor.items) <= 1:
-                # A single implicit continue choice needs no remote empty panel.
-                self.panel.hide()
-                for label in self.choice_labels:
-                    label.hide()
-            else:
-                self.panel.show()
-                for label in self.choice_labels:
-                    label.show()
+        # 选项一律等玩家再按一次键才出现：旧版最后一页就把面板摊开，
+        # 玩家想「读完这页」按一下 Space 就替自己选了第一项。
+        self._choice_stage = False
+        self.panel.hide()
+        for label in self.choice_labels:
+            label.hide()
+        if self._cursor:
+            self.page_hint.show()
         else:
-            self.panel.hide()
-            for label in self.choice_labels:
-                label.hide()
-            self.page_hint.show() if self._cursor else self.page_hint.hide()
+            self.page_hint.hide()
+
+    def _open_choices(self) -> None:
+        """最后一页读完后再按一次：展开选项（单选项＝直接继续）。"""
+        if self._cursor is None:
+            return
+        if len(self._cursor.items) <= 1:
+            # 单个隐式「继续」不需要一个空面板，直接用这次按键确认
+            self.page_hint.hide()
+            self._confirm_choice()
+            return
+        self._choice_stage = True
+        self.page_hint.hide()
+        self.panel.show()
+        for label in self.choice_labels:
+            label.show()
+        self._refresh_cursor()
 
     def _next_page(self) -> bool:
         if self._page_index < len(self._pages) - 1:
@@ -221,7 +235,8 @@ class EventScene(UIWidget):
         if self._choice_stage:
             self._confirm_choice()
             return
-        self._next_page()
+        if not self._next_page():
+            self._open_choices()
 
     def on_move(self, direction: int) -> None:
         if self._cursor and self.panel.is_shown():
@@ -254,6 +269,8 @@ class EventScene(UIWidget):
             return
         if self._cursor is None:
             self._finish()
+            return
+        self._open_choices()
 
     def _confirm_choice(self) -> None:
         result = self._cursor.confirm()

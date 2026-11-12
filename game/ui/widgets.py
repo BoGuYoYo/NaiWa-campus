@@ -205,6 +205,13 @@ class MultilineLabel(UIWidget):
                 label.set_text("")
                 label.hide()
 
+    def set_top(self, y: float) -> None:
+        """整体改正文起始行（交谈结果没有插图，正文要顶上去）。"""
+        self._y = y
+        for index, label in enumerate(self.labels):
+            ax, ay = self.transform.to_aspect2d(self._x, y + index * self._line_height + label._size)
+            label.text_node.set_pos(ax, 0, ay)
+
     def set_color(self, color) -> None:
         self._color = color
         for label in self.labels:
@@ -222,6 +229,12 @@ class MultilineLabel(UIWidget):
 #: 压到 0.72 后金边仍清楚、奶油底色偏暖白，正好当描边；内部另外用
 #: theme.PANEL_SOLID 兜底，所以正文/图标的对比度不受皮肤影响。
 PANEL_FRAME_TINT = (0.72, 0.72, 0.74, 1.0)
+
+#: 直边用的纯色：皮肤中段（内容色 / 描边色）× 同一个 tint。
+#: 皮肤左右/上下中段含装饰像素，被拉长后会出现 1px 台阶和拖影，
+#: 所以四角保留皮肤、四条直边改用纯色条，接缝处严丝合缝。
+PANEL_EDGE_FILL = (0.683, 0.683, 0.687, 1.0)
+PANEL_EDGE_LINE = (0.390, 0.300, 0.198, 1.0)
 
 #: 四角切边占皮肤内容框的比例（用比例而不是写死像素，换皮后自动跟着变）
 _CUT_RATIO_X = 0.17
@@ -421,6 +434,26 @@ class UIPanel(UIWidget):
         for col, row, (sx, sy, sw, sh) in _slice_cells(box, cut):
             if col == 1 and row == 1:
                 continue  # 中心交给 PANEL_SOLID
+            dest_x = x + (0.0 if col == 0 else (border_x if col == 1 else w - border_x))
+            dest_y = y + (0.0 if row == 0 else (border_y if row == 1 else h - border_y))
+            if col == 1 or row == 1:
+                # 直边：纯色条 + 1px 描边，长度按面板实际尺寸，图案不会断
+                piece_w = widths[col]
+                piece_h = heights[row]
+                self._flat_piece(node, dest_x, dest_y, piece_w, piece_h, PANEL_EDGE_FILL)
+                if row == 0:
+                    self._flat_piece(node, dest_x, dest_y, piece_w, 1.0, PANEL_EDGE_LINE)
+                elif row == 2:
+                    self._flat_piece(
+                        node, dest_x, dest_y + piece_h - 1.0, piece_w, 1.0, PANEL_EDGE_LINE
+                    )
+                elif col == 0:
+                    self._flat_piece(node, dest_x, dest_y, 1.0, piece_h, PANEL_EDGE_LINE)
+                else:
+                    self._flat_piece(
+                        node, dest_x + piece_w - 1.0, dest_y, 1.0, piece_h, PANEL_EDGE_LINE
+                    )
+                continue
             maker = CardMaker("panel_piece")
             maker.set_frame(0, 1, -1, 0)
             # 图像行号自上而下，纹理 v 自下而上，所以 v 要翻过来
@@ -438,11 +471,16 @@ class UIPanel(UIWidget):
             piece.set_scale(
                 self.transform.px(widths[col]), 1, self.transform.px(heights[row])
             )
-            dest_x = x + (0.0 if col == 0 else (border_x if col == 1 else w - border_x))
-            dest_y = y + (0.0 if row == 0 else (border_y if row == 1 else h - border_y))
             px_x, px_y = self.transform.to_aspect2d(dest_x, dest_y)
             piece.set_pos(px_x - self._origin[0], 0, px_y - self._origin[1])
             self.pieces.append(piece)
+
+
+    def _flat_piece(
+        self, parent: NodePath, x: float, y: float, w: float, h: float, color
+    ) -> None:
+        card = self._make_card(parent, self.transform, x, y, w, h, color, bin_index=40)
+        self.pieces.append(card)
 
 
 class UIIcon(UIWidget):
@@ -498,19 +536,21 @@ class StatBar(UIWidget):
         y: float,
         fill_color=theme.COLOR_GAIN,
         asset_registry=None,
+        width: float | None = None,
     ) -> None:
         self.transform = transform
         self._fill_color = fill_color
         self._x = x
         self._y = y
         self._registry = asset_registry
+        self.width = float(self.BAR_WIDTH if width is None else width)
         self.container = parent.attach_new_node("statbar")
         self.back = self._make_card(
-            self.container, x, y, self.BAR_WIDTH, self.BAR_HEIGHT,
+            self.container, x, y, self.width, self.BAR_HEIGHT,
             theme.hex_to_rgba("#000000", 0.55), "ui_bar_frame", asset_registry,
         )
         self.fill = self._make_card(
-            self.container, x, y, self.BAR_WIDTH, self.BAR_HEIGHT, fill_color,
+            self.container, x, y, self.width, self.BAR_HEIGHT, fill_color,
             "ui_bar_fill", asset_registry,
         )
         super().__init__(self.container)
@@ -536,7 +576,7 @@ class StatBar(UIWidget):
 
     def set_value(self, value: float, maximum: float = 100.0) -> None:
         ratio = 0.0 if maximum <= 0 else max(0.0, min(1.0, value / maximum))
-        width = self.BAR_WIDTH * ratio
+        width = self.width * ratio
         self.fill.remove_node()
         self.fill = self._make_card(
             self.container, self._x, self._y, width, self.BAR_HEIGHT,

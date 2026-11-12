@@ -86,8 +86,8 @@ RECTS: dict[str, tuple[int, int, int, int]] = {
     "dialogue_name": (108, 170, 360, 16),
     "dialogue_body": (108, 188, 362, 72),
     "event_choices": (276, 92, 200, 68),
-    "day_summary": (120, 60, 240, 150),
-    "tab_panel": (40, 24, 400, 222),
+    "day_summary": (120, 60, 240, 144),
+    "tab_panel": (40, 24, 400, 180),
     "main_menu": (180, 150, 120, 90),
     "graduation": (0, 0, 480, 270),
 }
@@ -216,6 +216,30 @@ def wrap_prompt_details(
         if current and measure_text(candidate) > max_width:
             lines.append(current)
             current = part
+        else:
+            current = candidate
+    if current:
+        lines.append(current)
+    return lines
+
+
+def wrap_cjk(text: str, max_width: float, measure_text: Callable[[str], float]) -> list[str]:
+    """按像素宽度给中文（无空格）文本折行。
+
+    对话框正文、查看点说明这类文本是一整段中文，没有空格可断；
+    ``str.wrap`` 式的按字符贪心更靠谱。宽度用调用方给的实际字体测量。
+    """
+    if not text:
+        return [""]
+    if measure_text(text) <= max_width:
+        return [text]
+    lines: list[str] = []
+    current = ""
+    for char in text:
+        candidate = current + char
+        if current and measure_text(candidate) > max_width:
+            lines.append(current)
+            current = char
         else:
             current = candidate
     if current:

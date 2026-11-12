@@ -49,3 +49,7 @@ reports/review/packaged_dist/
 
 # 打包产物副本（发布验证用，不入库）
 reports/review/packaged_build/
+
+
+# 本地 QA 脚本与截图（不入库）
+.tmp/

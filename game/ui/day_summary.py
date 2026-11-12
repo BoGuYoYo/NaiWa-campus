@@ -20,7 +20,7 @@ class DaySummary(UIWidget):
         root = parent.attach_new_node("day_summary")
         rect = theme.RECTS["day_summary"]
         self.panel = UIPanel(root, transform, rect, asset_registry)
-        x, y, w, _h = rect
+        x, y, w, h = rect
 
         self.title = UILabel(root, transform, x + 8, y + 6, "", size=theme.TITLE_SIZE / 2)
         self.actions_title = UILabel(
@@ -37,7 +37,7 @@ class DaySummary(UIWidget):
             color=theme.COLOR_WARN,
         )
         self.continue_hint = UILabel(
-            root, transform, x + w - 96, y + 6 + 8 * theme.LINE_HEIGHT,
+            root, transform, x + w - 96, y + h - 26,
             text_db.get("ui.day_summary.continue"), color=theme.COLOR_SECONDARY,
         )
         self.on_close = None

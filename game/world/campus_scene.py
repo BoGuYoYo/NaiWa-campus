@@ -387,13 +387,13 @@ class CampusScene:
         self.root.flattenStrong()
 
         # 带 alpha 的立牌不参与 flatten：合并进同一个 GeomNode 会丢 transparency 排序。
-        # 五栋楼统一用**正面立面图**（平视立面，和宿舍楼同一种样式）贴在朝镜头的南墙上：
-        # 侧视图有的是 3/4 渲染、有的是一大片空白外墙，混在一起风格不统一。
-        # 只有缺正面图时才退回侧视图。
+        # Blender 的 Game_Building 根节点已经把宿舍、教学楼、图书馆和社团楼的
+        # 入口放在东西两侧；固定的游戏镜头从南侧看过去时，真正可见的立面是
+        # 用户提供的侧视图。因此只要登记了 side_art，就用它替换旧的 front
+        # 卡片；食堂没有侧视图，继续使用原正面图。
         for building, front_texture, side_texture in art_buildings:
-            use_front = front_texture is not None
-            texture = front_texture if use_front else side_texture
-            prefix = "front" if use_front else "side"
+            texture = side_texture or front_texture
+            prefix = "side" if side_texture is not None else "front"
             visual = self.building_visuals.get(building.id, {})
             make_building_card(
                 self.root,
@@ -401,9 +401,8 @@ class CampusScene:
                 texture,
                 name=f"{prefix}_{building.id}",
                 facing=building.door_facing,
-                # 正面图按占地宽度居中摆在南边；侧视图仍用 Blender 导出的锚点
-                position=None if use_front else visual.get("position"),
-                width=None if use_front else visual.get("width"),
+                position=visual.get("position"),
+                width=visual.get("width"),
             )
         for prop, (texture, height) in art_props:
             make_prop_card(self.root, prop.rect, texture, height, name=f"prop_{prop.id}")

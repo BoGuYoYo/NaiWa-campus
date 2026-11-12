@@ -319,6 +319,24 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 
 ---
 
+## NPC 资源更新（2026-11-12，`LIC-0212`）
+
+第三名 NPC 的内部 ID 保持 `npc_xiaoyou` / `xiaoyou`，显示名更新为「奈珑」，
+避免存档、关系规则和事件 ID 迁移。资源由用户提供的 `奈珑八向图.jfif` 正面大图裁切：
+
+| 资源 | 尺寸 | 说明 |
+| --- | --- | --- |
+| `char_npc_xiaoyou_idle` | 48×48 | 场景内正面像素立牌，脚点 `(24, 46)` |
+| `portrait_npc_xiaoyou_neutral` | 96×96 | 对话头像 |
+| `portrait_npc_xiaoyou_happy` | 96×96 | 本轮暂复用正面头像 |
+| `portrait_npc_xiaoyou_sad` | 96×96 | 本轮暂复用正面头像 |
+| `portrait_npc_xiaoyou_surprised` | 96×96 | 本轮暂复用正面头像 |
+
+处理工具：`tools/import_nailong_character.py`。使用边界泛洪去除白底，最近邻缩放到目标尺寸；
+对照图见 `reports/review/npc/nailong_sheet.png`。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

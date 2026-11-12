@@ -126,7 +126,7 @@ game/world/
 
 ### 待补内容
 - `props` 已按 A 交付的正面图登记 25 个：长椅、校门告示牌、13 棵树（0.6×0.6）、5 盏路灯（0.4×0.4）、5 个垃圾桶（0.5×0.5）；布置规则见 `map.json` 头部的 `notes`，`prop_gate_notice` / `prop_plaza_bench` 同时是交互点载体。
-- 室内 `npc_marks` 当前仅 `loc_library`（苏墨、管理员）、`loc_clubroom`（陈朗）、`loc_canteen`（小柚、阿姨）；`loc_classroom` 的 2 名环境 NPC 位置待正式模型阶段确定。
+- 室内 `npc_marks` 当前仅 `loc_library`（苏墨、管理员）、`loc_clubroom`（陈朗）、`loc_canteen`（奈珑、阿姨）；`loc_classroom` 的 2 名环境 NPC 位置待正式模型阶段确定。
 - 正式角色动画（`char_naiwan_walk` / `char_naiwan_idle`）、音效（`sfx_footstep_ground` / `sfx_footstep_floor`）由 A 提供；C 已按 8 fps / 3 fps、0.35 s / 0.25 s 的规格调用，素材缺失时仅空调用不报错。
 
 ### 替身依赖

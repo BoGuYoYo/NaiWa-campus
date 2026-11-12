@@ -544,6 +544,7 @@ class InteriorSceneAdapter(WorldSceneBase):
     NPC_ART = {
         "符闹吃": "sumo", "苏墨": "sumo",
         "李振兴": "chenlang", "陈朗": "chenlang",
+        "奈珑": "xiaoyou", "小柚": "xiaoyou",
     }
 
     def on_enter(self, building_id: str | None = None, state: GameState | None = None,

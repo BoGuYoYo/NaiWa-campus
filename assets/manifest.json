@@ -465,60 +465,62 @@
       "id": "char_npc_xiaoyou_idle",
       "type": "sprite_sheet",
       "path": "characters/npc/xiaoyou_idle.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0212",
       "frame_w": 48,
       "frame_h": 48,
-      "cols": 2,
-      "rows": 4,
-      "fps": 2,
+      "cols": 1,
+      "rows": 1,
+      "fps": 0,
       "pivot": [
         24,
         46
       ],
       "row_order": [
-        "s",
-        "e",
-        "n",
-        "w"
+        "s"
       ],
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_xiaoyou_neutral",
       "type": "image",
       "path": "portraits/xiaoyou/neutral.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0212",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_xiaoyou_happy",
       "type": "image",
       "path": "portraits/xiaoyou/happy.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0212",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_xiaoyou_sad",
       "type": "image",
       "path": "portraits/xiaoyou/sad.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0212",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {
       "id": "portrait_npc_xiaoyou_surprised",
       "type": "image",
       "path": "portraits/xiaoyou/surprised.png",
-      "license_id": "LIC-0003",
+      "license_id": "LIC-0212",
       "tags": [
-        "placeholder"
+        "final",
+        "generated_from_user_art"
       ]
     },
     {

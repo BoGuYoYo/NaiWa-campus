@@ -211,7 +211,7 @@ NPCS: list[dict[str, Any]] = [
     },
     {
         "id": "npc_xiaoyou",
-        "name": "小柚",
+        "name": "奈珑",
         "role": "隔壁专业同学，兴趣方向",
         "location": "loc_canteen",
         "relation_sources": ["play_games", "create_work", "talk", "semester_event"],

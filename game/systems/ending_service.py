@@ -33,5 +33,13 @@ class EndingService:
     def _highlights(state: GameState) -> list[str]:
         counters = sorted(state.counters.items(), key=lambda kv: (-kv[1], kv[0]))
         top = [f"{name}×{count}" for name, count in counters[:3]]
-        semester_choices = [entry for entry in state.event_log if entry.startswith("sem_")]
-        return top + semester_choices
+        # event_log 里同时存在「事件 id」（开播时登记）与「id:choice」（结算后登记），
+        # 两行都会渲染成回顾条目 —— 同一个事件在结局回顾里出现两次。
+        # 这里只取已结算的那条，并按事件 id 去重（保留最后一次选择）。
+        settled: dict[str, str] = {}
+        for entry in state.event_log:
+            if not entry.startswith("sem_") or ":" not in entry:
+                continue
+            event_id, _, _choice_id = entry.partition(":")
+            settled[event_id] = entry
+        return top + list(settled.values())

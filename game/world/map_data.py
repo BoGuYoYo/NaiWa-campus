@@ -13,11 +13,22 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from game.world.collision import Rect, make_rect
+from game.world.collision import PLAYER_HALF, Rect, make_rect, overlap
 
 CAMPUS_SCENE = "campus"
 FACINGS = ("s", "se", "e", "ne", "n", "nw", "w", "sw")
 INTERACTABLE_TYPES = ("activity", "npc", "inspect", "door", "save")
+
+
+class _Point:
+    """overlap() 只需要 .x / .y；这里避免为一次判断建完整 WorldPos。"""
+
+    __slots__ = ("x", "y")
+
+    def __init__(self, x: float, y: float) -> None:
+        self.x = float(x)
+        self.y = float(y)
+
 
 _ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -480,11 +491,17 @@ class MapData:
 
     # -------------------------------------------------------------- 出入口
 
+    #: 出门落点离门触发点的距离。必须大于门的交互半径（1.2 米），否则刚出门
+    #: 就地站在「进入」提示里，连按 E 会立刻被送回室内。
+    EXIT_DISTANCE = 1.8
+
     def exit_point(self, building_id: str) -> tuple[float, float, str]:
-        """从室外门触发点再向外 1 米，朝向背离建筑。"""
+        """从室外门触发点再向外（EXIT_DISTANCE 米），朝向背离建筑。"""
         b = self.building(building_id)
         nx, ny = _DIRECTION[b.door_facing]
-        return (b.outside_trigger[0] + nx, b.outside_trigger[1] + ny, b.door_facing)
+        return (b.outside_trigger[0] + nx * self.EXIT_DISTANCE,
+                b.outside_trigger[1] + ny * self.EXIT_DISTANCE,
+                b.door_facing)
 
     def interior_entry(self, building_id: str) -> tuple[float, float, str]:
         """进入室内后的出生位置（房间本地坐标）。"""
@@ -497,6 +514,41 @@ class MapData:
     def entry_mat(self, building_id: str) -> tuple[float, float, float]:
         i = self.interior(building_id)
         return (i.entry_mat[0], i.entry_mat[1], i.entry_radius)
+
+    # ------------------------------------------------------------ 位置校验
+
+    def is_blocked(self, location_id: str, x: float, y: float,
+                   half: float = PLAYER_HALF) -> bool:
+        """世界坐标 (x, y) 是否落在阻挡体内或地图之外。
+
+        读档位置校验用：存档里的坐标可能来自旧地图、或存于"人卡在墙里"的状态，
+        直接拿来建场景会让玩家走不动。室内按房间原点平移到世界坐标后判断。
+        """
+        if self.has_interior(location_id):
+            i = self.interior(location_id)
+            ox, oy = i.origin
+            rects = tuple(
+                Rect(r.x0 + ox, r.y0 + oy, r.x1 + ox, r.y1 + oy)
+                for r in self.colliders_for(location_id)
+            )
+            bounds = make_rect(ox, oy, ox + i.size[0], oy + i.size[1])
+        else:
+            rects = self.colliders_for(CAMPUS_SCENE)
+            bounds = self._bounds
+        if not (bounds.x0 + half <= x <= bounds.x1 - half
+                and bounds.y0 + half <= y <= bounds.y1 - half):
+            return True
+        pos = _Point(x, y)
+        return any(overlap(pos, half, r) for r in rects)
+
+    def safe_position(self, location_id: str) -> tuple[float, float, str]:
+        """该地点的安全落点（世界坐标 + 朝向）：室内取房间出生点，室外取广场出生点。"""
+        if self.has_interior(location_id):
+            i = self.interior(location_id)
+            ox, oy = i.origin
+            return (ox + i.spawn[0], oy + i.spawn[1], i.spawn_facing)
+        (sx, sy), facing, _loc = self.spawn
+        return (sx, sy, facing)
 
     # ---------------------------------------------------------------- 碰撞
 

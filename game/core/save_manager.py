@@ -80,7 +80,9 @@ class SaveManager:
     ) -> Path:
         self._validate_slot(slot)
         payload = {
-            "save_version": int(state.save_version),
+            # 版本号必须写当前格式版本：以前写 state.save_version（默认 1），
+            # 一旦 SAVE_VERSION 升到 2，新写的档会被自己的版本检查判成"不支持"。
+            "save_version": int(config.SAVE_VERSION),
             "saved_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "game_version": config.GAME_VERSION,
             "reason": reason or "manual",
@@ -221,24 +223,40 @@ class SaveManager:
 
     # ------------------------------------------------------------------ #
     def peek(self, slot: str) -> SaveSummary | None:
-        """只读摘要，不构建完整状态，用于读档界面。"""
+        """只读摘要，不构建完整状态，用于读档界面。
+
+        主文件损坏时回退 .bak —— 否则存档列表显示「空」、实际却能读出来。
+        """
         self._validate_slot(slot)
-        path = self.path_for(slot)
-        if not path.exists():
-            return None
+        target = self.path_for(slot)
+        bak = self.bak_path_for(slot)
+        for candidate in (target, bak):
+            if not candidate.exists():
+                continue
+            raw = self._read_summary_payload(candidate)
+            if raw is None:
+                continue
+            if candidate != target:
+                self.log.warning("[SAVE] %s 损坏，摘要回退到 %s", target.name, candidate.name)
+            summary = raw.get("summary")
+            return SaveSummary(
+                slot=slot,
+                saved_at=str(raw.get("saved_at", "")),
+                game_version=str(raw.get("game_version", "")),
+                summary=summary if isinstance(summary, dict) else {},
+            )
+        return None
+
+    @staticmethod
+    def _read_summary_payload(path: Path) -> dict[str, Any] | None:
+        """解析存档顶层对象；损坏或形态不对返回 None。"""
         try:
             raw = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
         if not isinstance(raw, dict):
             return None
-        summary = raw.get("summary")
-        return SaveSummary(
-            slot=slot,
-            saved_at=str(raw.get("saved_at", "")),
-            game_version=str(raw.get("game_version", "")),
-            summary=summary if isinstance(summary, dict) else {},
-        )
+        return raw
 
     def list_slots(self) -> list[SaveSummary]:
         result: list[SaveSummary] = []

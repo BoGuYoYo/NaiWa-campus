@@ -72,7 +72,8 @@ def _check_effect_keys(path: Path, obj_id: str, effects: dict[str, Any],
 
 
 def _check_conditions(path: Path, obj_id: str, conditions: list[dict[str, Any]],
-                      counters: set[str], npc_ids: set[str], prefix: str = "") -> None:
+                      counters: set[str], npc_ids: set[str], prefix: str = "",
+                      referenced: dict[str, str] | None = None) -> None:
     if conditions is None:
         _fail(path, obj_id, f"{prefix}conditions 不能为 null，使用 [] 表示无条件")
     if not isinstance(conditions, list):
@@ -85,7 +86,8 @@ def _check_conditions(path: Path, obj_id: str, conditions: list[dict[str, Any]],
             items = cond.get("items")
             if not isinstance(items, list) or not items:
                 _fail(path, obj_id, f"{prefix}any 条件必须提供非空 items（空数组等价于恒假）")
-            _check_conditions(path, obj_id, items, counters, npc_ids, prefix + "any.")
+            _check_conditions(path, obj_id, items, counters, npc_ids, prefix + "any.",
+                              referenced)
             continue
         if ctype in ("stat",):
             if cond.get("key") not in STAT_KEYS:
@@ -101,6 +103,8 @@ def _check_conditions(path: Path, obj_id: str, conditions: list[dict[str, Any]],
         elif ctype in ("flag", "not_flag"):
             if not cond.get("key"):
                 _fail(path, obj_id, f"{prefix}{ctype} 条件缺少 key")
+            if referenced is not None:
+                referenced.setdefault(str(cond["key"]), f"{path.name} [{obj_id}] {prefix}")
         else:
             _fail(path, obj_id, f"{prefix}未知条件类型 {ctype}")
         if ctype in ("stat", "counter", "rel", "mood", "energy", "semester"):
@@ -148,11 +152,17 @@ class ContentDB:
         raw_endings = _check_rows(paths["endings"], _read(paths["endings"]))
         raw_daily = _check_rows(paths["daily_events"], _read(paths["daily_events"]))
 
+        # 全量收集「谁会产出旗标」：条件里引用的旗标必须在其中，
+        # 否则一个拼错的 flag 永远不成立，事件/结局静默失效且没人报错。
+        self.produced_flags: set[str] = set()
+        self.referenced_flags: dict[str, str] = {}   # flag -> 首次引用处（报错用）
+
         self.npcs, npc_ids = self._load_npcs(paths, raw_npcs)
         counters = self._load_activities(paths, raw_activities, npc_ids)
         self._load_events(paths, raw_events, counters, npc_ids)
         self._load_endings(paths, raw_endings, counters, npc_ids)
         self._load_daily(paths, raw_daily, npc_ids)
+        self._check_flag_references(paths)
 
         self.semester_event_by_no: dict[int, str] = {
             evt["semester_no"]: evt["id"]
@@ -181,6 +191,7 @@ class ContentDB:
             if act_id in self.activities_by_id:
                 _fail(paths["activities"], act_id, "活动 ID 重复")
             _check_effect_keys(paths["activities"], act_id, act.get("effects", {}), npc_ids)
+            self.produced_flags.update(str(f) for f in act.get("add_flags", []) or [])
             counter = act.get("counter")
             if counter:
                 _check_id(paths["activities"], counter, "计数器")
@@ -221,9 +232,12 @@ class ContentDB:
             _fail(paths["events"], evt_id, "事件至少需要 1 个选项")
         has_free = self._check_choices(paths, evt_id, choices, counters, npc_ids)
 
+        if not has_free:
+            # 所有选项都带条件时，条件一旦全不满足，事件就卡在选项页没法继续
+            # （事件不允许中途退出）。学期事件本来就有这条约束，其它事件同样适用。
+            _fail(paths["events"], evt_id, "事件必须至少有 1 个无条件选项（否则可能卡在选项页）")
+
         if evt.get("kind") == "semester":
-            if not has_free:
-                _fail(paths["events"], evt_id, "学期事件必须至少有 1 个无条件选项")
             sem = evt["semester_no"]
             if sem in semester_seen:
                 _fail(paths["events"], evt_id, f"学期 {sem} 有多个事件")
@@ -256,9 +270,10 @@ class ContentDB:
             if not conds:
                 has_free = True
             _check_conditions(paths["events"], evt_id, conds, counters, npc_ids,
-                              prefix=f"choice {cid} ")
+                              prefix=f"choice {cid} ", referenced=self.referenced_flags)
             _check_effect_keys(paths["events"], evt_id,
                                choice.get("effects", {}), npc_ids)
+            self.produced_flags.update(str(f) for f in choice.get("add_flags", []) or [])
         return has_free
 
     def _check_next_event_ids(self, paths: dict[str, Path],
@@ -280,13 +295,26 @@ class ContentDB:
                       counters: set[str], npc_ids: set[str]) -> None:
         self.endings = raw_endings
         self.endings_by_id: dict[str, dict[str, Any]] = {}
+        priorities: dict[int, str] = {}
         for ending in raw_endings:
             eid = _check_id(paths["endings"], ending.get("id"), "结局")
             _check_conditions(paths["endings"], eid, ending.get("conditions", []),
-                              counters, npc_ids)
+                              counters, npc_ids, referenced=self.referenced_flags)
+            priority = ending.get("priority")
+            if not isinstance(priority, int) or isinstance(priority, bool):
+                _fail(paths["endings"], eid, f"priority 必须是整数，当前为 {priority!r}")
+            if priority in priorities:
+                # 同优先级的两个结局谁生效取决于文件顺序 —— 改一行顺序就换结局，
+                # 而且不会有任何报错。优先级冲突必须直接拦下来。
+                _fail(paths["endings"], eid,
+                      f"priority {priority} 与 {priorities[priority]} 重复")
+            priorities[priority] = eid
             self.endings_by_id[eid] = ending
         if "ending_balanced" not in self.endings_by_id:
             _fail(paths["endings"], None, "缺少无条件兜底结局 ending_balanced")
+        if not any(not ending.get("conditions") for ending in raw_endings):
+            _fail(paths["endings"], None,
+                  "至少要有 1 个无条件结局（否则条件全不满足时结算不出结局）")
 
     def _load_daily(self, paths: dict[str, Path], raw_daily: list[dict[str, Any]],
                     npc_ids: set[str]) -> None:
@@ -298,6 +326,44 @@ class ContentDB:
                 _fail(paths["daily_events"], did, "日常事件 ID 重复")
             seen_daily.add(did)
             _check_effect_keys(paths["daily_events"], did, daily.get("effects", {}), npc_ids)
+            self.produced_flags.update(str(f) for f in daily.get("add_flags", []) or [])
+
+    def _check_flag_references(self, paths: dict[str, Path]) -> None:
+        """条件里引用的旗标必须由某处产出（规则文件或代码）。
+
+        旧版对 flag / not_flag 只检查"key 非空"：拼错一个字母，该条件永远不成立，
+        相关事件/结局静默失效，跑几千局模拟都看不出来。
+        """
+        produced = set(self.produced_flags)
+        # 代码里产出的旗标：计数器达标、熬夜、关系阶段。
+        try:
+            from game.systems import spec_data
+        except Exception:  # pragma: no cover - 规则库单独使用时没有 spec_data
+            spec_data = None
+        if spec_data is not None:
+            for npc_id in sorted({npc["id"] for npc in self.npcs}):
+                for stage in getattr(spec_data, "REL_STAGES", ()):
+                    produced.add(f"{npc_id}_stage{stage['stage']}")
+                    require = stage.get("require_flag")
+                    if require:
+                        produced.add(str(require).format(npc_id=npc_id))
+            for name in dir(spec_data):
+                if name.endswith("_FLAG"):
+                    value = getattr(spec_data, name)
+                    if isinstance(value, str):
+                        produced.add(value)
+            # 活动表里的"计数器达标 / 熬夜"旗标（模拟器与正式流程都用同一份表）
+            for act in getattr(spec_data, "ACTIVITIES", ()) or ():
+                for key in ("flag_when_counter", "late_flag_on_daily_count"):
+                    rule = act.get(key)
+                    if isinstance(rule, dict) and rule.get("flag"):
+                        produced.add(str(rule["flag"]))
+
+        unknown = {flag: where for flag, where in self.referenced_flags.items()
+                   if flag not in produced}
+        if unknown:
+            detail = "；".join(f"{flag}（{where}）" for flag, where in sorted(unknown.items()))
+            _fail(paths["events"], None, f"条件引用了从未产出的旗标：{detail}")
 
     # ---- 便捷访问 -------------------------------------------------------
     def activity(self, activity_id: str) -> dict[str, Any] | None:

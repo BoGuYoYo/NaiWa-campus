@@ -241,6 +241,13 @@ class WorldSceneBase:
             return
         self.player.teleport(world.x, world.y, world.facing)
         self._last_player_position = (self.player.motion.x, self.player.motion.y)
+        # 传送后镜头必须立刻落位：相机有死区和平滑，不重设的话换日之后
+        # 镜头会从上一帧的位置一路平移过来（玩家看到的是黑场后的长距离滑动）。
+        self._apply_scene_camera()
+
+    def _transitioning(self) -> bool:
+        """黑场（场景切换的 0.25 秒）期间为 True。"""
+        return bool(getattr(self.app.scenes, "is_transitioning", lambda: False)())
 
     # ------------------------------------------------------------------ 调试绘制
     def _build_debug_draw(self):
@@ -260,9 +267,27 @@ class WorldSceneBase:
             self.log.warning("[WORLD] DebugDraw 不可用: %s", exc)
             return None
 
-    def _debug_goto(self, x: float, y: float, facing: str | None = None) -> None:
-        if self.player is not None:
-            self.player.teleport(x, y, facing)
+    def _debug_goto(self, scene: str, x: float, y: float, facing: str | None = None) -> None:
+        """F5 传送：DebugDraw 传的是 (场景 id, x, y)。
+
+        旧签名只收 (x, y)，第一个位置参数收到场景 id 字符串，float() 直接抛
+        ValueError —— F5 按一下就报错。跨场景时先切场景，同场景直接传送。
+        """
+        if self._state is None:
+            return
+        if not scene or scene == self.scene_id:
+            if self.player is not None:
+                self.player.teleport(x, y, facing)
+            return
+        if scene == "campus":
+            self.app.scenes.change(
+                "CampusScene", spawn=self.md.outdoor_location_at(x, y),
+                state=self._state, position=(x, y, facing or "n"),
+            )
+            return
+        self.app.scenes.change(
+            "InteriorScene", building_id=scene, state=self._state, at=(x, y),
+        )
 
     def on_exit(self) -> None:
         self._unbind_input()
@@ -368,6 +393,8 @@ class WorldSceneBase:
     def _on_interact(self) -> None:
         if self.app.scenes.input_locked:
             return
+        if self._transitioning():
+            return
         ia_id = self.tracker.active_id if self.tracker else None
         if not ia_id:
             return
@@ -391,11 +418,20 @@ class WorldSceneBase:
             return
         if self.app.scenes.overlays:
             return
+        # 黑场（场景切换的 0.25 秒）期间不能开面板：此时旧场景还在台上，
+        # 覆盖层会挂到即将被销毁的场景上，关不掉也点不动（Tab 卡死的成因）。
+        if self._transitioning():
+            return
         self.tutorial.notify("tab_opened")
         self.app.scenes.push("TabPanel", state=self._state)
 
     def _on_escape(self) -> None:
         if self.app.scenes.overlays:
+            return
+        if self._transitioning():
+            # 回主菜单的黑场里按 Esc 会把暂停菜单盖到主菜单上；直接忽略。
+            return
+        if self._state is None or self._state.phase not in ("campus",):
             return
         self.app.flow.set_paused(True)
         self.app.scenes.push("PauseMenu")
@@ -548,7 +584,7 @@ class InteriorSceneAdapter(WorldSceneBase):
     }
 
     def on_enter(self, building_id: str | None = None, state: GameState | None = None,
-                 **kwargs: Any) -> None:
+                 at: tuple[float, float] | None = None, **kwargs: Any) -> None:
         self.scene_id = building_id or kwargs.get("scene") or "loc_dorm"
         super().on_enter(spawn=None, state=state)
         # 室内：location_id 必须切到建筑 id，交互点查询才会命中室内那一批
@@ -556,6 +592,9 @@ class InteriorSceneAdapter(WorldSceneBase):
             self._state.world.location_id = self.scene_id
         entry_x, entry_y, facing = self.md.interior_entry(self.scene_id)
         ox, oy = self.md.interior(self.scene_id).origin
+        if at is not None and len(at) >= 2:
+            # --dev F5 传送到室内交互点：落点由调用方给（世界坐标）
+            entry_x, entry_y = float(at[0]) - ox, float(at[1]) - oy
         self.player.teleport(ox + entry_x, oy + entry_y, facing)
         self.rig.set_interior((ox + self.md.interior(self.scene_id).center[0],
                                oy + self.md.interior(self.scene_id).center[1]))
@@ -655,6 +694,28 @@ class WidgetSceneBase:
     def apply(self, **kwargs: Any) -> None:
         pass
 
+    # ---------------------------------------------------------------- 通用工具
+    def _transitioning(self) -> bool:
+        """黑场期间禁止"推进流程"的按键（避免双触发与盖层）。"""
+        return bool(getattr(self.app.scenes, "is_transitioning", lambda: False)())
+
+    def _hide_underlay(self) -> None:
+        """打开子面板时隐藏下面那层控件，避免两套文字叠在同一张 480×270 画布上。"""
+        overlays = [
+            scene for _sid, scene in getattr(self.app.scenes, "overlays", ()) if scene is not self
+        ]
+        underlay = overlays[-1] if overlays else getattr(self.app.scenes, "base_scene", None)
+        self._underlay_widget = getattr(underlay, "widget", None)
+        if self._underlay_widget is not None:
+            self._underlay_widget.hide()
+
+    def _restore_underlay(self) -> None:
+        """子面板关闭时把下层控件显回来：否则从暂停菜单存/读档返回后
+        暂停菜单是"看不见但仍占着场景栈"，画面像卡死。"""
+        widget, self._underlay_widget = getattr(self, "_underlay_widget", None), None
+        if widget is not None:
+            widget.show()
+
     def bind(self, event: str, handler) -> None:
         """按键绑定的唯一入口：记下归属，退场时只收回自己那份。"""
         self.app.input.bind(self, event, handler)
@@ -702,9 +763,16 @@ class MainMenuSceneAdapter(WidgetSceneBase):
         self.bind("w", lambda: self.widget.move(-1))
         self.bind("arrow_down", lambda: self.widget.move(1))
         self.bind("s", lambda: self.widget.move(1))
-        self.bind("enter", self.widget.confirm)
-        self.bind("space", self.widget.confirm)
+        self.bind("enter", self._confirm)
+        self.bind("space", self._confirm)
         self.bind("escape", self.app.quit_game)
+
+    def _confirm(self) -> None:
+        # 黑场期间主菜单还在台上：连按会重复触发"新游戏/继续"（第二次直接
+        # 把刚建好的存档状态又读一遍，或者叠两个校园场景）。
+        if self._transitioning():
+            return
+        self.widget.confirm()
 
     def _new_game(self) -> None:
         self.app.flow.new_game(seed=self.app.options.seed, skip_intro=self.app.options.skip_intro)
@@ -764,6 +832,9 @@ class EventSceneAdapter(WidgetSceneBase):
     def apply(self, event_id: str | None = None, text_id: str | None = None,
               semester: bool = False, story: bool = False, **kwargs: Any) -> None:
         self._pending_result = None
+        # 文本速度来自 settings.text_speed：每个事件场景打开时同步一次，
+        # 玩家在设置里改完立刻对下一段对话生效。
+        self._apply_text_speed()
         if text_id:
             # Inspect pages are display-only: they must never enter EventService.choose.
             lines = [self.app.text.get_raw(text_id)]
@@ -775,6 +846,13 @@ class EventSceneAdapter(WidgetSceneBase):
         self._event_id = event_id
         view = self._build_view(event_id or "")
         self.widget.load_event(view)
+        # load_event/show_page 会重置打字机进度，但速度是要保留的
+        self._apply_text_speed()
+
+    def _apply_text_speed(self) -> None:
+        hook = getattr(self.widget, "set_text_speed", None)
+        if callable(hook):
+            hook(getattr(self.app.settings, "text_speed", "normal"))
 
     def _build_view(self, event_id: str) -> EventView:
         """从规则服务取选择状态；分页默认由 TextDB 的实际正文页唯一决定。"""
@@ -792,7 +870,13 @@ class EventSceneAdapter(WidgetSceneBase):
         prefix = f"evt.{event_id}.body."
         pages = [key for key in dialogue_keys if key.startswith(prefix)]
         pages.sort(key=lambda key: int(key.rsplit(".", 1)[-1]))
-        view.page_text_ids = pages
+        if pages:
+            view.page_text_ids = pages
+        else:
+            # 文案缺失（改名、拼错 id）时必须退回规则页，不能把正文清空：
+            # 空列表会让对话框只剩一条翻页提示 —— 正文等于被截断掉。
+            LOG.warning("[EVENT] %s 没有 evt.*.body.* 文案，退回规则页 %s",
+                        event_id, view.page_text_ids)
         return view
 
     def _show_content_error(self, event_id: str, choice_id: str, error: ContentError) -> None:
@@ -815,7 +899,7 @@ class EventSceneAdapter(WidgetSceneBase):
         self.bind("space", self.widget.on_space)
         self.bind("enter", self.widget.on_space)
         self.bind("e", self.widget.on_space)
-        self.bind("mouse1", self.widget.on_space)
+        self.bind("mouse1", self.widget.on_click)
         self.bind("arrow_up", lambda: self.widget.on_move(-1))
         self.bind("w", lambda: self.widget.on_move(-1))
         self.bind("arrow_down", lambda: self.widget.on_move(1))
@@ -873,9 +957,14 @@ class DaySummarySceneAdapter(WidgetSceneBase):
 
     def apply(self, result=None, **kwargs: Any) -> None:
         state = self.app.flow.state
-        # finish_day() advances day_index before the summary opens, so this is
-        # the day that just ended, not the next day beginning underneath it.
-        day = max(1, state.day - 1) if state is not None else 1
+        # 天数必须由 DayEndResult.new_day_index 反推：finish_day() 里 day_index
+        # 已经 +1，而 state.day 是「每学期 2 天」的取模值，拿它减 1 永远是 1
+        # ——旧版标题因此一直显示"第 1 天结束"。
+        new_index = getattr(result, "new_day_index", None)
+        if new_index is None and state is not None:
+            new_index = state.day_index
+        ended_index = max(0, int(new_index) - 1) if new_index is not None else 0
+        day = ended_index % config.DAYS_PER_SEMESTER + 1
         activities = (self.app.flow.activity_log_today()
                       if hasattr(self.app.flow, "activity_log_today") else [])
         names = [self._action_name(aid) for aid in activities]
@@ -919,7 +1008,11 @@ class PauseMenuSceneAdapter(WidgetSceneBase):
 
     def _confirm(self) -> None:
         key = self.widget.confirm()
-        if key == "ui.menu.settings":
+        if key == "ui.menu.resume":
+            # 「继续」以前没有任何分支：PauseMenu.confirm() 已经把控件 hide 掉，
+            # 覆盖层却还留在栈上，输入被锁 —— 表现得就是"菜单不见了但人动不了"。
+            self._resume()
+        elif key == "ui.menu.settings":
             self.app.scenes.push("SettingsMenu")
         elif key == "ui.menu.save":
             self.app.scenes.push("SaveMenu", mode="save")
@@ -941,16 +1034,7 @@ class SettingsMenuSceneAdapter(WidgetSceneBase):
         # Settings is a pushed overlay for both the main menu and pause menu.
         # Hide the screen underneath while it is open, otherwise both sets of
         # labels occupy the same 480x270 canvas and appear on top of each other.
-        overlays = [
-            scene
-            for _scene_id, scene in getattr(self.app.scenes, "overlays", ())
-            if scene is not self
-        ]
-        underlay = overlays[-1] if overlays else getattr(self.app.scenes, "base_scene", None)
-        self._underlay_widget = getattr(underlay, "widget", None)
-        if self._underlay_widget is not None:
-            self._underlay_widget.hide()
-
+        self._hide_underlay()
         super().on_enter(**kwargs)
         self.widget.on_back = self._back
 
@@ -958,9 +1042,19 @@ class SettingsMenuSceneAdapter(WidgetSceneBase):
         super().on_exit()
         # PauseMenu.confirm hides its widget before dispatching any menu action.
         # Restore the underlying menu after settings closes, including that case.
-        if self._underlay_widget is not None:
-            self._underlay_widget.show()
-        self._underlay_widget = None
+        self._restore_underlay()
+        self._apply_audio_settings()
+
+    def _apply_audio_settings(self) -> None:
+        """音量/文本速度要立刻生效：AudioManager.apply_settings() 之前没人调用，
+        只有换曲时才顺手应用，玩家调小音量要等下一首才听得出变化。"""
+        audio = getattr(self.app, "audio", None)
+        apply = getattr(audio, "apply_settings", None)
+        if callable(apply):
+            try:
+                apply()
+            except Exception as exc:  # pragma: no cover - 音频设备缺失时忽略
+                LOG.warning("[SETTINGS] apply audio settings failed: %s", exc)
 
     def _make_widget(self):
         return SettingsMenu(
@@ -973,12 +1067,17 @@ class SettingsMenuSceneAdapter(WidgetSceneBase):
         self.bind("w", lambda: self.widget.move(-1))
         self.bind("arrow_down", lambda: self.widget.move(1))
         self.bind("s", lambda: self.widget.move(1))
-        self.bind("arrow_left", lambda: self.widget.adjust(-1))
-        self.bind("a", lambda: self.widget.adjust(-1))
-        self.bind("arrow_right", lambda: self.widget.adjust(1))
-        self.bind("d", lambda: self.widget.adjust(1))
+        self.bind("arrow_left", lambda: self._adjust(-1))
+        self.bind("a", lambda: self._adjust(-1))
+        self.bind("arrow_right", lambda: self._adjust(1))
+        self.bind("d", lambda: self._adjust(1))
         self.bind("enter", self.widget.confirm)
         self.bind("escape", self.widget.cancel)
+
+    def _adjust(self, direction: int) -> None:
+        """A/D：调整后立刻应用音量，不等换曲。"""
+        self.widget.adjust(direction)
+        self._apply_audio_settings()
 
     def _back(self) -> None:
         self.app.scenes.pop()
@@ -989,9 +1088,16 @@ class SaveMenuSceneAdapter(WidgetSceneBase):
     scene_id = "SaveMenu"
 
     def on_enter(self, **kwargs: Any) -> None:
+        # 从暂停菜单进来时下面那层是暂停菜单：它在 confirm() 里已经 hide 过，
+        # 存档/读档界面退出后必须显回来，否则返回时画面像卡死。
+        self._hide_underlay()
         super().on_enter(**kwargs)
         self.widget.on_done = lambda ok: self._back()
         self.widget.on_loaded = self._loaded
+
+    def on_exit(self) -> None:
+        super().on_exit()
+        self._restore_underlay()
 
     def apply(self, mode: str = "save", **kwargs: Any) -> None:
         self.widget.open(
@@ -1012,9 +1118,14 @@ class SaveMenuSceneAdapter(WidgetSceneBase):
         self.app.scenes.pop()
 
     def _loaded(self, state) -> None:
-        self.app.flow.state = state
+        """读档统一走 GameFlow.adopt_loaded_state。
+
+        以前这里直接改 flow.state 再 change("CampusScene")，绕过了读档后的
+        全部修复：室内存档的人卡在墙里、paused 仍是 True（游玩时长不再累计）、
+        上一局的 today_activities 还在、待处理的学期事件被丢掉。
+        """
         self.app.scenes.pop_all()
-        self.app.scenes.change("CampusScene", spawn=state.world.location_id, state=state)
+        self.app.flow.adopt_loaded_state(state)
 
 
 class GraduationSceneAdapter(WidgetSceneBase):

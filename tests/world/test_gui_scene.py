@@ -117,7 +117,7 @@ def test_interior_scene_world_bounds_and_points(base, map_data):
         assert scene.bounds_world() == Rect(200.0, 0.0, 216.0, 10.0)
         assert scene.entry_world() == (208.0, 1.6, "n")
         assert scene.mat_world() == pytest.approx((208.0, 0.6, 0.8))
-        assert scene.exit_world() == map_data.exit_point("loc_dorm") == (16.924, 7.923, "s")
+        assert scene.exit_world() == map_data.exit_point("loc_dorm") == (16.924, 7.123, "s")
     finally:
         scene.destroy()
 

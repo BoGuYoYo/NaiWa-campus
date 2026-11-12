@@ -197,10 +197,22 @@ def test_exit_points_always_land_outside(map_data):
         assert not map_data.has_interior(location), f"{building.id} 出口地点仍是室内：{location}"
 
 
-def test_exit_point_is_one_metre_outside_the_door(map_data):
-    assert map_data.exit_point("loc_dorm") == (16.924, 7.923, "s")
-    assert map_data.exit_point("loc_library") == (60.896, 30.017, "s")
-    assert map_data.exit_point("loc_canteen") == (40.0, 46.2, "s")
+def test_exit_point_is_outside_the_door_trigger_radius(map_data):
+    """出门落点必须离开门的交互半径。
+
+    BUG：旧版落点只离门 1.0 米，而门的交互半径是 1.2 米 —— 刚出室内就站在
+    「进入」提示里，连按 E 会立刻被送回室内。现在落点固定 1.8 米。
+    """
+    assert map_data.exit_point("loc_dorm") == (16.924, 7.123, "s")
+    assert map_data.exit_point("loc_library") == (60.896, 29.217, "s")
+    assert map_data.exit_point("loc_canteen")[:2] == pytest.approx((40.0, 45.4))
+    doors = {ia.id: ia for ia in map_data.interactables if ia.id.startswith("ia_door_")}
+    for building in map_data.buildings:
+        ex, ey, _facing = map_data.exit_point(building.id)
+        door = doors[f"ia_door_{building.id.removeprefix('loc_')}"]
+        distance = ((ex - door.x) ** 2 + (ey - door.y) ** 2) ** 0.5
+        assert distance > door.radius, f"{building.id} 出门落点仍在门半径内：{distance:.2f}"
+        assert not map_data.is_blocked("campus", ex, ey), f"{building.id} 出门落点落在阻挡体里"
 
 
 def test_interior_entry_is_spawn(map_data):

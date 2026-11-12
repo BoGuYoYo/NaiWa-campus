@@ -176,8 +176,11 @@ class DialogueBox(UIWidget):
         wrapped: list[str] = []
         for line in lines:
             wrapped.extend(theme.wrap_cjk(str(line), limit, self._measure))
-            if len(wrapped) >= theme.MAX_LINES_PER_PAGE:
-                break
+        if len(wrapped) > theme.MAX_LINES_PER_PAGE:
+            # 超出正文区容量的部分会被截掉：这是数据问题（一页塞了太多行），
+            # 必须在日志里留痕，否则玩家只会看到"这段文字突然没了"。
+            _log.warning("dialogue page truncated: %d lines -> %d (%s)",
+                         len(wrapped), theme.MAX_LINES_PER_PAGE, wrapped[theme.MAX_LINES_PER_PAGE][:20])
         return wrapped[: theme.MAX_LINES_PER_PAGE]
 
     def _apply_typewriter(self) -> None:

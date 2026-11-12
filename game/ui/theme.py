@@ -362,4 +362,6 @@ def chars_per_second(text_speed: str) -> float:
 # 教程（D7）的纯逻辑在 tutorial.py；此处只放时长常量
 # ----------------------------------------------------------------------
 TUTORIAL_TAB_TIMEOUT_SECONDS = 30.0
+#: 其余步骤的兜底超时：横幅只靠"按 E"完成时，玩家一直走路就永远不消失。
+TUTORIAL_STEP_TIMEOUT_SECONDS = 45.0
 KEY_HINT_DAYS = 3  # 按键提示仅前 3 天显示

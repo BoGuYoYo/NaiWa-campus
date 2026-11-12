@@ -108,7 +108,9 @@ def test_from_dict_tolerates_garbage_and_clamps():
         "world": {"x": "bad", "facing": "up"},
     }
     state = GameState.from_dict(payload)
-    assert state.day_index == 15
+    # day_index 的上界是 TOTAL_DAYS（第 16 天读完就是 16），不是 TOTAL_DAYS-1：
+    # 钳到 15 会把"已经读完"的存档送回最后一天，再结算一次就是重复触发学期事件。
+    assert state.day_index == 16
     assert state.action_slot == 0
     assert state.mood == 100
     assert state.stats["academic"] == 10  # 非法值回落默认

@@ -165,7 +165,10 @@ class GameState:
     def clamp(self) -> None:
         """读档/外部写入后的兜底钳制；正常流程由 B 的 effects 处理。"""
         self.save_version = _as_int(self.save_version, 1)
-        self.day_index = max(0, min(TOTAL_DAYS - 1, _as_int(self.day_index, 0)))
+        # 第 16 天结束时 B 的 calendar 会把 day_index 推到 TOTAL_DAYS（"已读完"），
+        # 这个值必须原样保存：旧版钳到 TOTAL_DAYS-1 会让读档把人送回最后一天，
+        # 再结算一次就是重复触发第 8 学期事件（幂等保护报错 → 卡死）。
+        self.day_index = max(0, min(TOTAL_DAYS, _as_int(self.day_index, 0)))
         self.action_slot = max(0, min(ACTIONS_PER_DAY, _as_int(self.action_slot, 0)))
         for key in STAT_KEYS:
             self.stats[key] = max(STAT_MIN, min(STAT_MAX, _as_int(self.stats.get(key), 10)))

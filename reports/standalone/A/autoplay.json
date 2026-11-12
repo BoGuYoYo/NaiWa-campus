@@ -1,7 +1,9 @@
 {
   "ok": true,
-  "steps": 57,
+  "steps": 58,
   "phase_trail": [
+    "campus",
+    "event",
     "campus",
     "event",
     "campus",
@@ -27,17 +29,16 @@
     "sem_3_art_contest:help_friend",
     "sem_4_sports_meet:cheer",
     "sem_5_club_election:support",
+    "rel_npc_chenlang_1:continue",
     "sem_6_lab_invite:accept_lab",
     "sem_7_final_project:internship",
     "sem_8_graduation_eve:thesis"
   ],
   "ending_id": "ending_balanced",
   "day_index": 16,
-  "play_seconds": 0.15,
+  "play_seconds": 0.22,
   "errors": [],
-  "missing_assets": [
-    "font_ui"
-  ],
+  "missing_assets": [],
   "save_slots": [
     "slot_1",
     "autosave"

@@ -43,17 +43,23 @@ def move_and_collide(pos, delta, rects: Sequence[Rect], half: float = PLAYER_HAL
     """轴分离扫掠：先 X 后 Y，保证贴墙滑动。
 
     pos / delta 需要带有可读写的 x、y 属性（WorldPos 满足要求）；pos 被就地修改并返回。
+
+    起始位置**已经压着**的矩形不参与本帧解算：这种状态来自旧存档、传送或调试跳转，
+    按「朝哪边走就贴哪条边」解算只会把人瞬间弹到墙的另一侧（表现就是「往某个方向走
+    被推回原处」）。忽略这些矩形，人可以向任意方向直接走出来；离开后它们恢复阻挡。
     """
     steps = max(1, math.ceil(max(abs(delta.x), abs(delta.y)) / (half * 0.5)))
     step_x = delta.x / steps
     step_y = delta.y / steps
+    inside = {id(r) for r in rects if overlap(pos, half, r)}
+    active = [r for r in rects if id(r) not in inside]
     for _ in range(steps):
         pos.x += step_x
-        for r in rects:
+        for r in active:
             if overlap(pos, half, r):
                 pos.x = r.x0 - half - EPS if delta.x > 0 else r.x1 + half + EPS
         pos.y += step_y
-        for r in rects:
+        for r in active:
             if overlap(pos, half, r):
                 pos.y = r.y0 - half - EPS if delta.y > 0 else r.y1 + half + EPS
     return pos

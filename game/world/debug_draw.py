@@ -70,8 +70,14 @@ class DebugDraw:
     def _build_collision(self) -> None:
         if self._collision_built:
             return
+        # 室内的阻挡矩形是房间本地坐标：不加上房间原点，线框会整体画到房间外面
+        # （F1 在室内"看着不像碰撞体"就是这个原因）。
+        ox = oy = 0.0
+        if self.map_data.has_interior(self._scene):
+            ox, oy = self.map_data.interior(self._scene).origin
         for r in self.map_data.colliders_for(self._scene):
-            make_rect_lines(self.collision_root, r.x0, r.y0, r.x1, r.y1, Z_DEBUG, COLLISION_COLOR)
+            make_rect_lines(self.collision_root, r.x0 + ox, r.y0 + oy,
+                            r.x1 + ox, r.y1 + oy, Z_DEBUG, COLLISION_COLOR)
         self._collision_built = True
 
     def _build_interactables(self) -> None:

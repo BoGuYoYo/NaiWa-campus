@@ -337,6 +337,35 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 
 ---
 
+## 全量 BUG 修复（2026-11-13，`reports/review/bughunt_fix.md`）
+
+四方排查合并去重后的 20 条问题，按"高/中/低"逐条修复。对**跨岗位接口**有影响的变更如下
+（其余都是各模块内部实现）：
+
+| 接口 | 变更 | 影响方 |
+| --- | --- | --- |
+| `GameState.clamp()` | `day_index` 上界 `TOTAL_DAYS-1` → `TOTAL_DAYS`（第 16 天读完就是 16，与 `validate()` 一致） | B（模拟器/结局判定不变量）、A |
+| `GameFlow.load_game()` | 拆出公开的 `adopt_loaded_state(state)`：读档后的阶段修复、待结算事件重播、位置校验、毕业回跳全在这里；`load_game()` 与读档界面共用 | D（SaveMenu 适配层改为调用它） |
+| `GameFlow.finish_day()` | 返回 `DayEndResult \| None`；phase 不是 campus 时拒绝结算并记日志（不再覆盖待处理事件） | 调用方需容忍 None |
+| `GameFlow.finish_graduation()` | `state is None` 时直接返回（毕业界面连按不再抛 `RuntimeError`） | D |
+| `RelationshipService.check_stage()` | 新增：把"关系阈值 → 触发阶段事件"从 `talk()` 抽成可复用方法 | A（任意活动后补查）、B 测试 |
+| `EndingService._highlights()` | 学期事件只取已结算的 `id:choice` 并按事件 id 去重（结局回顾不再重复） | D（毕业界面） |
+| `ContentDB` | 新增校验：条件引用的旗标必须有产出来源；结局 `priority` 唯一且为整数；**所有**事件都要有 ≥1 个无条件选项 | B（规则文件作者） |
+| `MapData` | 新增 `is_blocked(location_id, x, y)` / `safe_position(location_id)`；`exit_point()` 落点 1.0 m → `EXIT_DISTANCE = 1.8` m | C（地图/场景）、A（读档校验） |
+| `move_and_collide()` | 起始帧已压着的矩形不参与解算（人能自己走出墙，不再被弹到墙另一侧） | C |
+| `EventScene` | 新增 `on_click()`（选项阶段不确认）、`set_text_speed()`；结果页先补全文字再关 | D |
+| `DialogueBox` | 折行超过 4 行时打 warning（正文被截断不再静默） | D |
+| `theme` | 新增 `TUTORIAL_STEP_TIMEOUT_SECONDS = 45.0`（教程横幅兜底超时） | D |
+| `TutorialController._tick()` | 任意步骤超时自动完成，横幅不会永久占位 | D |
+| `WorldSceneBase` | 新增 `_transitioning()`；黑场期间 E/Tab/Esc 全部忽略；`teleport()` 后立刻重设相机；`_debug_goto(scene, x, y)` 签名对齐 DebugDraw；`InteriorScene` 支持 `at=(x, y)` 落点 | C（调试）、D（界面栈） |
+| `content/world/map.json` | 食堂"阿姨"站位 `(5.0, 9.4) → (5.0, 8.4)`（原来在打饭窗口台矩形里） | C |
+| `SaveManager` | 写 `config.SAVE_VERSION`（不再写 `state.save_version`）；`peek()` 回退 `.bak` | A/E（存档校验） |
+
+守卫测试：`tests/core/test_bughunt_regressions.py`、
+`tests/ui/test_bughunt_ui_regressions.py`；证据：`reports/review/bughunt/*.png`。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

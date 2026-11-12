@@ -40,6 +40,7 @@ class TutorialController:
         self._pending_steps: list[str] = []
         self._moved_meters = 0.0
         self._tab_timer = 0.0
+        self._step_timer = 0.0
 
     # ------------------------------------------------------------------
     def _start(self, step: str) -> None:
@@ -51,6 +52,7 @@ class TutorialController:
                 self._pending_steps.append(step)
             return
         self.active_step = step
+        self._step_timer = 0.0
         if step == "tut.tab":
             self._tab_timer = 0.0
         _log.info("tutorial start: %s", step)
@@ -113,6 +115,17 @@ class TutorialController:
         return self.active_step
 
     def _tick(self, dt: float) -> None:
+        if self.active_step is None:
+            return
+        # 兜底超时：横幅曾经只靠"按 E"完成，玩家不进交互点就一直挂着。
+        # 任何步骤在超时后都自动完成，横幅不做永久占位。
+        self._step_timer += dt
+        limit = (theme.TUTORIAL_TAB_TIMEOUT_SECONDS if self.active_step == "tut.tab"
+                 else theme.TUTORIAL_STEP_TIMEOUT_SECONDS)
+        if self._step_timer >= limit:
+            _log.info("tutorial timeout: %s (%.0fs)", self.active_step, self._step_timer)
+            self._complete(self.active_step)
+            return
         if self.active_step == "tut.tab":
             self._tab_timer += dt
             if self._tab_timer >= theme.TUTORIAL_TAB_TIMEOUT_SECONDS:

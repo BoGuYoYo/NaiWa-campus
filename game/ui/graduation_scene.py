@@ -40,6 +40,7 @@ class GraduationScene(UIWidget):
         self._page = 0
         self._state_snapshot: dict = {}
         self._ending = None
+        self._closed = False
         self.on_back_to_menu = None
         super().__init__(root)
         self.hide()
@@ -50,6 +51,7 @@ class GraduationScene(UIWidget):
         self._ending = ending_result
         self._state_snapshot = state_snapshot or {}
         self._page = 0
+        self._closed = False
         self.show()
         self._render()
 
@@ -144,10 +146,16 @@ class GraduationScene(UIWidget):
 
     # ------------------------------------------------------------------
     def on_space(self) -> None:
+        if self._closed:
+            # 最后一页连按两下：第一次已经隐藏并回主菜单（0.25 秒黑场期间
+            # 本场景还在台上），第二次再调 on_back_to_menu 会把已经没有 state
+            # 的流程推一遍 —— RuntimeError 崩溃。
+            return
         if self._page < len(PAGES) - 1:
             self._page += 1
             self._render()
         else:
+            self._closed = True
             self.hide()
             if self.on_back_to_menu:
                 self.on_back_to_menu()

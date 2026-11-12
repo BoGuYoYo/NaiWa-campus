@@ -24,7 +24,7 @@ from .event_bus import (
 )
 from .results import ActivityResult, DayEndResult, EndingResult, EventResult
 from .scene_manager import SceneManager
-from .state import DEFAULT_SPAWN_LOCATION, GameState, WorldPos, new_state
+from .state import DEFAULT_SPAWN_LOCATION, NPC_IDS, GameState, WorldPos, new_state
 
 LOG = logging.getLogger("naiwa.flow")
 
@@ -289,6 +289,9 @@ class GameFlow:
         self._day_start_emitted_for: int | None = None
         self._pending_day_start = False
         self._pending_graduation = False
+        # 当天第 3 个行动触发了事件：日结算必须等事件关掉之后再补，
+        # 否则"这一天结束"会跟着 ResultPanel 一起被丢掉（P0：日子推不下去）。
+        self._pending_day_end = False
         # 日结算面板关闭后才播学期事件：两个覆盖层不能同时压在屏幕上。
         self._pending_semester_event: DayEndResult | None = None
 
@@ -301,6 +304,10 @@ class GameFlow:
         self.state = state
         self.paused = False
         self._reset_pending_modals()
+        # 新游戏必须清空上一局的行动摘要：DaySummary 读的就是这个列表，
+        # 不清会让"第 1 天结算"列出上一把做过的三件事。
+        self.today_activities = []
+        self.last_activity_result = None
         LOG.info("[FLOW] new game seed=%d skip_intro=%s", actual_seed, skip_intro)
         self.bus.emit(TOPIC_DAY_STARTED, state=state, day_index=state.day_index)
         self._day_start_emitted_for = state.day_index
@@ -329,14 +336,103 @@ class GameFlow:
 
     def load_game(self, slot: str, collision_check=None) -> GameState:
         state = self.saves.load(slot, collision_check=collision_check)
-        self.state = state
-        self.paused = False
-        self._reset_pending_modals()
-        state.phase = "campus"
-        self._restore_outdoor_after_indoor_save(state)
-        self.enter_campus(spawn=state.world.location_id, keep_position=True)
+        self.adopt_loaded_state(state)
         LOG.info("[FLOW] loaded %s day=%d slot=%d", slot, state.day_index, state.action_slot)
         return state
+
+    def adopt_loaded_state(self, state: GameState) -> None:
+        """接管一份已经读出的存档（主菜单"继续"、读档界面共用这一条路径）。
+
+        以前读档界面自己写 ``flow.state = state`` 再 change("CampusScene")，绕过了
+        这里：室内存档读出来人卡在墙里、paused 一直是 True（游玩时长不再累计）、
+        上一局的 today_activities 还在、待处理的学期事件被丢掉。
+        """
+        self.state = state
+        self.paused = False
+        self.today_activities = []
+        self.last_activity_result = None
+        self._reset_pending_modals()
+        self._restore_outdoor_after_indoor_save(state)
+        self._repair_world_position(state)
+
+        if state.ending_id:
+            self._resume_graduation(state)
+            return
+        if state.day_index >= config.TOTAL_DAYS or state.phase in ("graduation", "finished"):
+            # 16 天已经走完（或存档停在毕业界面）：评结局后回毕业界面，
+            # 而不是把人扔回"第 15 天"再结算一次。
+            self._handle_graduation(state)
+            return
+
+        spawn = state.world.location_id
+        pending = state.pending_event_id
+        if pending and not self._event_settled(state, pending):
+            # 存档是在事件播到一半时退出的（例如学期事件：pre_event 自动存档）。
+            # 恢复成"事件待结算"而不是直接回校园，否则事件给的旗标永远拿不到。
+            state.phase = "event"
+            self.enter_campus(
+                spawn=spawn, keep_position=True,
+                on_ready=lambda pid=pending: self._open_pending_event(pid),
+            )
+            return
+
+        state.pending_event_id = None
+        state.phase = "campus"
+        if state.day_finished:
+            # 存档停在"当天行动用完、还没结算"的瞬间：读档后补结算，
+            # 否则所有活动都提示没有行动次数，日子推不下去。
+            self.enter_campus(spawn=spawn, keep_position=True, on_ready=self.finish_day)
+            return
+        self.enter_campus(spawn=spawn, keep_position=True)
+
+    def _event_settled(self, state: GameState, event_id: str) -> bool:
+        """该事件是否已经结算过（规则层的选择记录 / 日常事件早已立即结算）。"""
+        if is_immediate_event(event_id):
+            return True
+        prefix = f"{event_id}:"
+        return any(entry.startswith(prefix) for entry in state.event_log)
+
+    def _open_pending_event(self, event_id: str) -> None:
+        """读档后重新打开一个待结算事件（幂等：同一事件只登记一次）。"""
+        state = self.state
+        if state is None:
+            return
+        state.phase = "event"
+        state.pending_event_id = event_id
+        if event_id not in state.event_log:
+            state.event_log.append(event_id)
+        self.bus.emit(TOPIC_EVENT_STARTED, event_id=event_id)
+        self.scenes.push("EventScene", event_id=event_id)
+
+    def _resume_graduation(self, state: GameState) -> None:
+        """读档落在一份已毕业的存档上：回到毕业界面，而不是不能操作的校园。"""
+        ending_id = state.ending_id or "ending_balanced"
+        state.phase = "graduation"
+        state.ending_id = ending_id
+        self._show_graduation(state, EndingResult(ending_id=ending_id))
+
+    def _repair_world_position(self, state: GameState) -> None:
+        """坐标落在阻挡体里就退回该地点的安全出生点。
+
+        以前 SaveManager 上有 collision_check 钩子，但没有任何调用方传进来，
+        保护等于不存在：室内存的档读出来就卡在室外东墙里，走不动也交互不了。
+        """
+        md = getattr(self.app, "map_data", None)
+        if md is None:
+            return
+        try:
+            blocked = md.is_blocked(state.world.location_id, state.world.x, state.world.y)
+        except Exception as exc:  # 地图缺数据时不要挡住读档
+            LOG.warning("[FLOW] 位置校验跳过（%s）", exc)
+            return
+        if not blocked:
+            return
+        x, y, facing = md.safe_position(state.world.location_id)
+        LOG.warning("[FLOW] 存档坐标 (%.2f, %.2f) 在阻挡体内，退回 %s (%.2f, %.2f)",
+                    state.world.x, state.world.y, state.world.location_id, x, y)
+        state.world.x = float(x)
+        state.world.y = float(y)
+        state.world.facing = facing
 
     def _restore_outdoor_after_indoor_save(self, state: GameState) -> None:
         """存档是在室内存的：读档后必须落回门外，并把地点改成室外区域。
@@ -365,13 +461,17 @@ class GameFlow:
     # ------------------------------------------------------------------ #
     # 场景串联
     # ------------------------------------------------------------------ #
-    def enter_campus(self, spawn: str | None = None, keep_position: bool = False) -> None:
+    def enter_campus(self, spawn: str | None = None, keep_position: bool = False,
+                     on_ready=None) -> None:
         state = self.require_state()
         if not keep_position:
             state.world = WorldPos(location_id=spawn or DEFAULT_SPAWN_LOCATION, x=40.0, y=5.0,
                                    facing="n")
         state.phase = "campus"
-        self.scenes.change("CampusScene", spawn=state.world.location_id, state=state)
+        # on_ready 在淡入结束后回调：覆盖层（待结算事件、补结算日结）必须等
+        # 校园场景真正建好再压上去，否则会被旧场景的 on_exit 拆掉按键绑定。
+        self.scenes.change("CampusScene", spawn=state.world.location_id, state=state,
+                           on_ready=on_ready)
 
     def teleport_to_spawn(self) -> None:
         state = self.require_state()
@@ -400,6 +500,9 @@ class GameFlow:
             self.today_activities.append(result.activity_id)
         LOG.info("[FLOW] activity %s ok=%s deltas=%s slot=%d",
                  result.activity_id, result.ok, result.deltas, state.action_slot)
+        if result.ok and not result.triggered_event_id:
+            # 关系阈值不能只在"交谈"里检查：社团/活动/事件涨上去的关系同样该触发。
+            self._maybe_trigger_relationship_event(result)
         if result.ok and result.triggered_event_id:
             if is_immediate_event(result.triggered_event_id):
                 # B 的日常事件是"立即结算"，不进 EventScene（见 B_delivery 第 3 节第 5 条）。
@@ -412,6 +515,31 @@ class GameFlow:
     def activity_log_today(self) -> list[str]:
         """当天已完成的 action_id 列表（顺序即执行顺序），供日结算面板显示。"""
         return list(self.today_activities)
+
+    def _maybe_trigger_relationship_event(self, result: ActivityResult) -> None:
+        """任何活动结算后补查关系阈值（B 的 RelationshipService.check_stage）。
+
+        一次活动最多触发一段事件，避免一次行动连播三段；触发时把关系加成与
+        旗标并回 result，结果面板与事件流程都按原有的 triggered_event_id 走。
+        """
+        checker = getattr(self.services.relationship, "check_stage", None)
+        if not callable(checker):
+            return
+        state = self.require_state()
+        for npc_id in NPC_IDS:
+            try:
+                event_id, flags, deltas = checker(state, npc_id)
+            except Exception as exc:  # 规则层异常不能把结果面板一起带崩
+                LOG.warning("[FLOW] 关系事件检查失败 %s: %s", npc_id, exc)
+                return
+            if not event_id:
+                continue
+            result.triggered_event_id = event_id
+            result.added_flags.extend(flags)
+            for key, value in deltas.items():
+                result.deltas[key] = result.deltas.get(key, 0) + value
+            LOG.info("[FLOW] %s 触发关系事件 %s（非交谈路径）", npc_id, event_id)
+            return
 
     def close_result_panel(self, result: ActivityResult | None = None) -> None:
         """ResultPanel 关闭时调用：事件优先，其次是日结算。"""
@@ -428,17 +556,29 @@ class GameFlow:
                 return
             state.pending_event_id = payload.triggered_event_id
             state.phase = "event"
+            # 事件优先于日结算，但"这一天结束"不能丢：记下来，等事件结算后补。
+            self._pending_day_end = bool(payload.day_finished)
             self.scenes.push("EventScene", event_id=payload.triggered_event_id)
             return
+        self._pending_day_end = False
         if payload.day_finished:
             self.finish_day()
 
-    def finish_day(self) -> DayEndResult:
+    def finish_day(self) -> DayEndResult | None:
         state = self.require_state()
         calendar = self.services.calendar
+        if state.phase != "campus":
+            # 事件没结算完就结算日期，会让 pending_event_id 被覆盖、事件永久丢失；
+            # 毕业之后更不该再结算。两种都拒绝，并把原因写进日志。
+            LOG.warning("[FLOW] finish_day 被拒绝：phase=%s pending=%s",
+                        state.phase, state.pending_event_id)
+            return None
         result = calendar.end_day(state)
         state.energy = min(state.max_energy(), max(0, state.energy))
-        state.pending_event_id = None
+        # 学期事件由 calendar 写进 pending_event_id + phase=event；这里不能清掉：
+        # 玩家在日结算面板上直接退出时，day_end 自动存档就是唯一的恢复点，
+        # 清掉等于把这一学期的关键事件永久跳过（旗标拿不到，结局判定也跟着变）。
+        state.pending_event_id = result.semester_event_id
         self.bus.emit(TOPIC_DAY_ENDED, result=result, state=state)
         self._autosave(state, reason="day_end")
 
@@ -476,11 +616,17 @@ class GameFlow:
         if self._pending_day_start:
             self._pending_day_start = False
             self._begin_next_day(state)
+            return
+        if state.day_index >= config.TOTAL_DAYS:
+            # 面板已经关掉、也没有待播事件：日期已经越过了最后一天，
+            # 除了毕业没有别的合法去向（读档补结算时会走到这里）。
+            self._handle_graduation(state)
 
     def _reset_pending_modals(self) -> None:
         self._pending_semester_event = None
         self._pending_day_start = False
         self._pending_graduation = False
+        self._pending_day_end = False
 
     def _handle_semester_event(self, state: GameState, result: DayEndResult) -> None:
         event_id = result.semester_event_id
@@ -498,14 +644,19 @@ class GameFlow:
             ending = EndingResult(ending_id=str(ending))
         state.phase = "graduation"
         state.ending_id = ending.ending_id
+        self._show_graduation(state, ending)
+        LOG.info("[FLOW] graduated ending=%s", ending.ending_id)
+
+    def _show_graduation(self, state: GameState, ending: EndingResult) -> None:
+        """进毕业界面（评结局 / 读档回毕业界面 共用）。"""
         self.bus.emit(TOPIC_GAME_GRADUATED, ending=ending, state=state)
         self.scenes.pop_all()
         self.scenes.change("GraduationScene", ending=ending)
-        LOG.info("[FLOW] graduated ending=%s", ending.ending_id)
 
     def _begin_next_day(self, state: GameState) -> None:
         state.action_slot = 0
         state.phase = "campus"
+        state.pending_event_id = None
         self.today_activities = []
         # 结算时人可能还在室内：只改 state.world 会把 location_id 写成 loc_gate，
         # 而场景仍是 InteriorScene —— 室内交互点全部查不到（"内容缺失"），
@@ -524,22 +675,40 @@ class GameFlow:
     # ------------------------------------------------------------------ #
     def handle_event_result(self, result: EventResult) -> None:
         state = self.require_state()
+        next_id = getattr(result, "next_event_id", None)
         state.pending_event_id = None
         self.bus.emit(TOPIC_EVENT_FINISHED, result=result)
         if state.phase == "event":
             state.phase = "campus"
         if state.ending_id:
             return
+        if next_id and not self._event_settled(state, next_id):
+            # 链式事件：B 在 choose() 里把下一段写进 pending_event_id，
+            # 这里必须接着推 EventScene —— 以前统一清成 campus，
+            # 链式事件永远播不到，选项效果却已经生效。
+            state.pending_event_id = next_id
+            state.phase = "event"
+            self._autosave(state, reason="chain_event")
+            self.bus.emit(TOPIC_EVENT_STARTED, event_id=next_id)
+            self.scenes.push("EventScene", event_id=next_id)
+            return
         self._autosave(state, reason="post_event")
-        if self._pending_graduation:
+        if self._pending_graduation or state.phase == "graduation":
             self._pending_graduation = False
             self._pending_day_start = False
+            self._pending_day_end = False
             self._handle_graduation(state)
             return
         if self._pending_day_start:
             # 学期事件结束后才开始新的一天（DaySummary/EventScene 关闭后由调用方保证顺序）
             self._pending_day_start = False
             self._begin_next_day(state)
+            return
+        # 当天最后一个行动触发的事件：事件结算后把"这一天结束"补上（P0 卡死修复）。
+        # state.day_finished 是兜底：读档重播的事件同样要能把这一天收掉。
+        if self._pending_day_end or state.day_finished:
+            self._pending_day_end = False
+            self.finish_day()
 
     def request_save(self, slot: str, manual: bool = True) -> bool:
         state = self.require_state()
@@ -579,7 +748,11 @@ class GameFlow:
         self.scenes.change("MainMenu")
 
     def finish_graduation(self) -> None:
-        state = self.require_state()
+        # 毕业界面的按键在黑场期间仍可能再次触发（连按）；state 已经清空时
+        # 直接忽略，不能拿去 require_state() 抛 RuntimeError。
+        if self.state is None:
+            return
+        state = self.state
         state.phase = "finished"
         self.back_to_main_menu()
 

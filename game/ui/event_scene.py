@@ -201,6 +201,11 @@ class EventScene(UIWidget):
         if self._cursor is None:
             return
         if len(self._cursor.items) <= 1:
+            if not self._has_enabled_choice():
+                # 唯一的选项被锁：不能"按一下就确认"（那是被拒绝的死循环）
+                self._show_lock_hint(self._resolve_lock_text(
+                    self._cursor.items[0][2] or "locked"))
+                return
             # 单个隐式「继续」不需要一个空面板，直接用这次按键确认
             self.page_hint.hide()
             self._confirm_choice()
@@ -211,6 +216,11 @@ class EventScene(UIWidget):
         for label in self.choice_labels:
             label.show()
         self._refresh_cursor()
+
+    def _has_enabled_choice(self) -> bool:
+        if not self._cursor:
+            return False
+        return any(enabled for _id, enabled, _reason in self._cursor.items)
 
     def _next_page(self) -> bool:
         if self._page_index < len(self._pages) - 1:
@@ -224,6 +234,10 @@ class EventScene(UIWidget):
     # ------------------------------------------------------------------
     def on_space(self) -> None:
         if self._showing_result:
+            # 结果页也在打字：第一次按键先把这一页显示完整，再按才关。
+            # 旧版直接 _finish()，玩家没读完就丢了结果。
+            if self.dialogue.advance():
+                return
             self._finish()
             return
         if self.dialogue.advance():
@@ -255,14 +269,32 @@ class EventScene(UIWidget):
             return
         self._emit_choice(choice_id)
 
+    def on_click(self) -> None:
+        """鼠标左键：只当「继续 / 跳过打字机」，不在选项阶段替玩家做选择。
+
+        旧版把 mouse1 直接绑到 on_space，选项摊开后点画面任何位置都会确认
+        当前光标所在的选项 —— 玩家以为在点空白，实际已经选了。
+        """
+        if self._choice_stage:
+            return
+        self.on_space()
+
     def on_escape(self) -> None:
         """Esc：跳过打字机 → 翻页 → 关掉结果页；选项阶段只给提示。"""
         if self._showing_result:
+            if self.dialogue.advance():
+                return
             self._finish()
             return
         if self.dialogue.advance():
             return
         if self._choice_stage:
+            if not self._has_enabled_choice():
+                # 数据异常时（所有选项都被锁）不能把玩家永久关在事件里：
+                # 规则层已经禁止这种事件，这里只是最后一道兜底。
+                _log.error("事件 %s 没有任何可用选项，允许直接离开", self._event_id)
+                self._finish()
+                return
             self._show_lock_hint(self.text_db.get("ui.event.escape_hint"))
             return
         if self._next_page():
@@ -303,6 +335,14 @@ class EventScene(UIWidget):
     def show_simple_pages(self, event_id: str, body_text_ids: list[str]) -> None:
         """无选项事件（关系事件 / 开场 / 日常事件）的展示。"""
         self.load_event({"event_id": event_id, "page_text_ids": body_text_ids, "choices": []})
+
+    def set_text_speed(self, speed_name: str) -> None:
+        """应用 settings.text_speed（slow / normal / fast / instant）。
+
+        以前全项目没有任何地方调用 DialogueBox.set_text_speed，
+        设置菜单里的「文本速度」调了等于没调。
+        """
+        self.dialogue.set_text_speed(speed_name)
 
     def tick(self, dt: float) -> None:
         self.dialogue.tick(dt)

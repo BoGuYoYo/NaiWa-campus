@@ -705,8 +705,25 @@ class InteriorSceneAdapter(WorldSceneBase):
             kwargs["furniture_color"] = furniture_color
         return InteriorScene(
             self.md, self.scene_id, parent, dev=bool(self.app.options.dev),
-            floor_texture=floor, wall_texture=wall, **kwargs,
+            floor_texture=floor, wall_texture=wall,
+            furniture_art=self._furniture_art(), **kwargs,
         )
+
+    def _furniture_art(self) -> dict[str, tuple[Any, float]]:
+        """{furniture_id: (贴图, 高度米)}：给到的家具立成正面卡，没给的仍画盒子。
+
+        高度 = 画布高 / 24（贴图比例已按占地宽 × 实物高做好，`make_prop_card`
+        会按比例把卡片还原成占地宽度）。
+        """
+        short = self.MATERIAL_KEY.get(self.scene_id, self.scene_id.removeprefix("loc_"))
+        out: dict[str, tuple[Any, float]] = {}
+        for furn in self.md.interior(self.scene_id).furniture:
+            asset_id = f"furn_{short}_{furn.id.removeprefix('furn_')}"
+            texture = self._texture(asset_id)
+            if texture is None:
+                continue
+            out[furn.id] = (texture, texture.get_y_size() / 24.0)
+        return out
 
     def _place_for(self, spawn: str) -> str:
         return spawn

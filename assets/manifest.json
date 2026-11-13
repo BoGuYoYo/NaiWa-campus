@@ -1561,6 +1561,278 @@
         0.912,
         0.858
       ]
+    },
+    {
+      "id": "furn_dorm_bed",
+      "type": "image",
+      "path": "interior/dorm/furn_bed.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          96,
+          60
+        ],
+        "height_m": 2.5
+      }
+    },
+    {
+      "id": "furn_dorm_dorm_desk",
+      "type": "image",
+      "path": "interior/dorm/furn_dorm_desk.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          72,
+          34
+        ],
+        "height_m": 1.417
+      }
+    },
+    {
+      "id": "furn_dorm_wardrobe",
+      "type": "image",
+      "path": "interior/dorm/furn_wardrobe.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          32,
+          52
+        ],
+        "height_m": 2.167
+      }
+    },
+    {
+      "id": "furn_teaching_desk_row_n",
+      "type": "image",
+      "path": "interior/teaching/furn_desk_row_n.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          144,
+          28
+        ],
+        "height_m": 1.167
+      }
+    },
+    {
+      "id": "furn_teaching_desk_row_s",
+      "type": "image",
+      "path": "interior/teaching/furn_desk_row_s.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          144,
+          28
+        ],
+        "height_m": 1.167
+      }
+    },
+    {
+      "id": "furn_teaching_podium",
+      "type": "image",
+      "path": "interior/teaching/furn_podium.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          96,
+          32
+        ],
+        "height_m": 1.333
+      }
+    },
+    {
+      "id": "furn_library_reading_table",
+      "type": "image",
+      "path": "interior/library/furn_reading_table.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          96,
+          36
+        ],
+        "height_m": 1.5
+      }
+    },
+    {
+      "id": "furn_library_shelf_w",
+      "type": "image",
+      "path": "interior/library/furn_shelf_w.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          24,
+          49
+        ],
+        "height_m": 2.042
+      }
+    },
+    {
+      "id": "furn_library_shelf_n",
+      "type": "image",
+      "path": "interior/library/furn_shelf_n.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          120,
+          50
+        ],
+        "height_m": 2.083
+      }
+    },
+    {
+      "id": "furn_library_service_desk",
+      "type": "image",
+      "path": "interior/library/furn_service_desk.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          72,
+          31
+        ],
+        "height_m": 1.292
+      }
+    },
+    {
+      "id": "furn_club_pc_desk",
+      "type": "image",
+      "path": "interior/club/furn_pc_desk.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          72,
+          35
+        ],
+        "height_m": 1.458
+      }
+    },
+    {
+      "id": "furn_club_easel",
+      "type": "image",
+      "path": "interior/club/furn_easel.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          30,
+          40
+        ],
+        "height_m": 1.667
+      }
+    },
+    {
+      "id": "furn_club_notice_board",
+      "type": "image",
+      "path": "interior/club/furn_notice_board.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          48,
+          22
+        ],
+        "height_m": 0.917
+      }
+    },
+    {
+      "id": "furn_canteen_food_window",
+      "type": "image",
+      "path": "interior/canteen/furn_food_window.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          192,
+          41
+        ],
+        "height_m": 1.708
+      }
+    },
+    {
+      "id": "furn_canteen_table_e",
+      "type": "image",
+      "path": "interior/canteen/furn_table_e.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          120,
+          29
+        ],
+        "height_m": 1.208
+      }
+    },
+    {
+      "id": "furn_canteen_table_w",
+      "type": "image",
+      "path": "interior/canteen/furn_table_w.png",
+      "license_id": "LIC-0214",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          120,
+          29
+        ],
+        "height_m": 1.208
+      }
     }
   ]
 }

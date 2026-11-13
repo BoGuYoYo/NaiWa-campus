@@ -19,6 +19,7 @@ from game.world.campus_scene import (
     make_box,
     make_circle_lines,
     make_ground,
+    make_prop_card,
     make_wall_panel,
 )
 from game.world.collision import Rect
@@ -79,6 +80,7 @@ class InteriorScene:
         floor_tile_m: float = FLOOR_TILE_M,
         wall_tile_m: float = WALL_TILE_M,
         furniture_color=None,
+        furniture_art=None,
     ):
         self.map_data = map_data
         self.building_id = building_id
@@ -91,6 +93,8 @@ class InteriorScene:
         self.floor_tile_m = floor_tile_m
         self.wall_tile_m = wall_tile_m
         self.furniture_color = furniture_color or FURNITURE_COLOR
+        #: {furniture_id: (texture, 高度米)}；没给到的家具仍画成盒子
+        self.furniture_art = furniture_art or {}
         self.root = parent.attachNewNode(f"InteriorScene_{building_id}")
         self._cooldown = 0.0
         self._build()
@@ -115,8 +119,14 @@ class InteriorScene:
 
         for furn in self.interior.furniture:
             r = furn.rect
-            make_box(self.root, ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1, 0.0, FURNITURE_HEIGHT,
-                     self.furniture_color)
+            art = self.furniture_art.get(furn.id)
+            if art is not None:
+                texture, height = art
+                make_prop_card(self.root, Rect(ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1),
+                               texture, height, name=f"furn_{furn.id}")
+            else:
+                make_box(self.root, ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1, 0.0,
+                         FURNITURE_HEIGHT, self.furniture_color)
 
     def _panel_edge(self, rect: Rect, side: str, w: float, h: float) -> tuple[float, float, float, float]:
         """墙面卡片的底边（房间本地坐标，往房里缩进一点避免与墙体共面闪烁）。"""

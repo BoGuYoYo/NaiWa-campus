@@ -189,8 +189,8 @@ fully transparent background, no text.
 
 ## 6. 接图后要做的事（A）
 
-1. 新增 `tools/import_interior_art.py`：校验尺寸 / 透明 / 32 色 → 落位 → 更新 manifest
-   （`interior_<building>_floor`、`_wall`、`furn_<building>_<id>`）。
+1. 地板/墙面：`tools/import_interior_art.py`（已完成，10 张，LIC-0213）；
+   家具：`tools/import_interior_furniture.py`（已完成，16 件，LIC-0214）。
 2. `game/world/interior_scene.py`：地板换平铺贴图（`set_wrap_u/v(WM_repeat)`），
    家具由 `make_box` 换成 `make_prop_card`，`height = 画布高 / 24`。
 3. 碰撞仍用 `map.json` 的 rect，不改玩法。

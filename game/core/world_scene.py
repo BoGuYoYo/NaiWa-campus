@@ -354,6 +354,25 @@ class WorldSceneBase:
     # ------------------------------------------------------------------ 子类实现
     scene_id = "campus"
 
+    def _texture(self, asset_id: str):
+        """缺资源时返回 None（而不是品红占位图），让场景退回白模。"""
+        registry = self.app.registry
+        if asset_id not in registry or not registry.file_exists(asset_id):
+            LOG.warning("[WORLD] 贴图缺失，跳过：%s", asset_id)
+            return None
+        try:
+            texture = registry.load_texture(asset_id)
+        except Exception as exc:  # pragma: no cover
+            LOG.warning("[WORLD] 贴图加载失败 %s: %s", asset_id, exc)
+            return None
+        from panda3d.core import SamplerState
+
+        # 平铺贴图在斜视角下会缩小很多（墙面相对镜头前倾 40°）：mag 用最近邻
+        # 保持像素硬边，min 用最近邻 mipmap 避免远处闪烁。
+        texture.set_magfilter(SamplerState.FT_nearest)
+        texture.set_minfilter(SamplerState.FT_nearest_mipmap_linear)
+        return texture
+
     def build_scene(self, parent):
         raise NotImplementedError
 
@@ -469,18 +488,6 @@ class CampusSceneAdapter(WorldSceneBase):
         ("prop_gate_notice", "campus_texture_prop_sign", 2.4),
     )
 
-    def _texture(self, asset_id: str):
-        """缺资源时返回 None（而不是品红占位图），让场景退回白模。"""
-        registry = self.app.registry
-        if asset_id not in registry or not registry.file_exists(asset_id):
-            LOG.warning("[WORLD] 贴图缺失，跳过：%s", asset_id)
-            return None
-        try:
-            return registry.load_texture(asset_id)
-        except Exception as exc:  # pragma: no cover
-            LOG.warning("[WORLD] 贴图加载失败 %s: %s", asset_id, exc)
-            return None
-
     def _prop_art(self, prop_id: str):
         for prefix, asset_id, height in self.PROP_ART:
             if prop_id.startswith(prefix):
@@ -583,6 +590,56 @@ class InteriorSceneAdapter(WorldSceneBase):
         "奈珑": "xiaoyou", "小柚": "xiaoyou",
     }
 
+    #: 建筑 id -> 材质素材名（assets/campus/textures/interior/<名>_floor.png）
+    MATERIAL_KEY = {
+        "loc_dorm": "dorm",
+        "loc_classroom": "teaching",
+        "loc_library": "library",
+        "loc_clubroom": "club",
+        "loc_canteen": "canteen",
+    }
+
+    def _material(self, building_id: str, kind: str):
+        """取该建筑的地板/墙面贴图、平铺尺寸（manifest.tile_m）与平均色。"""
+        short = self.MATERIAL_KEY.get(building_id, building_id.removeprefix("loc_"))
+        asset_id = f"interior_{kind}_{short}"
+        texture = self._texture(asset_id)
+        raw: dict[str, Any] = {}
+        try:
+            raw = dict(getattr(self.app.registry.get(asset_id), "raw", None) or {})
+        except Exception:  # pragma: no cover - registry 没有 get 时用默认平铺
+            raw = {}
+        try:
+            tile = float(raw.get("tile_m")) if raw.get("tile_m") else None
+        except (TypeError, ValueError):
+            tile = None
+        average = raw.get("average_rgb")
+        if texture is None:
+            return None, None, None
+        return texture, tile, average
+
+    @staticmethod
+    def _furniture_color(floor_average, wall_average) -> tuple[float, float, float, float] | None:
+        """家具用材质的同色系暗调：不另做贴图也不会和墙地打架。
+
+        地面太深时（图书馆的深胡桃地板亮度只有 0.10，直接乘系数会和地面糊成一片）
+        改用墙面材质的暗调，保证家具轮廓看得见。
+        """
+        def _rgb(values):
+            try:
+                return tuple(float(value) for value in values[:3])
+            except (TypeError, ValueError, IndexError):
+                return None
+
+        floor = _rgb(floor_average) if floor_average else None
+        wall = _rgb(wall_average) if wall_average else None
+        if floor is None:
+            return None
+        luminance = 0.299 * floor[0] + 0.587 * floor[1] + 0.114 * floor[2]
+        base = floor if luminance >= 0.3 or wall is None else wall
+        scale = 0.62
+        return tuple(min(1.0, max(0.05, channel * scale)) for channel in base) + (1.0,)
+
     def on_enter(self, building_id: str | None = None, state: GameState | None = None,
                  at: tuple[float, float] | None = None, **kwargs: Any) -> None:
         self.scene_id = building_id or kwargs.get("scene") or "loc_dorm"
@@ -636,7 +693,20 @@ class InteriorSceneAdapter(WorldSceneBase):
     def build_scene(self, parent):
         from game.world.interior_scene import InteriorScene
 
-        return InteriorScene(self.md, self.scene_id, parent, dev=bool(self.app.options.dev))
+        floor, floor_tile, floor_average = self._material(self.scene_id, "floor")
+        wall, wall_tile, wall_average = self._material(self.scene_id, "wall")
+        kwargs: dict[str, Any] = {}
+        if floor_tile:
+            kwargs["floor_tile_m"] = floor_tile
+        if wall_tile:
+            kwargs["wall_tile_m"] = wall_tile
+        furniture_color = self._furniture_color(floor_average, wall_average)
+        if furniture_color is not None:
+            kwargs["furniture_color"] = furniture_color
+        return InteriorScene(
+            self.md, self.scene_id, parent, dev=bool(self.app.options.dev),
+            floor_texture=floor, wall_texture=wall, **kwargs,
+        )
 
     def _place_for(self, spawn: str) -> str:
         return spawn

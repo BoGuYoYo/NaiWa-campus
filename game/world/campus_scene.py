@@ -67,7 +67,11 @@ Z_AREA = 0.020  # 未登记区域的兜底高度
 
 
 def make_box(parent: NodePath, x0: float, y0: float, x1: float, y1: float, z0: float, z1: float, color) -> NodePath:
-    """在 parent 下生成一个长方体（缺少底面，双面渲染，关闭光照）。"""
+    """在 parent 下生成一个长方体（缺少底面，双面渲染，关闭光照）。
+
+    需要贴材质的面用 `make_wall_panel`（只画室内看得见的那一面）或 `make_ground`；
+    方块本身保持纯色，避免墙顶/外墙也被贴图糊住。
+    """
     fmt = GeomVertexFormat.getV3n3c4()
     vdata = GeomVertexData("box", fmt, Geom.UHStatic)
     vdata.setNumRows(20)
@@ -154,6 +158,63 @@ def make_ground(
         texture.set_wrap_v(Texture.WM_repeat)
         np.set_texture(texture)
         np.set_transparency(TransparencyAttrib.M_none)
+    np.setTwoSided(True)
+    np.setLightOff()
+    return np
+
+
+def make_wall_panel(
+    parent: NodePath,
+    x0: float,
+    y0: float,
+    x1: float,
+    y1: float,
+    z0: float,
+    z1: float,
+    texture,
+    tile_m: float,
+    name: str = "wall_panel",
+) -> NodePath:
+    """竖直墙面（一张四边形）：(x0,y0)-(x1,y1) 是底边，沿 z 立起 z0..z1。
+
+    墙面材质自带踢脚线/墙裙，v 方向铺满整段高度一次、u 方向每 tile_m 米重复一次。
+    与 `make_box` 的区别：这里只画"室内能看见的那一面"，墙体本身另用纯色方块，
+    于是房间读起来是"被剖开的娃娃屋"，不会因为墙顶/外墙也贴材质而糊成一团。
+    """
+    from panda3d.core import Texture
+
+    length = max(1e-6, math.hypot(x1 - x0, y1 - y0))
+    height = max(1e-6, z1 - z0)
+    nx, ny = -(y1 - y0) / length, (x1 - x0) / length
+    fmt = GeomVertexFormat.getV3n3c4t2()
+    vdata = GeomVertexData(name, fmt, Geom.UHStatic)
+    vdata.setNumRows(4)
+    vw = GeomVertexWriter(vdata, "vertex")
+    nw = GeomVertexWriter(vdata, "normal")
+    cw = GeomVertexWriter(vdata, "color")
+    tw = GeomVertexWriter(vdata, "texcoord")
+    for px, py, pz, u in (
+        (x0, y0, z0, 0.0),
+        (x1, y1, z0, length),
+        (x1, y1, z1, length),
+        (x0, y0, z1, 0.0),
+    ):
+        vw.addData3(px, py, pz)
+        nw.addData3(nx, ny, 0.0)
+        cw.addData4(1.0, 1.0, 1.0, 1.0)
+        tw.addData2(u / max(1e-6, tile_m), (pz - z0) / height)
+    tris = GeomTriangles(Geom.UHStatic)
+    tris.addVertices(0, 1, 2)
+    tris.addVertices(0, 2, 3)
+    geom = Geom(vdata)
+    geom.addPrimitive(tris)
+    node = GeomNode(name)
+    node.addGeom(geom)
+    np = parent.attachNewNode(node)
+    texture.set_wrap_u(Texture.WM_repeat)
+    texture.set_wrap_v(Texture.WM_repeat)
+    np.set_texture(texture)
+    np.set_transparency(TransparencyAttrib.M_none)
     np.setTwoSided(True)
     np.setLightOff()
     return np

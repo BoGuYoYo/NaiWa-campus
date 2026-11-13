@@ -1381,6 +1381,186 @@
         "prop_card",
         "generated_texture"
       ]
+    },
+    {
+      "id": "interior_floor_dorm",
+      "type": "image",
+      "path": "campus/textures/interior/dorm_floor.png",
+      "license_id": "LIC-0213",
+      "tile_m": 4.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.586,
+        0.334,
+        0.192
+      ]
+    },
+    {
+      "id": "interior_wall_dorm",
+      "type": "image",
+      "path": "campus/textures/interior/dorm_wall.png",
+      "license_id": "LIC-0213",
+      "tile_m": 3.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.841,
+        0.811,
+        0.784
+      ]
+    },
+    {
+      "id": "interior_floor_teaching",
+      "type": "image",
+      "path": "campus/textures/interior/teaching_floor.png",
+      "license_id": "LIC-0213",
+      "tile_m": 4.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.739,
+        0.776,
+        0.738
+      ]
+    },
+    {
+      "id": "interior_wall_teaching",
+      "type": "image",
+      "path": "campus/textures/interior/teaching_wall.png",
+      "license_id": "LIC-0213",
+      "tile_m": 3.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.761,
+        0.779,
+        0.748
+      ]
+    },
+    {
+      "id": "interior_floor_library",
+      "type": "image",
+      "path": "campus/textures/interior/library_floor.png",
+      "license_id": "LIC-0213",
+      "tile_m": 4.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.17,
+        0.08,
+        0.061
+      ]
+    },
+    {
+      "id": "interior_wall_library",
+      "type": "image",
+      "path": "campus/textures/interior/library_wall.png",
+      "license_id": "LIC-0213",
+      "tile_m": 2.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.661,
+        0.617,
+        0.533
+      ]
+    },
+    {
+      "id": "interior_floor_club",
+      "type": "image",
+      "path": "campus/textures/interior/club_floor.png",
+      "license_id": "LIC-0213",
+      "tile_m": 4.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.522,
+        0.542,
+        0.565
+      ]
+    },
+    {
+      "id": "interior_wall_club",
+      "type": "image",
+      "path": "campus/textures/interior/club_wall.png",
+      "license_id": "LIC-0213",
+      "tile_m": 3.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.716,
+        0.717,
+        0.699
+      ]
+    },
+    {
+      "id": "interior_floor_canteen",
+      "type": "image",
+      "path": "campus/textures/interior/canteen_floor.png",
+      "license_id": "LIC-0213",
+      "tile_m": 4.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.956,
+        0.941,
+        0.911
+      ]
+    },
+    {
+      "id": "interior_wall_canteen",
+      "type": "image",
+      "path": "campus/textures/interior/canteen_wall.png",
+      "license_id": "LIC-0213",
+      "tile_m": 2.0,
+      "tags": [
+        "final",
+        "material",
+        "tileable",
+        "user_provided"
+      ],
+      "average_rgb": [
+        0.944,
+        0.912,
+        0.858
+      ]
     }
   ]
 }

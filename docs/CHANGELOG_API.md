@@ -366,6 +366,29 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 
 ---
 
+## 室内建筑材质接入（2026-11-13）
+
+用户提供 `素材/建筑材质/`（五栋楼 × 地板/墙面 = 10 张）。落地为可直接平铺的贴图 +
+数据驱动的 UV：
+
+| 文件 | 变更 |
+| --- | --- |
+| `tools/import_interior_art.py` | 新增：中心裁方 → 两步缩放（LANCZOS→BOX，保住瓷砖缝/木纹）→ 量化 64 色；地板 96×96（4 m 平铺）、墙面按 3 m 层高 72 px 并保留原宽高比；同时写出 manifest 的 `tile_m` 与 `average_rgb` |
+| `assets/campus/textures/interior/*.png` | 10 张成品贴图（`<建筑>_floor.png` / `<建筑>_wall.png`） |
+| `assets/manifest.json` | 新增 10 条 `interior_{floor,wall}_<建筑>`：`tile_m`（平铺米数）、`average_rgb`（家具取色用）、`license_id=LIC-0213` |
+| `assets/LICENSES.csv` | 新增 `LIC-0213`（用户提供的 AI 生成建筑材质） |
+| `game/world/campus_scene.py` | 新增 `make_wall_panel(...)`：只画"室内看得见的那一面"的竖直墙面卡片（u 每 `tile_m` 米重复、v 铺满整段高度一次）；`make_box` 保持纯色（墙顶/外墙不能被贴图糊住） |
+| `game/world/interior_scene.py` | `InteriorScene(..., floor_texture, wall_texture, floor_tile_m, wall_tile_m, furniture_color)`；新增 `wall_side(rect, size, thickness)` 与 `_panel_edge()`；**南墙改为 0.35 m 剖切矮墙**（3 米高会把门口地垫整块挡住），其余墙 3 m；家具取材质同色系暗调 |
+| `game/core/world_scene.py` | `_texture()` 上移到 `WorldSceneBase`（mag 最近邻 / min 最近邻 mipmap）；`InteriorSceneAdapter._material()` 按 `MATERIAL_KEY` 取材质与 `tile_m`；`_furniture_color()` 派生家具色 |
+
+守卫：`tests/world/test_interior_materials.py`（manifest/文件/像素密度、墙体分类与
+卡片朝向、家具取色规则）；截图：`reports/review/interiors/*.png`。
+
+> 换成像素风贴图时**不需要改代码**：保持地板 96 px = 4 m、墙面 72 px = 3 m，
+> 并让 manifest 的 `tile_m` 与实际平铺米数一致即可。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

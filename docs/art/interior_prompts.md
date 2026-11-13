@@ -188,6 +188,13 @@ a menu board on the wall (color blocks only). Bright, clean, slightly steamy.
 
 ## 3. 装修贴图（每栋 2 张：地板 + 墙面）
 
+> **状态（2026-11-13）：本节已被实际素材替代，暂不需要再生成。**
+> 用户已提供 `素材/建筑材质/`（五栋楼的地板 + 墙面共 10 张），由
+> `tools/import_interior_art.py` 落成 `assets/campus/textures/interior/<建筑>_{floor,wall}.png`
+> 并登记进 manifest（`tile_m` / `average_rgb`）。落地规格：地板 96×96 = 4 m 平铺、
+> 墙面高 72 px = 3 m 层高（24 px/m）。若将来要换成像素风贴图，保持这两个尺寸
+> 与 manifest 里的 `tile_m` 一致即可直接替换，无需改代码。
+
 **规格**：`floor` 64×64 px（= 2.67 m 的四方连续砖块，**必须无缝平铺**）；`wall` 64×72 px（2.67 m 宽 × 3 m 高，同样四方连续）。
 
 **统一提示词模板（中文）**

@@ -17,7 +17,7 @@ from typing import Any
 
 APP_NAME = "NaiwaCampus"
 GAME_VERSION = "0.1.0"
-SAVE_VERSION = 1
+SAVE_VERSION = 2
 
 # 内部画布与像素密度：全项目唯一来源，任何模块都必须从这里取。
 INTERNAL_WIDTH = 480

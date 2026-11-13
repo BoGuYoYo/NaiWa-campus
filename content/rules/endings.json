@@ -1,14 +1,31 @@
 [
   {
-    "id": "ending_academic",
-    "name": "学术研究",
+    "id": "ending_delayed",
+    "name": "延毕结局",
     "priority": 1,
     "conditions": [
       {
         "type": "stat",
         "key": "academic",
+        "op": "<",
+        "value": 40
+      }
+    ],
+    "matched": [
+      "学业低于 40",
+      "毕业资格不足"
+    ]
+  },
+  {
+    "id": "ending_kaoyan",
+    "name": "考研结局",
+    "priority": 2,
+    "conditions": [
+      {
+        "type": "stat",
+        "key": "academic",
         "op": ">=",
-        "value": 70
+        "value": 75
       },
       {
         "type": "counter",
@@ -17,26 +34,33 @@
         "value": 10
       },
       {
+        "type": "rel",
+        "key": "npc_chenlang",
+        "op": ">=",
+        "value": 60
+      },
+      {
         "type": "flag",
-        "key": "accepted_lab"
+        "key": "kaoyan_partner"
       }
     ],
     "matched": [
-      "学业 70+",
+      "学业 75+",
       "图书馆学习 10 次以上",
-      "加入课题组"
+      "李振兴关系 60+",
+      "考研搭子"
     ]
   },
   {
-    "id": "ending_club_leader",
-    "name": "社团领袖",
-    "priority": 2,
+    "id": "ending_tech_master",
+    "name": "技术大牛",
+    "priority": 3,
     "conditions": [
       {
         "type": "stat",
         "key": "social",
         "op": ">=",
-        "value": 60
+        "value": 55
       },
       {
         "type": "counter",
@@ -48,119 +72,79 @@
         "type": "rel",
         "key": "npc_sumo",
         "op": ">=",
-        "value": 60
-      },
-      {
-        "type": "flag",
-        "key": "ran_for_president"
-      }
-    ],
-    "matched": [
-      "社交 60+",
-      "参加社团 10 次以上",
-      "符闹吃关系 60+",
-      "参加社长竞选"
-    ]
-  },
-  {
-    "id": "ending_creator",
-    "name": "独立创作者",
-    "priority": 3,
-    "conditions": [
-      {
-        "type": "stat",
-        "key": "interest",
-        "op": ">=",
-        "value": 60
-      },
-      {
-        "type": "counter",
-        "key": "create_count",
-        "op": ">=",
-        "value": 8
-      },
-      {
-        "type": "flag",
-        "key": "held_exhibition"
-      }
-    ],
-    "matched": [
-      "兴趣 60+",
-      "创作 8 次以上",
-      "举办个人作品展"
-    ]
-  },
-  {
-    "id": "ending_digital",
-    "name": "数字内容方向",
-    "priority": 4,
-    "conditions": [
-      {
-        "type": "stat",
-        "key": "interest",
-        "op": ">=",
-        "value": 60
-      },
-      {
-        "type": "counter",
-        "key": "games_count",
-        "op": ">=",
-        "value": 10
-      },
-      {
-        "type": "flag",
-        "key": "joined_game_jam"
-      }
-    ],
-    "matched": [
-      "兴趣 60+",
-      "打游戏 10 次以上",
-      "参加游戏创作马拉松"
-    ]
-  },
-  {
-    "id": "ending_vibrant",
-    "name": "活力生活家",
-    "priority": 5,
-    "conditions": [
-      {
-        "type": "stat",
-        "key": "stamina",
-        "op": ">=",
-        "value": 55
+        "value": 65
       },
       {
         "type": "stat",
-        "key": "social",
+        "key": "academic",
         "op": ">=",
         "value": 40
       },
       {
-        "type": "mood",
-        "op": ">=",
-        "value": 70
-      },
-      {
-        "type": "counter",
-        "key": "exercise_count",
-        "op": ">=",
-        "value": 10
+        "type": "flag",
+        "key": "tech_project"
       }
     ],
     "matched": [
-      "体力 55+",
-      "社交 40+",
-      "心情 70+",
-      "操场锻炼 10 次以上"
+      "社交 55+",
+      "参加社团 10 次以上",
+      "符闹吃关系 65+",
+      "学业 40+",
+      "技术项目"
     ]
   },
   {
-    "id": "ending_balanced",
-    "name": "平衡毕业生",
-    "priority": 6,
+    "id": "ending_romance_nailong",
+    "name": "坠入爱河",
+    "priority": 4,
+    "conditions": [
+      {
+        "type": "rel",
+        "key": "npc_xiaoyou",
+        "op": ">=",
+        "value": 80
+      },
+      {
+        "type": "stat",
+        "key": "interest",
+        "op": ">=",
+        "value": 55
+      },
+      {
+        "type": "counter_sum",
+        "keys": [
+          "create_count",
+          "games_count"
+        ],
+        "op": ">=",
+        "value": 10
+      },
+      {
+        "type": "stat",
+        "key": "academic",
+        "op": ">=",
+        "value": 40
+      },
+      {
+        "type": "flag",
+        "key": "confessed_nailong"
+      }
+    ],
+    "matched": [
+      "奈珑关系 80+",
+      "兴趣 55+",
+      "创作与打游戏合计 10 次以上",
+      "学业 40+",
+      "表白成功"
+    ]
+  },
+  {
+    "id": "ending_mediocre",
+    "name": "平平无奇",
+    "priority": 5,
     "conditions": [],
     "matched": [
-      "没有走上任何专精路线，但四年顺利毕业"
+      "学业达到毕业线，但没有完成任何专精路线"
     ]
   }
 ]

@@ -127,8 +127,8 @@ def test_every_semester_choice_applies_declared_effects(state, events, db,
         assert state.pending_event_id is None
 
 
-def test_semester_choice_count_is_24(db):
-    assert len(CHOICES) == 24
+def test_semester_choice_count_is_25(db):
+    assert len(CHOICES) == 25
 
 
 # ---------------------------------------------------------------------------
@@ -166,26 +166,27 @@ def test_every_daily_event_applies(state, activity, db, monkeypatch, index):
 
 
 # ---------------------------------------------------------------------------
-# 6 个结局
+# 5 个结局
 # ---------------------------------------------------------------------------
 ENDING_SETUPS = {
-    "ending_academic": {
-        "stats.academic": 70, "counters.library_count": 10, "flags": ["accepted_lab"],
+    "ending_delayed": {
+        "stats.academic": 39,
     },
-    "ending_club_leader": {
-        "stats.social": 60, "counters.club_count": 10,
-        "relationships.npc_sumo": 60, "flags": ["ran_for_president"],
+    "ending_kaoyan": {
+        "stats.academic": 75, "counters.library_count": 10,
+        "relationships.npc_chenlang": 60, "flags": ["kaoyan_partner"],
     },
-    "ending_creator": {
-        "stats.interest": 60, "counters.create_count": 8, "flags": ["held_exhibition"],
+    "ending_tech_master": {
+        "stats.academic": 40, "stats.social": 55, "counters.club_count": 10,
+        "relationships.npc_sumo": 65, "flags": ["tech_project"],
     },
-    "ending_digital": {
-        "stats.interest": 60, "counters.games_count": 10, "flags": ["joined_game_jam"],
+    "ending_romance_nailong": {
+        "stats.academic": 40, "stats.interest": 55,
+        "relationships.npc_xiaoyou": 80,
+        "counters.create_count": 5, "counters.games_count": 5,
+        "flags": ["confessed_nailong"],
     },
-    "ending_vibrant": {
-        "stats.stamina": 55, "stats.social": 40, "mood": 70, "counters.exercise_count": 10,
-    },
-    "ending_balanced": {},
+    "ending_mediocre": {"stats.academic": 40},
 }
 
 
@@ -207,14 +208,16 @@ def test_each_ending_is_reachable(state, endings, ending_id):
     assert endings.evaluate(state).ending_id == ending_id
 
 
-def test_creator_has_priority_over_digital(state, endings):
-    """creator（优先级 3）与 digital（4）同时满足时取 creator。"""
+def test_delayed_has_priority_over_graduation_routes(state, endings):
+    """学业红线优先于所有毕业去向。"""
     _apply_setup(state, {
-        "stats.interest": 60,
-        "counters.create_count": 8, "counters.games_count": 10,
-        "flags": ["held_exhibition", "joined_game_jam"],
+        "stats.academic": 39,
+        "stats.interest": 80,
+        "relationships.npc_xiaoyou": 100,
+        "counters.create_count": 8, "counters.games_count": 8,
+        "flags": ["confessed_nailong"],
     })
-    assert endings.evaluate(state).ending_id == "ending_creator"
+    assert endings.evaluate(state).ending_id == "ending_delayed"
 
 
 # ---------------------------------------------------------------------------

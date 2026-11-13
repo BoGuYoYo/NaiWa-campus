@@ -1,44 +1,82 @@
 {
-  "academic": {
-    "ending_id": "ending_academic",
-    "stats": {"academic": 100, "stamina": 27, "social": 35, "interest": 17},
-    "mood": 26,
-    "relationships": {"npc_sumo": 5, "npc_chenlang": 100, "npc_xiaoyou": 8},
-    "min_end_energy": 29
-  },
-  "club_leader": {
-    "ending_id": "ending_club_leader",
-    "stats": {"academic": 44, "stamina": 27, "social": 100, "interest": 35},
-    "mood": 67,
-    "relationships": {"npc_sumo": 100, "npc_chenlang": 0, "npc_xiaoyou": 8},
-    "min_end_energy": 52
-  },
-  "creator": {
-    "ending_id": "ending_creator",
-    "stats": {"academic": 32, "stamina": 28, "social": 32, "interest": 100},
+  "kaoyan": {
+    "ending_id": "ending_kaoyan",
+    "stats": {
+      "academic": 100,
+      "stamina": 32,
+      "social": 22,
+      "interest": 14
+    },
     "mood": 100,
-    "relationships": {"npc_sumo": 5, "npc_chenlang": 0, "npc_xiaoyou": 100},
+    "relationships": {
+      "npc_sumo": 0,
+      "npc_chenlang": 100,
+      "npc_xiaoyou": 0
+    },
+    "min_end_energy": 39
+  },
+  "tech_master": {
+    "ending_id": "ending_tech_master",
+    "stats": {
+      "academic": 46,
+      "stamina": 32,
+      "social": 84,
+      "interest": 29
+    },
+    "mood": 100,
+    "relationships": {
+      "npc_sumo": 100,
+      "npc_chenlang": 0,
+      "npc_xiaoyou": 0
+    },
+    "min_end_energy": 55
+  },
+  "romance_nailong": {
+    "ending_id": "ending_romance_nailong",
+    "stats": {
+      "academic": 46,
+      "stamina": 30,
+      "social": 26,
+      "interest": 66
+    },
+    "mood": 100,
+    "relationships": {
+      "npc_sumo": 0,
+      "npc_chenlang": 0,
+      "npc_xiaoyou": 100
+    },
+    "min_end_energy": 56
+  },
+  "delayed": {
+    "ending_id": "ending_delayed",
+    "stats": {
+      "academic": 20,
+      "stamina": 31,
+      "social": 16,
+      "interest": 62
+    },
+    "mood": 100,
+    "relationships": {
+      "npc_sumo": 0,
+      "npc_chenlang": 5,
+      "npc_xiaoyou": 58
+    },
     "min_end_energy": 79
   },
-  "digital": {
-    "ending_id": "ending_digital",
-    "stats": {"academic": 44, "stamina": 28, "social": 32, "interest": 100},
+  "mediocre": {
+    "ending_id": "ending_mediocre",
+    "stats": {
+      "academic": 55,
+      "stamina": 60,
+      "social": 44,
+      "interest": 50
+    },
     "mood": 100,
-    "relationships": {"npc_sumo": 5, "npc_chenlang": 0, "npc_xiaoyou": 100},
-    "min_end_energy": 53
-  },
-  "vibrant": {
-    "ending_id": "ending_vibrant",
-    "stats": {"academic": 14, "stamina": 98, "social": 80, "interest": 22},
-    "mood": 100,
-    "relationships": {"npc_sumo": 100, "npc_chenlang": 0, "npc_xiaoyou": 8},
-    "min_end_energy": 43
-  },
-  "balanced": {
-    "ending_id": "ending_balanced",
-    "stats": {"academic": 55, "stamina": 66, "social": 58, "interest": 56},
-    "mood": 100,
-    "relationships": {"npc_sumo": 44, "npc_chenlang": 0, "npc_xiaoyou": 30},
+    "relationships": {
+      "npc_sumo": 34,
+      "npc_chenlang": 5,
+      "npc_xiaoyou": 32
+    },
     "min_end_energy": 72
   }
 }

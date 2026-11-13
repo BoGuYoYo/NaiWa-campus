@@ -73,7 +73,7 @@ def test_official_content_covers_required_ids(project_root):
     assert len(daily) == 12
 
     endings = {k.split(".")[1] for k in strings if k.startswith("ending.") and k.endswith(".title")}
-    assert len(endings) == 6
+    assert len(endings) == 5
 
     npc = {k.split(".")[1] for k in strings if k.startswith("npc.") and k.endswith(".name")}
     assert npc == {"sumo", "chenlang", "xiaoyou"}

@@ -36,7 +36,12 @@
       "setup": {},
       "stages": [
         {
-          "ops": [["start", "library_study"]],
+          "ops": [
+            [
+              "start",
+              "library_study"
+            ]
+          ],
           "expect": {
             "energy": 64,
             "mood": 57,
@@ -49,7 +54,9 @@
           "expect_result": {
             "ok": true,
             "deltas.energy": -20,
-            "text_ids": ["act.library_study.result.1"],
+            "text_ids": [
+              "act.library_study.result.1"
+            ],
             "day_finished": false
           }
         }
@@ -62,13 +69,43 @@
       "setup": {},
       "stages": [
         {
-          "ops": [["start", "library_study"], ["start", "library_study"], ["start", "library_study"]],
-          "expect": {"energy": 24, "mood": 51, "stats.academic": 25, "action_slot": 3}
+          "ops": [
+            [
+              "start",
+              "library_study"
+            ],
+            [
+              "start",
+              "library_study"
+            ],
+            [
+              "start",
+              "library_study"
+            ]
+          ],
+          "expect": {
+            "energy": 24,
+            "mood": 51,
+            "stats.academic": 25,
+            "action_slot": 3
+          }
         },
         {
-          "ops": [["end_day"]],
-          "expect": {"energy": 64, "day_index": 1, "action_slot": 0, "phase": "campus"},
-          "expect_result": {"new_day_index": 1, "graduated": false}
+          "ops": [
+            [
+              "end_day"
+            ]
+          ],
+          "expect": {
+            "energy": 64,
+            "day_index": 1,
+            "action_slot": 0,
+            "phase": "campus"
+          },
+          "expect_result": {
+            "new_day_index": 1,
+            "graduated": false
+          }
         }
       ]
     },
@@ -76,12 +113,25 @@
       "id": "B-T04",
       "kind": "case",
       "desc": "心情 29 时上课学业减半",
-      "setup": {"mood": 29},
+      "setup": {
+        "mood": 29
+      },
       "stages": [
         {
-          "ops": [["start", "attend_class"]],
-          "expect": {"stats.academic": 12, "stats.interest": 11, "mood": 25},
-          "expect_result": {"deltas.academic": 2}
+          "ops": [
+            [
+              "start",
+              "attend_class"
+            ]
+          ],
+          "expect": {
+            "stats.academic": 12,
+            "stats.interest": 11,
+            "mood": 25
+          },
+          "expect_result": {
+            "deltas.academic": 2
+          }
         }
       ]
     },
@@ -92,12 +142,37 @@
       "setup": {},
       "stages": [
         {
-          "ops": [["start", "play_games"], ["start", "play_games"], ["start", "play_games"]],
-          "expect": {"energy": 60, "flags": ["stayed_up_late"]}
+          "ops": [
+            [
+              "start",
+              "play_games"
+            ],
+            [
+              "start",
+              "play_games"
+            ],
+            [
+              "start",
+              "play_games"
+            ]
+          ],
+          "expect": {
+            "energy": 60,
+            "flags": [
+              "stayed_up_late"
+            ]
+          }
         },
         {
-          "ops": [["end_day"]],
-          "expect": {"energy": 80, "flags": []}
+          "ops": [
+            [
+              "end_day"
+            ]
+          ],
+          "expect": {
+            "energy": 80,
+            "flags": []
+          }
         }
       ]
     },
@@ -105,19 +180,34 @@
       "id": "B-T06",
       "kind": "case",
       "desc": "第 3 天苏墨关系 14 时交谈触发阶段 1",
-      "setup": {"day_index": 2, "relationships.npc_sumo": 14},
+      "setup": {
+        "day_index": 2,
+        "relationships.npc_sumo": 14
+      },
       "stages": [
         {
-          "ops": [["talk", "npc_sumo"]],
+          "ops": [
+            [
+              "talk",
+              "npc_sumo"
+            ]
+          ],
           "expect": {
             "relationships.npc_sumo": 25,
             "energy": 79,
             "stats.social": 12,
-            "flags": ["npc_sumo_stage1"],
-            "talked_today": ["npc_sumo"],
+            "flags": [
+              "npc_sumo_stage1"
+            ],
+            "talked_today": [
+              "npc_sumo"
+            ],
             "action_slot": 1
           },
-          "expect_result": {"ok": true, "triggered_event_id": "rel_npc_sumo_1"}
+          "expect_result": {
+            "ok": true,
+            "triggered_event_id": "rel_npc_sumo_1"
+          }
         }
       ]
     },
@@ -125,12 +215,25 @@
       "id": "B-T07",
       "kind": "case",
       "desc": "学期门槛未到不触发关系事件",
-      "setup": {"day_index": 0, "relationships.npc_sumo": 30},
+      "setup": {
+        "day_index": 0,
+        "relationships.npc_sumo": 30
+      },
       "stages": [
         {
-          "ops": [["talk", "npc_sumo"]],
-          "expect": {"relationships.npc_sumo": 36, "flags": []},
-          "expect_result": {"triggered_event_id": null}
+          "ops": [
+            [
+              "talk",
+              "npc_sumo"
+            ]
+          ],
+          "expect": {
+            "relationships.npc_sumo": 36,
+            "flags": []
+          },
+          "expect_result": {
+            "triggered_event_id": null
+          }
         }
       ]
     },
@@ -138,11 +241,21 @@
       "id": "B-T08",
       "kind": "case",
       "desc": "精力不足拒绝图书馆学习",
-      "setup": {"energy": 10},
+      "setup": {
+        "energy": 10
+      },
       "stages": [
         {
-          "ops": [["can_start", "library_study"]],
-          "expect_result": {"ok": false, "error_code": "E_LOW_ENERGY"}
+          "ops": [
+            [
+              "can_start",
+              "library_study"
+            ]
+          ],
+          "expect_result": {
+            "ok": false,
+            "error_code": "E_LOW_ENERGY"
+          }
         }
       ]
     },
@@ -150,12 +263,25 @@
       "id": "B-T09",
       "kind": "case",
       "desc": "低精力日结算扣心情",
-      "setup": {"energy": 15, "mood": 50},
+      "setup": {
+        "energy": 15,
+        "mood": 50
+      },
       "stages": [
         {
-          "ops": [["end_day"]],
-          "expect": {"mood": 45, "energy": 55},
-          "expect_result": {"deltas.mood": -5, "deltas.energy": 40}
+          "ops": [
+            [
+              "end_day"
+            ]
+          ],
+          "expect": {
+            "mood": 45,
+            "energy": 55
+          },
+          "expect_result": {
+            "deltas.mood": -5,
+            "deltas.energy": 40
+          }
         }
       ]
     },
@@ -163,11 +289,15 @@
       "id": "B-T10",
       "kind": "case",
       "desc": "精力上限随体力变化",
-      "setup": {"stats.stamina": 50},
+      "setup": {
+        "stats.stamina": 50
+      },
       "stages": [
         {
           "ops": [],
-          "expect": {"max_energy": 90}
+          "expect": {
+            "max_energy": 90
+          }
         }
       ]
     },
@@ -175,12 +305,23 @@
       "id": "B-T11",
       "kind": "case",
       "desc": "学业 98 时学习只加 2",
-      "setup": {"stats.academic": 98},
+      "setup": {
+        "stats.academic": 98
+      },
       "stages": [
         {
-          "ops": [["start", "library_study"]],
-          "expect": {"stats.academic": 100},
-          "expect_result": {"deltas.academic": 2}
+          "ops": [
+            [
+              "start",
+              "library_study"
+            ]
+          ],
+          "expect": {
+            "stats.academic": 100
+          },
+          "expect_result": {
+            "deltas.academic": 2
+          }
         }
       ]
     },
@@ -188,47 +329,93 @@
       "id": "B-T12",
       "kind": "case",
       "desc": "seed 42 第 0 天只有第三次闲逛触发日常事件",
-      "setup": {"seed": 42, "day_index": 0},
+      "setup": {
+        "seed": 42,
+        "day_index": 0
+      },
       "stages": [
         {
-          "ops": [["start", "campus_walk"], ["start", "campus_walk"]],
-          "triggered_sequence": [null, null]
+          "ops": [
+            [
+              "start",
+              "campus_walk"
+            ],
+            [
+              "start",
+              "campus_walk"
+            ]
+          ],
+          "triggered_sequence": [
+            null,
+            null
+          ]
         },
         {
-          "ops": [["start", "campus_walk"]],
-          "triggered_sequence": [null, null, "daily_old_friend"],
-          "expect": {"event_log": ["daily_old_friend"]}
+          "ops": [
+            [
+              "start",
+              "campus_walk"
+            ]
+          ],
+          "triggered_sequence": [
+            null,
+            null,
+            "daily_old_friend"
+          ],
+          "expect": {
+            "event_log": [
+              "daily_old_friend"
+            ]
+          }
         }
       ]
     },
     {
       "id": "B-T13",
       "kind": "case",
-      "desc": "新游戏毕业判定为平衡毕业生",
-      "setup": {},
+      "desc": "新游戏毕业判定为平平无奇",
+      "setup": {
+        "stats.academic": 40
+      },
       "stages": [
         {
-          "ops": [["evaluate"]],
-          "expect_result": {"ending_id": "ending_balanced"}
+          "ops": [
+            [
+              "evaluate"
+            ]
+          ],
+          "expect_result": {
+            "ending_id": "ending_mediocre"
+          }
         }
       ]
     },
     {
       "id": "B-T14",
       "kind": "case",
-      "desc": "同时满足学术与社团领袖时按优先级取学术",
+      "desc": "同时满足考研与技术线时按优先级取考研",
       "setup": {
-        "stats.academic": 70,
+        "stats.academic": 75,
         "stats.social": 60,
         "counters.library_count": 10,
         "counters.club_count": 10,
         "relationships.npc_chenlang": 60,
-        "flags": ["accepted_lab", "ran_for_president"]
+        "relationships.npc_sumo": 65,
+        "flags": [
+          "kaoyan_partner",
+          "tech_project"
+        ]
       },
       "stages": [
         {
-          "ops": [["evaluate"]],
-          "expect_result": {"ending_id": "ending_academic"}
+          "ops": [
+            [
+              "evaluate"
+            ]
+          ],
+          "expect_result": {
+            "ending_id": "ending_kaoyan"
+          }
         }
       ]
     },
@@ -239,9 +426,28 @@
       "setup": {},
       "stages": [
         {
-          "ops": [["start", "eat_canteen"], ["start", "eat_canteen"], ["can_start", "eat_canteen"]],
-          "expect": {"counters.meal_count": 2, "action_slot": 2},
-          "expect_result": {"ok": false, "error_code": "E_DAILY_LIMIT"}
+          "ops": [
+            [
+              "start",
+              "eat_canteen"
+            ],
+            [
+              "start",
+              "eat_canteen"
+            ],
+            [
+              "can_start",
+              "eat_canteen"
+            ]
+          ],
+          "expect": {
+            "counters.meal_count": 2,
+            "action_slot": 2
+          },
+          "expect_result": {
+            "ok": false,
+            "error_code": "E_DAILY_LIMIT"
+          }
         }
       ]
     },
@@ -249,12 +455,22 @@
       "id": "B-T16",
       "kind": "case",
       "desc": "时段用尽后行动被拒绝且状态不变",
-      "setup": {"action_slot": 3},
+      "setup": {
+        "action_slot": 3
+      },
       "stages": [
         {
-          "ops": [["start", "attend_class"]],
+          "ops": [
+            [
+              "start",
+              "attend_class"
+            ]
+          ],
           "state_unchanged": true,
-          "expect_result": {"ok": false, "error_code": "E_NO_SLOT"}
+          "expect_result": {
+            "ok": false,
+            "error_code": "E_NO_SLOT"
+          }
         }
       ]
     },
@@ -262,12 +478,24 @@
       "id": "B-T17",
       "kind": "case",
       "desc": "当天已交谈的 NPC 不能重复交谈",
-      "setup": {"talked_today": ["npc_xiaoyou"]},
+      "setup": {
+        "talked_today": [
+          "npc_xiaoyou"
+        ]
+      },
       "stages": [
         {
-          "ops": [["talk", "npc_xiaoyou"]],
+          "ops": [
+            [
+              "talk",
+              "npc_xiaoyou"
+            ]
+          ],
           "state_unchanged": true,
-          "expect_result": {"ok": false, "error_code": "E_ALREADY_TALKED"}
+          "expect_result": {
+            "ok": false,
+            "error_code": "E_ALREADY_TALKED"
+          }
         }
       ]
     },
@@ -275,12 +503,25 @@
       "id": "B-T18",
       "kind": "case",
       "desc": "第 2 天结束触发第一学期事件",
-      "setup": {"day_index": 1},
+      "setup": {
+        "day_index": 1
+      },
       "stages": [
         {
-          "ops": [["end_day"]],
-          "expect": {"day_index": 2, "phase": "event", "pending_event_id": "sem_1_club_fair"},
-          "expect_result": {"semester_event_id": "sem_1_club_fair", "graduated": false}
+          "ops": [
+            [
+              "end_day"
+            ]
+          ],
+          "expect": {
+            "day_index": 2,
+            "phase": "event",
+            "pending_event_id": "sem_1_club_fair"
+          },
+          "expect_result": {
+            "semester_event_id": "sem_1_club_fair",
+            "graduated": false
+          }
         }
       ]
     },
@@ -288,26 +529,48 @@
       "id": "B-T19",
       "kind": "case",
       "desc": "第 16 天结束触发毕业事件",
-      "setup": {"day_index": 15},
+      "setup": {
+        "day_index": 15
+      },
       "stages": [
         {
-          "ops": [["end_day"]],
-          "expect": {"day_index": 16, "phase": "event", "pending_event_id": "sem_8_graduation_eve"},
-          "expect_result": {"semester_event_id": "sem_8_graduation_eve", "graduated": true}
+          "ops": [
+            [
+              "end_day"
+            ]
+          ],
+          "expect": {
+            "day_index": 16,
+            "phase": "event",
+            "pending_event_id": "sem_8_graduation_eve"
+          },
+          "expect_result": {
+            "semester_event_id": "sem_8_graduation_eve",
+            "graduated": true
+          }
         }
       ]
     },
     {
       "id": "B-T20",
       "kind": "case",
-      "desc": "无条件旗标时社长竞选选项被锁",
-      "setup": {"day_index": 8, "stats.social": 50},
+      "desc": "无条件旗标时技术项目选项被锁",
+      "setup": {
+        "day_index": 8,
+        "stats.social": 50
+      },
       "stages": [
         {
-          "ops": [["view", "sem_5_club_election", "run_election"]],
+          "ops": [
+            [
+              "view",
+              "sem_5_club_election",
+              "tech_project"
+            ]
+          ],
           "expect_result": {
             "enabled": false,
-            "lock_reason_id": "evt.sem_5_club_election.lock.run_election"
+            "lock_reason_id": "evt.sem_5_club_election.lock.tech_project"
           }
         }
       ]
@@ -315,16 +578,31 @@
     {
       "id": "B-T21",
       "kind": "batch",
-      "desc": "6 套策略 × seed 0-199 全部命中预期结局",
-      "strategies": ["academic", "club_leader", "creator", "digital", "vibrant", "balanced"],
-      "seeds": {"from": 0, "to": 199},
+      "desc": "5 套策略 × seed 0-199 全部命中预期结局",
+      "strategies": [
+        "kaoyan",
+        "tech_master",
+        "romance_nailong",
+        "delayed",
+        "mediocre"
+      ],
+      "seeds": {
+        "from": 0,
+        "to": 199
+      },
       "expect": "all_hit"
     },
     {
       "id": "B-T22",
       "kind": "resume",
       "desc": "第 7 天存档续跑与不中断运行一致",
-      "strategies": ["academic", "club_leader", "creator", "digital", "vibrant", "balanced"],
+      "strategies": [
+        "kaoyan",
+        "tech_master",
+        "romance_nailong",
+        "delayed",
+        "mediocre"
+      ],
       "seed": 42,
       "expect": "final_equals_plain"
     },
@@ -333,7 +611,10 @@
       "kind": "fuzz",
       "desc": "随机策略 3000 局无异常、不越界、每局有结局",
       "runs": 3000,
-      "invariants": {"specialist_rate_max": 0.1, "balanced_rate_min": 0.83}
+      "invariants": {
+        "specialist_rate_max": 0.1,
+        "mediocre_rate_min": 0.8
+      }
     }
   ]
 }

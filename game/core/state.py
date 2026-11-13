@@ -72,7 +72,7 @@ def _as_float(value: Any, default: float) -> float:
 
 @dataclass
 class GameState:
-    save_version: int = 1
+    save_version: int = 2
     seed: int = 42
     day_index: int = 0
     action_slot: int = 0
@@ -164,7 +164,7 @@ class GameState:
 
     def clamp(self) -> None:
         """读档/外部写入后的兜底钳制；正常流程由 B 的 effects 处理。"""
-        self.save_version = _as_int(self.save_version, 1)
+        self.save_version = _as_int(self.save_version, 2)
         # 第 16 天结束时 B 的 calendar 会把 day_index 推到 TOTAL_DAYS（"已读完"），
         # 这个值必须原样保存：旧版钳到 TOTAL_DAYS-1 会让读档把人送回最后一天，
         # 再结算一次就是重复触发第 8 学期事件（幂等保护报错 → 卡死）。
@@ -211,7 +211,7 @@ class GameState:
         if not isinstance(raw, dict):
             raise ValueError("state 必须是 JSON 对象")
         state = cls()
-        state.save_version = _as_int(raw.get("save_version"), 1)
+        state.save_version = _as_int(raw.get("save_version"), 2)
         state.seed = _as_int(raw.get("seed"), 42)
         state.day_index = _as_int(raw.get("day_index"), 0)
         state.action_slot = _as_int(raw.get("action_slot"), 0)

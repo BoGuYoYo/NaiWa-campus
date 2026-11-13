@@ -12,7 +12,6 @@
         "id": "fair_club",
         "conditions": [],
         "effects": {
-          "social": 4,
           "rel.npc_sumo": 10
         },
         "add_flags": [
@@ -60,7 +59,7 @@
         "conditions": [],
         "effects": {
           "academic": 6,
-          "mood": -6
+          "mood": -5
         },
         "add_flags": [],
         "remove_flags": []
@@ -69,8 +68,7 @@
         "id": "steady",
         "conditions": [],
         "effects": {
-          "academic": 3,
-          "mood": 3
+          "academic": 3
         },
         "add_flags": [],
         "remove_flags": []
@@ -79,8 +77,7 @@
         "id": "relax",
         "conditions": [],
         "effects": {
-          "mood": 8,
-          "interest": 2
+          "mood": 5
         },
         "add_flags": [],
         "remove_flags": []
@@ -97,40 +94,49 @@
     ],
     "choices": [
       {
-        "id": "submit_art",
+        "id": "library_docs",
+        "conditions": [],
+        "effects": {
+          "academic": 4,
+          "rel.npc_chenlang": 5
+        },
+        "add_flags": [],
+        "remove_flags": []
+      },
+      {
+        "id": "tech_server",
         "conditions": [
           {
             "type": "counter",
-            "key": "create_count",
+            "key": "club_count",
             "op": ">=",
             "value": 2
           }
         ],
         "effects": {
-          "interest": 5
+          "social": 3,
+          "rel.npc_sumo": 10
+        },
+        "add_flags": [],
+        "remove_flags": []
+      },
+      {
+        "id": "help_nailong",
+        "conditions": [
+          {
+            "type": "rel",
+            "key": "npc_xiaoyou",
+            "op": ">=",
+            "value": 25
+          }
+        ],
+        "effects": {
+          "interest": 3,
+          "rel.npc_xiaoyou": 10
         },
         "add_flags": [
-          "art_submitted"
+          "helped_nailong"
         ],
-        "remove_flags": []
-      },
-      {
-        "id": "help_friend",
-        "conditions": [],
-        "effects": {
-          "social": 4,
-          "rel.npc_xiaoyou": 8
-        },
-        "add_flags": [],
-        "remove_flags": []
-      },
-      {
-        "id": "skip",
-        "conditions": [],
-        "effects": {
-          "mood": 3
-        },
-        "add_flags": [],
         "remove_flags": []
       }
     ]
@@ -145,39 +151,36 @@
     ],
     "choices": [
       {
-        "id": "run_race",
-        "conditions": [
-          {
-            "type": "stat",
-            "key": "stamina",
-            "op": ">=",
-            "value": 30
-          }
-        ],
-        "effects": {
-          "stamina": 6,
-          "mood": 4
-        },
-        "add_flags": [
-          "sports_star"
-        ],
-        "remove_flags": []
-      },
-      {
-        "id": "cheer",
+        "id": "library_mock",
         "conditions": [],
         "effects": {
-          "social": 4,
-          "mood": 3
+          "academic": 4,
+          "rel.npc_chenlang": 5
         },
         "add_flags": [],
         "remove_flags": []
       },
       {
-        "id": "study_hall",
+        "id": "tech_network",
+        "conditions": [
+          {
+            "type": "flag",
+            "key": "club_member"
+          }
+        ],
+        "effects": {
+          "social": 4,
+          "rel.npc_sumo": 8
+        },
+        "add_flags": [],
+        "remove_flags": []
+      },
+      {
+        "id": "nailong_chat",
         "conditions": [],
         "effects": {
-          "academic": 4
+          "mood": 6,
+          "rel.npc_xiaoyou": 8
         },
         "add_flags": [],
         "remove_flags": []
@@ -195,44 +198,41 @@
     ],
     "choices": [
       {
-        "id": "run_election",
+        "id": "tech_project",
         "conditions": [
           {
             "type": "flag",
             "key": "club_member"
           },
           {
-            "type": "stat",
-            "key": "social",
+            "type": "rel",
+            "key": "npc_sumo",
             "op": ">=",
-            "value": 35
+            "value": 45
           }
         ],
         "effects": {
-          "social": 5,
-          "rel.npc_sumo": 10
+          "rel.npc_sumo": 12
         },
         "add_flags": [
-          "ran_for_president"
+          "tech_project"
         ],
         "remove_flags": []
       },
       {
-        "id": "support",
+        "id": "kaoyan_books",
         "conditions": [],
         "effects": {
-          "social": 3,
-          "rel.npc_sumo": 5
+          "academic": 5,
+          "rel.npc_chenlang": 6
         },
         "add_flags": [],
         "remove_flags": []
       },
       {
-        "id": "decline",
+        "id": "focus_own",
         "conditions": [],
-        "effects": {
-          "mood": 3
-        },
+        "effects": {},
         "add_flags": [],
         "remove_flags": []
       }
@@ -248,40 +248,46 @@
     ],
     "choices": [
       {
-        "id": "accept_lab",
+        "id": "kaoyan_partner",
         "conditions": [
           {
             "type": "stat",
             "key": "academic",
             "op": ">=",
-            "value": 45
+            "value": 50
+          },
+          {
+            "type": "rel",
+            "key": "npc_chenlang",
+            "op": ">=",
+            "value": 40
           }
         ],
         "effects": {
-          "academic": 6,
-          "mood": -3,
-          "rel.npc_chenlang": 8
+          "academic": 5,
+          "rel.npc_chenlang": 12
         },
         "add_flags": [
-          "accepted_lab"
+          "kaoyan_partner"
         ],
         "remove_flags": []
       },
       {
-        "id": "team_project",
+        "id": "tech_continue",
         "conditions": [],
         "effects": {
-          "social": 3,
-          "academic": 2
+          "social": 4,
+          "rel.npc_sumo": 8
         },
         "add_flags": [],
         "remove_flags": []
       },
       {
-        "id": "decline",
+        "id": "nailong_time",
         "conditions": [],
         "effects": {
-          "mood": 4
+          "mood": 5,
+          "rel.npc_xiaoyou": 8
         },
         "add_flags": [],
         "remove_flags": []
@@ -298,52 +304,56 @@
     ],
     "choices": [
       {
-        "id": "game_jam",
+        "id": "confess_nailong",
         "conditions": [
           {
-            "type": "counter",
-            "key": "games_count",
+            "type": "flag",
+            "key": "helped_nailong"
+          },
+          {
+            "type": "rel",
+            "key": "npc_xiaoyou",
             "op": ">=",
-            "value": 4
+            "value": 65
           }
         ],
         "effects": {
-          "interest": 6,
-          "rel.npc_xiaoyou": 6
+          "mood": 10,
+          "rel.npc_xiaoyou": 15
         },
         "add_flags": [
-          "joined_game_jam"
+          "confessed_nailong"
         ],
         "remove_flags": []
       },
       {
-        "id": "exhibition",
-        "conditions": [
-          {
-            "type": "counter",
-            "key": "create_count",
-            "op": ">=",
-            "value": 4
-          }
-        ],
+        "id": "kaoyan_sprint",
+        "conditions": [],
         "effects": {
-          "interest": 6
+          "academic": 6,
+          "rel.npc_chenlang": 8
         },
-        "add_flags": [
-          "held_exhibition"
-        ],
+        "add_flags": [],
+        "remove_flags": []
+      },
+      {
+        "id": "tech_handover",
+        "conditions": [],
+        "effects": {
+          "social": 5,
+          "rel.npc_sumo": 8
+        },
+        "add_flags": [],
         "remove_flags": []
       },
       {
         "id": "internship",
         "conditions": [],
         "effects": {
-          "social": 4,
+          "social": 2,
           "academic": 2
         },
-        "add_flags": [
-          "internship"
-        ],
+        "add_flags": [],
         "remove_flags": []
       }
     ]
@@ -361,7 +371,7 @@
         "id": "thesis",
         "conditions": [],
         "effects": {
-          "academic": 5
+          "academic": 4
         },
         "add_flags": [],
         "remove_flags": []

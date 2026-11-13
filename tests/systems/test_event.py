@@ -32,8 +32,8 @@ def test_locked_choice_cannot_be_chosen(state, events):
     """条件不满足时调用 choose 会明确拒绝，而不是静默生效。"""
     state.day_index = 8
     with pytest.raises(ContentError, match="E_CHOICE_LOCKED"):
-        events.choose(state, "sem_5_club_election", "run_election")
-    assert "ran_for_president" not in state.flags
+        events.choose(state, "sem_5_club_election", "tech_project")
+    assert "tech_project" not in state.flags
 
 
 def test_daily_event_immediate_effect(state, activity):

@@ -38,20 +38,20 @@ def _run(*args: str) -> subprocess.CompletedProcess:
 @pytest.mark.slow
 def test_expect_hit_returns_zero(tmp_path):
     out = tmp_path / "academic_42.json"
-    result = _run("--strategy", "academic", "--seed", "42",
-                  "--expect", "ending_academic", "--out", str(out))
+    result = _run("--strategy", "kaoyan", "--seed", "42",
+                  "--expect", "ending_kaoyan", "--out", str(out))
     assert result.returncode == 0, result.stderr
     payload = json.loads(out.read_text(encoding="utf-8"))
-    assert payload["ending_id"] == "ending_academic"
+    assert payload["ending_id"] == "ending_kaoyan"
     assert payload["seed"] == 42
-    assert payload["strategy"] == "academic"
+    assert payload["strategy"] == "kaoyan"
 
 
 @pytest.mark.slow
 def test_expect_mismatch_returns_one(tmp_path):
     out = tmp_path / "mismatch.json"
-    result = _run("--strategy", "academic", "--seed", "42",
-                  "--expect", "ending_digital", "--out", str(out))
+    result = _run("--strategy", "kaoyan", "--seed", "42",
+                  "--expect", "ending_tech_master", "--out", str(out))
     assert result.returncode == 1
     assert "结局不符" in result.stdout
 
@@ -96,31 +96,31 @@ def test_random_mode_outputs_distribution(tmp_path):
 # ---------------------------------------------------------------------------
 def test_main_direct_call_single_strategy(tmp_path, capsys):
     out = tmp_path / "one.json"
-    assert main(["--strategy", "balanced", "--seed", "42", "--summary",
+    assert main(["--strategy", "mediocre", "--seed", "42", "--summary",
                  "--out", str(out)]) == 0
 
     payload = json.loads(out.read_text(encoding="utf-8"))
     # 单策略时直接输出一局的报告，不带 mode 包装
-    assert payload["ending_id"] == "ending_balanced"
-    assert payload["strategy"] == "balanced"
-    assert "balanced seed=42" in capsys.readouterr().out
+    assert payload["ending_id"] == "ending_mediocre"
+    assert payload["strategy"] == "mediocre"
+    assert "mediocre seed=42" in capsys.readouterr().out
 
 
 def test_main_direct_call_expect_mismatch(capsys):
-    assert main(["--strategy", "academic", "--seed", "42",
-                 "--expect", "ending_digital"]) == 1
+    assert main(["--strategy", "kaoyan", "--seed", "42",
+                 "--expect", "ending_tech_master"]) == 1
     assert "结局不符" in capsys.readouterr().out
 
 
 def test_main_direct_call_batch(tmp_path, capsys):
     out = tmp_path / "batch.json"
-    assert main(["--strategy", "vibrant", "--seeds", "0-1", "--summary",
+    assert main(["--strategy", "tech_master", "--seeds", "0-1", "--summary",
                  "--out", str(out)]) == 0
 
     payload = json.loads(out.read_text(encoding="utf-8"))
     assert payload["mode"] == "batch"
     assert payload["mismatches"] == []
-    assert "vibrant" in capsys.readouterr().out
+    assert "tech_master" in capsys.readouterr().out
 
 
 def test_main_direct_call_random(tmp_path, capsys):

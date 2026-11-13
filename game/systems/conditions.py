@@ -5,6 +5,7 @@
     mood      op, value
     energy    op, value
     counter   key, op, value   活动累计次数
+    counter_sum keys, op, value 多个活动计数器之和
     rel       key(npc_id), op, value
     flag      key              拥有旗标
     not_flag  key              不拥有旗标
@@ -52,6 +53,10 @@ def evaluate(state: GameState, cond: dict[str, Any]) -> bool:
         return _compare(state.energy, cond["op"], int(cond["value"]))
     if ctype == "counter":
         return _compare(state.counters.get(cond["key"], 0), cond["op"], int(cond["value"]))
+    if ctype == "counter_sum":
+        keys = cond.get("keys", [])
+        total = sum(state.counters.get(str(key), 0) for key in keys)
+        return _compare(total, cond["op"], int(cond["value"]))
     if ctype == "rel":
         return _compare(state.relationships.get(cond["key"], 0), cond["op"],
                         int(cond["value"]))

@@ -495,3 +495,12 @@ stats / mood / min_end_energy 与互换前完全一致，只有关系归属对�
 | REQ-003 | `SaveManager` 增加“导出/导入单个存档”接口供 E 的测试包使用 | E | 待评估 |
 | REQ-004 | `game.sim.simulator` 接入 `RelationshipService.check_stage`，并重跑 B9 基线快照 | B | 待 B 确认 |
 | REQ-005 | 非 16:9 窗口下 UI 与渲染管线使用同一套 viewport scale/offset | D/A | 待评估 |
+
+## v2.0.0 — 2026-11-14（剧情路线重构）
+
+- 结局集合改为 ending_delayed、ending_kaoyan、ending_tech_master、ending_romance_nailong、ending_mediocre。
+- EndingService 按 1～5 优先级判定，学业低于 40 的延毕结局作为毕业资格门禁。
+- 条件 DSL 新增 counter_sum，用于表达多个活动计数器的合计条件。
+- S1～S8 学期事件改为考研、技术、恋爱三条主线与普通毕业线。
+- 演示路线统一为 48 次行动；技术线和恋爱线使用 7 次上课以适配当前初始学业 10。
+- 文本与策略基线已同步，旧版本存档不作为本版本演示输入。

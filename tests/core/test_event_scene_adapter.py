@@ -47,7 +47,7 @@ class _FakeText:
     def has(self, text_id: str) -> bool:
         return text_id in {
             "evt.sem_1_club_fair.lock.fair_lab",
-            "evt.sem_5_club_election.lock.run_election",
+            "evt.sem_5_club_election.lock.tech_project",
         }
 
     def get_raw(self, text_id: str) -> str:
@@ -122,7 +122,7 @@ def test_adapter_uses_all_pages_from_real_textdb():
     assert fair.page_text_ids == [
         f"evt.sem_1_club_fair.body.{i}" for i in range(1, 5)
     ]
-    assert adapter.app.text.get_dialogue(fair.page_text_ids[1])["portrait"] == "portrait_npc_sumo_happy"
+    assert adapter.app.text.get_dialogue(fair.page_text_ids[1])["portrait"] == "portrait_npc_sumo_neutral"
     assert adapter.app.text.get_dialogue(fair.page_text_ids[2])["portrait"] == "portrait_npc_chenlang_neutral"
     assert adapter.app.text.get_dialogue(fair.page_text_ids[3])["portrait"] == "portrait_npc_xiaoyou_surprised"
 
@@ -134,9 +134,9 @@ def test_real_adapter_marks_locked_choices_disabled():
 
     view = adapter._build_view("sem_5_club_election")
 
-    locked = next(choice for choice in view.choices if choice.choice_id == "run_election")
+    locked = next(choice for choice in view.choices if choice.choice_id == "tech_project")
     assert locked.enabled is False
-    assert locked.lock_reason_id == "evt.sem_5_club_election.lock.run_election"
+    assert locked.lock_reason_id == "evt.sem_5_club_election.lock.tech_project"
 
 
 def test_inspect_and_empty_finish_never_settle_event():
@@ -185,9 +185,9 @@ def test_locked_error_uses_choice_locked_text():
     state.day_index = 8
     adapter, _, _ = _adapter(state)
 
-    adapter._choose("sem_5_club_election", "run_election")
+    adapter._choose("sem_5_club_election", "tech_project")
 
-    assert adapter.widget.hints == ["hint:evt.sem_5_club_election.lock.run_election"]
+    assert adapter.widget.hints == ["hint:evt.sem_5_club_election.lock.tech_project"]
 
 
 def test_adapter_finish_forwards_real_result_once():

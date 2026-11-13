@@ -17,7 +17,7 @@ def test_strategies_baseline_matches_spec_data(expected_loader):
 
 
 def test_random_baseline_covers_all_endings(expected_loader):
-    """随机基线必须覆盖 6 个结局，且守住手册 B9 的设计意图。"""
+    """随机基线必须覆盖 5 个结局，且守住手册 B9 的设计意图。"""
     data = expected_loader("random_3000.json")
     ending_ids = {ending["id"] for ending in spec_data.ENDINGS}
     documented = data["documented"]
@@ -29,7 +29,7 @@ def test_random_baseline_covers_all_endings(expected_loader):
     assert sum(measured.values()) == 3000
 
     for ending_id, count in measured.items():
-        if ending_id == "ending_balanced":
+        if ending_id == "ending_mediocre":
             continue
         assert count / 3000 <= data["invariants"]["specialist_rate_max"], ending_id
-    assert measured["ending_balanced"] / 3000 >= data["invariants"]["balanced_rate_min"]
+    assert measured["ending_mediocre"] / 3000 >= data["invariants"]["mediocre_rate_min"]

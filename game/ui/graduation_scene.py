@@ -169,7 +169,7 @@ class GraduationScene(UIWidget):
             self.content.show()
             self.page_hint.show()
         elif page == "ending":
-            ending_id = getattr(self._ending, "ending_id", None) or "ending_balanced"
+            ending_id = getattr(self._ending, "ending_id", None) or "ending_mediocre"
             self.page_title.set_text(self.text_db.get("ui.graduation.page3_title"))
             self.ending_title.set_text(self.text_db.get(f"ending.{ending_id}.title"))
             self.ending_title.show()

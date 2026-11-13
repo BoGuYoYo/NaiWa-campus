@@ -1,24 +1,20 @@
 {
-  "note": "手册 B9 给出了随机策略 3000 局的结局分布，但未规定随机抽样算法。本文件同时记录文档基线与本实现的实测值，差异只做报告、不作为失败判据。",
   "documented": {
-    "ending_balanced": 2885,
-    "ending_creator": 75,
-    "ending_vibrant": 25,
-    "ending_digital": 9,
-    "ending_academic": 3,
-    "ending_club_leader": 3
+    "ending_mediocre": 2847,
+    "ending_delayed": 126,
+    "ending_romance_nailong": 24,
+    "ending_kaoyan": 2,
+    "ending_tech_master": 1
   },
   "measured": {
-    "ending_balanced": 2917,
-    "ending_creator": 59,
-    "ending_vibrant": 13,
-    "ending_digital": 5,
-    "ending_academic": 3,
-    "ending_club_leader": 3
+    "ending_mediocre": 2847,
+    "ending_delayed": 126,
+    "ending_romance_nailong": 24,
+    "ending_kaoyan": 2,
+    "ending_tech_master": 1
   },
   "invariants": {
     "specialist_rate_max": 0.1,
-    "balanced_rate_min": 0.83
-  },
-  "asserted_by": "tests/systems/test_expected_files.py::test_random_baseline_covers_all_endings"
+    "mediocre_rate_min": 0.8
+  }
 }

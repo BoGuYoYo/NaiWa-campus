@@ -1,7 +1,7 @@
 """结局判定（开发者 B，手册 B8）。
 
 毕业时调用一次：按 priorities 从上到下检查，第一个全部满足的结局生效，
-ending_balanced 无条件兜底。highlights 取累计次数最多的 3 个计数器，
+    ending_mediocre 无条件兜底。highlights 取累计次数最多的 3 个计数器，
 加上 event_log 中全部学期事件的选择，供毕业界面展示。
 """
 
@@ -26,8 +26,8 @@ class EndingService:
                     matched=list(ending.get("matched", [])),
                     highlights=self._highlights(state),
                 )
-        # 内容层面已经保证 ending_balanced 存在，这里只是兜底
-        return EndingResult(ending_id="ending_balanced", matched=[], highlights=[])
+        # 内容层面已经保证 ending_mediocre 存在，这里只是兜底
+        return EndingResult(ending_id="ending_mediocre", matched=[], highlights=[])
 
     @staticmethod
     def _highlights(state: GameState) -> list[str]:

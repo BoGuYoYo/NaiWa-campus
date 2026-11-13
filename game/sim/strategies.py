@@ -51,6 +51,7 @@ class BaseStrategy:
 class FixedStrategy(BaseStrategy):
     def __init__(self, name: str, config: dict[str, Any]) -> None:
         self.name = name
+        self.script: list[str] = list(config.get("script") or [])
         self.cycle: list[str] = list(config["cycle"])
         self.talk_npc: str | None = config.get("talk_npc")
         self.talk_every: int = int(config.get("talk_every") or 0)
@@ -59,6 +60,17 @@ class FixedStrategy(BaseStrategy):
 
     def next_action(self, state: GameState, services: Services) -> tuple[str, str]:
         index = state.day_index * spec_data.SLOTS_PER_DAY + state.action_slot
+        if self.script and index < len(self.script):
+            planned = self.script[index]
+            if planned.startswith("talk:"):
+                npc_id = planned.split(":", 1)[1]
+                ok, _ = services.relationships.can_talk(state, npc_id)
+                if ok:
+                    return "talk", npc_id
+            else:
+                ok, _ = services.activities.can_start(state, planned)
+                if ok:
+                    return "activity", planned
         if (self.talk_npc and self.talk_every > 0 and index % self.talk_every == 0
                 and self.talk_npc not in state.talked_today
                 and state.energy >= spec_data.TALK_REQUIRED_ENERGY):

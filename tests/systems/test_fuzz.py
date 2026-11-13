@@ -20,7 +20,7 @@ SPEC = json.loads((PROJECT_ROOT / "tests" / "expected" / "unit_expect.json")
 FUZZ = next(case for case in SPEC["cases"] if case["id"] == "B-T23")
 RUNS = FUZZ["runs"]
 SPECIALIST_MAX = FUZZ["invariants"]["specialist_rate_max"]
-BALANCED_MIN = FUZZ["invariants"]["balanced_rate_min"]
+MEDIOCRE_MIN = FUZZ["invariants"]["mediocre_rate_min"]
 
 
 @pytest.mark.slow
@@ -45,7 +45,7 @@ def test_b_t23_random_no_violation():
         counter[report["ending_id"]] += 1
 
     for ending_id, count in counter.items():
-        if ending_id == "ending_balanced":
+        if ending_id == "ending_mediocre":
             continue
         assert count / RUNS <= SPECIALIST_MAX, (ending_id, count)
-    assert counter["ending_balanced"] / RUNS >= BALANCED_MIN, counter
+    assert counter["ending_mediocre"] / RUNS >= MEDIOCRE_MIN, counter

@@ -17,7 +17,7 @@ from game.core.state import (
 
 def test_defaults_match_spec():
     state = new_state(seed=42)
-    assert state.save_version == 1
+    assert state.save_version == 2
     assert state.seed == 42
     assert state.day_index == 0
     assert state.action_slot == 0

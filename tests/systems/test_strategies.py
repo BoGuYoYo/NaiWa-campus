@@ -36,7 +36,7 @@ def test_case_parameters_match_project():
 @pytest.mark.slow
 @pytest.mark.parametrize("name", STRATEGIES)
 def test_b_t21_six_strategies_hit_expected_ending(name):
-    """B-T21：6 套策略在 seed 0～199 下全部命中预期结局。"""
+    """B-T21：5 套策略在 seed 0～199 下全部命中预期结局。"""
     expected = spec_data.STRATEGIES[name]["expected_ending"]
     failures = []
     for seed in range(SEED_FROM, SEED_TO + 1):
@@ -87,7 +87,7 @@ def test_new_game_fixture_matches_defaults(fixture_loader):
 
 def test_report_shape():
     """模拟器输出结构符合手册 B11。"""
-    report = simulator.run("academic", 42)
+    report = simulator.run("kaoyan", 42)
     assert json.dumps(report, ensure_ascii=False)
     for key in ("seed", "strategy", "ending_id", "final", "event_log", "actions",
                 "min_end_energy", "elapsed_ms"):

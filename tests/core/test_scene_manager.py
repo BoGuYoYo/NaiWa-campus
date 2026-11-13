@@ -170,7 +170,7 @@ def test_pending_change_is_replaced_by_later_request():
     manager.update(0.3)
     manager.change("CampusScene")
     count = len(created)
-    manager.change("GraduationScene", ending="ending_academic")
+    manager.change("GraduationScene", ending="ending_kaoyan")
     manager.update(0.3)
     assert len(created) == count + 1
     assert created[-1].scene_id == "GraduationScene"

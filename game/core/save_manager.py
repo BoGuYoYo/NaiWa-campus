@@ -19,7 +19,7 @@ from .. import config
 from .results import SaveError, SaveSummary
 from .state import GameState, WorldPos
 
-MIN_SUPPORTED_SAVE_VERSION = 1
+MIN_SUPPORTED_SAVE_VERSION = 2
 DEFAULT_SPAWN_BY_LOCATION: dict[str, tuple[float, float]] = {
     "loc_gate": (40.0, 5.0),
 }
@@ -80,8 +80,7 @@ class SaveManager:
     ) -> Path:
         self._validate_slot(slot)
         payload = {
-            # 版本号必须写当前格式版本：以前写 state.save_version（默认 1），
-            # 一旦 SAVE_VERSION 升到 2，新写的档会被自己的版本检查判成"不支持"。
+            # 版本号必须写当前格式版本；剧情规则重写后旧版本存档不再兼容。
             "save_version": int(config.SAVE_VERSION),
             "saved_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "game_version": config.GAME_VERSION,

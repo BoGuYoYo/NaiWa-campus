@@ -148,17 +148,19 @@ class FallbackCalendarService:
 
 class FallbackEndingService:
     def evaluate(self, state: GameState) -> EndingResult:
+        if state.stats.get("academic", 0) < 40:
+            return EndingResult(ending_id="ending_delayed", matched=["academic < 40"], highlights=[])
         ranked = sorted(state.stats.items(), key=lambda kv: kv[1], reverse=True)
         mapping = {
-            "academic": "ending_academic",
-            "social": "ending_club_leader",
-            "interest": "ending_creator",
-            "stamina": "ending_vibrant",
+            "academic": "ending_kaoyan",
+            "social": "ending_tech_master",
+            "interest": "ending_romance_nailong",
+            "stamina": "ending_mediocre",
         }
         best_key, best_value = ranked[0]
         if best_value < 30:
-            return EndingResult(ending_id="ending_balanced", matched=["balance"], highlights=[])
-        return EndingResult(ending_id=mapping.get(best_key, "ending_balanced"),
+            return EndingResult(ending_id="ending_mediocre", matched=["balance"], highlights=[])
+        return EndingResult(ending_id=mapping.get(best_key, "ending_mediocre"),
                             matched=[f"stat:{best_key}"], highlights=[])
 
 
@@ -436,7 +438,7 @@ class GameFlow:
 
     def _resume_graduation(self, state: GameState) -> None:
         """读档落在一份已毕业的存档上：回到毕业界面，而不是不能操作的校园。"""
-        ending_id = state.ending_id or "ending_balanced"
+        ending_id = state.ending_id or "ending_mediocre"
         state.phase = "graduation"
         state.ending_id = ending_id
         self._show_graduation(state, EndingResult(ending_id=ending_id))

@@ -238,7 +238,7 @@ class _FakeDayEnd:
 
 
 class _FakeEnding:
-    ending_id = "ending_academic"
+    ending_id = "ending_kaoyan"
     matched = ["cond_high_academic"]
     highlights = ["四年回顾：图书馆是第二个家。", "四年回顾：错题本换了两本。"]
 

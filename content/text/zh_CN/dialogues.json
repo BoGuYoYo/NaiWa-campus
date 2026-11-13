@@ -39,150 +39,6 @@
       "大学生活，开始了！"
     ]
   },
-  "evt.sem_1_club_fair.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "开学第二周的广场比平时热闹得多。",
-      "各家社团的招牌挤在一起，喊声此起彼伏。"
-    ]
-  },
-  "evt.sem_1_club_fair.body.2": {
-    "speaker": "npc_sumo",
-    "portrait": "portrait_npc_sumo_happy",
-    "lines": [
-      "新同学！来得正好！",
-      "这三个摊位最适合你，我都提前踩好点了！"
-    ]
-  },
-  "evt.sem_1_club_fair.body.3": {
-    "speaker": "npc_chenlang",
-    "portrait": "portrait_npc_chenlang_neutral",
-    "lines": [
-      "实验室今天开放参观。",
-      "如果你愿意……可以一起去看看。"
-    ]
-  },
-  "evt.sem_1_club_fair.body.4": {
-    "speaker": "npc_xiaoyou",
-    "portrait": "portrait_npc_xiaoyou_surprised",
-    "lines": [
-      "游戏同好会的展台在那边。",
-      "听说今天有挑战连续纪录的活动……"
-    ]
-  },
-  "evt.sem_2_first_exam.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "第一次大学期末来了。",
-      "复习室里的空气，比平时紧张三成。"
-    ]
-  },
-  "evt.sem_2_first_exam.body.2": {
-    "speaker": "npc_sumo",
-    "portrait": "portrait_npc_sumo_neutral",
-    "lines": [
-      "要不要一起过一遍重点？",
-      "当然，按你自己的节奏来也行。"
-    ]
-  },
-  "evt.sem_3_art_contest.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "创作征集的海报贴满了公告板。",
-      "截稿日期就印在最下面一行。"
-    ]
-  },
-  "evt.sem_3_art_contest.body.2": {
-    "speaker": "npc_xiaoyou",
-    "portrait": "portrait_npc_xiaoyou_sad",
-    "lines": [
-      "我想投稿，又有点怕……",
-      "奶娃，你会参加吗？"
-    ]
-  },
-  "evt.sem_4_sports_meet.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "报名表贴在公告板上，长跑一栏还空着。",
-      "班里同学的目光，齐刷刷看向这边。"
-    ]
-  },
-  "evt.sem_4_sports_meet.body.2": {
-    "speaker": "npc_chenlang",
-    "portrait": "portrait_npc_chenlang_happy",
-    "lines": [
-      "咱们班就差一位长跑选手了！",
-      "你腿长，肯定行！"
-    ]
-  },
-  "evt.sem_5_club_election.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "换届名单下周就要交了。",
-      "公告板前围满了讨论的同学。"
-    ]
-  },
-  "evt.sem_5_club_election.body.2": {
-    "speaker": "npc_sumo",
-    "portrait": "portrait_npc_sumo_happy",
-    "lines": [
-      "换届名单下周就要交了。",
-      "我觉得你可以试试。"
-    ]
-  },
-  "evt.sem_6_lab_invite.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "专业课老师课后叫住了奶娃：",
-      "“课题组还缺一名本科生，有兴趣吗？”"
-    ]
-  },
-  "evt.sem_6_lab_invite.body.2": {
-    "speaker": "npc_chenlang",
-    "portrait": "portrait_npc_chenlang_happy",
-    "lines": [
-      "我也在那个课题组。",
-      "如果你来，我们可以搭伙做实验。"
-    ]
-  },
-  "evt.sem_7_final_project.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "大四上学期，毕业设计选题表发下来了。",
-      "这一次，要选一件真正代表自己的事。"
-    ]
-  },
-  "evt.sem_7_final_project.body.2": {
-    "speaker": "npc_xiaoyou",
-    "portrait": "portrait_npc_xiaoyou_surprised",
-    "lines": [
-      "游戏创作马拉松的报名开了！",
-      "组、组队的话……我第一个选你！"
-    ]
-  },
-  "evt.sem_8_graduation_eve.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "离校前的最后一周。",
-      "行李箱重新出现，这次是用来装回忆的。"
-    ]
-  },
-  "evt.sem_8_graduation_eve.body.2": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "想把最后的时间留给什么？",
-      "这个问题在心里转了很多圈。"
-    ]
-  },
   "evt.rel_npc_sumo_1.body.1": {
     "speaker": null,
     "portrait": null,
@@ -413,6 +269,150 @@
     "lines": [
       "原来合作是这个感觉。",
       "像有人陪着一起做梦。"
+    ]
+  },
+  "evt.sem_1_club_fair.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "开学第二周，校园广场挤满了招新摊位。",
+      "三个方向同时向奶娃发来邀请。"
+    ]
+  },
+  "evt.sem_1_club_fair.body.2": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_neutral",
+    "lines": [
+      "符闹吃把报名表拍到桌上：",
+      "“来技术社团，今天就能开工！”"
+    ]
+  },
+  "evt.sem_1_club_fair.body.3": {
+    "speaker": "npc_chenlang",
+    "portrait": "portrait_npc_chenlang_neutral",
+    "lines": [
+      "李振兴指了指实验室：",
+      "“先看看这里，也许你会喜欢。”"
+    ]
+  },
+  "evt.sem_1_club_fair.body.4": {
+    "speaker": "npc_xiaoyou",
+    "portrait": "portrait_npc_xiaoyou_surprised",
+    "lines": [
+      "奈珑抱着同好会海报，小声说：",
+      "“要不要一起去逛展？”"
+    ]
+  },
+  "evt.sem_2_first_exam.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "第一次测验前，复习室的灯亮到很晚。",
+      "奶娃必须决定今晚怎么安排。"
+    ]
+  },
+  "evt.sem_2_first_exam.body.2": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "时间不够用了。",
+      "每种选择都会留下代价。"
+    ]
+  },
+  "evt.sem_3_art_contest.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "校园创作征集开始了。",
+      "同一周，社团服务器也出了故障。"
+    ]
+  },
+  "evt.sem_3_art_contest.body.2": {
+    "speaker": "npc_xiaoyou",
+    "portrait": "portrait_npc_xiaoyou_neutral",
+    "lines": [
+      "奈珑抱着作品文件夹：",
+      "“如果你愿意，我想和你一起把它完成。”"
+    ]
+  },
+  "evt.sem_4_sports_meet.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "校园文化周开始，操场和活动中心都忙成一团。",
+      "每个人都在寻找自己的位置。"
+    ]
+  },
+  "evt.sem_4_sports_meet.body.2": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "有人冲向人群，有人留在安静的自习室。",
+      "奶娃也要做出选择。"
+    ]
+  },
+  "evt.sem_5_club_election.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "大三的换届名单即将公布。",
+      "社团和未来都在等一个决定。"
+    ]
+  },
+  "evt.sem_5_club_election.body.2": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_neutral",
+    "lines": [
+      "符闹吃指着白板上的架构图：",
+      "“我们一起把这个项目做成真正的开源框架。”"
+    ]
+  },
+  "evt.sem_6_lab_invite.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "课程、社团和未来方向同时撞在了一起。",
+      "每条路都需要付出时间。"
+    ]
+  },
+  "evt.sem_6_lab_invite.body.2": {
+    "speaker": "npc_chenlang",
+    "portrait": "portrait_npc_chenlang_neutral",
+    "lines": [
+      "李振兴在图书馆留了两个固定座位：",
+      "“一起准备考研吗？”"
+    ]
+  },
+  "evt.sem_7_final_project.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "毕业设计和最后的选择同时到来。",
+      "校园里的每一条路都通向不同的明天。"
+    ]
+  },
+  "evt.sem_7_final_project.body.2": {
+    "speaker": "npc_xiaoyou",
+    "portrait": "portrait_npc_xiaoyou_neutral",
+    "lines": [
+      "奈珑抱着刚打印的设定集：",
+      "“Game Jam 结束后，我有句话想告诉你。”"
+    ]
+  },
+  "evt.sem_8_graduation_eve.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "毕业答辩结束，教务系统开始核查学分。",
+      "四年的选择将在今天留下结果。"
+    ]
+  },
+  "evt.sem_8_graduation_eve.body.2": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "窗外有人在拍毕业照。",
+      "奶娃打开了最后一封通知。"
     ]
   }
 }

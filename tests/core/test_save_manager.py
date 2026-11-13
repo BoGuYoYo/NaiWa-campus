@@ -21,7 +21,7 @@ def test_save_creates_file_with_required_payload(saves, tmp_path):
     path = saves.save(state, "slot_1")
     assert path.exists()
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["save_version"] == 1
+    assert payload["save_version"] == 2
     assert payload["game_version"]
     assert payload["saved_at"]
     assert payload["summary"]["day_index"] == 3
@@ -96,25 +96,18 @@ def test_unsupported_version_is_rejected(saves):
     assert excinfo.value.code == "E_SAVE_VERSION"
 
 
-def test_migration_chain_runs_in_order(tmp_path):
-    calls = []
-
-    def migrate_1_to_2(data):
-        calls.append(1)
-        data["mood"] = 77
-        return data
-
-    manager = SaveManager(saves_root=tmp_path, migrations={1: migrate_1_to_2})
+def test_old_story_version_is_rejected(tmp_path):
+    manager = SaveManager(saves_root=tmp_path)
     state = new_state()
     manager.save(state, "slot_1")
-    # 手工把文件降级成 save_version=1 但仍缺 mood 的场景
     payload = json.loads(manager.path_for("slot_1").read_text(encoding="utf-8"))
     payload["save_version"] = 1
     payload["state"].pop("mood", None)
     manager.path_for("slot_1").write_text(json.dumps(payload), encoding="utf-8")
 
-    loaded = manager.load("slot_1")
-    assert loaded.mood == 60  # 当前 save_version=1，不需要迁移，缺字段回落默认
+    with pytest.raises(SaveLoadError) as excinfo:
+        manager.load("slot_1")
+    assert excinfo.value.code == "E_SAVE_VERSION"
 
 
 def test_list_slots_and_peek(saves):

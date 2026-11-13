@@ -95,6 +95,14 @@ def _check_conditions(path: Path, obj_id: str, conditions: list[dict[str, Any]],
         elif ctype == "counter":
             if cond.get("key") not in counters:
                 _fail(path, obj_id, f"{prefix}counter 条件引用了未定义的计数器：{cond.get('key')}")
+        elif ctype == "counter_sum":
+            keys = cond.get("keys")
+            if not isinstance(keys, list) or not keys:
+                _fail(path, obj_id, f"{prefix}counter_sum 条件必须提供非空 keys")
+            unknown = [key for key in keys if key not in counters]
+            if unknown:
+                _fail(path, obj_id,
+                      f"{prefix}counter_sum 条件引用了未定义的计数器：{unknown[0]}")
         elif ctype == "rel":
             if cond.get("key") not in npc_ids:
                 _fail(path, obj_id, f"{prefix}rel 条件引用了不存在的 NPC：{cond.get('key')}")
@@ -107,7 +115,7 @@ def _check_conditions(path: Path, obj_id: str, conditions: list[dict[str, Any]],
                 referenced.setdefault(str(cond["key"]), f"{path.name} [{obj_id}] {prefix}")
         else:
             _fail(path, obj_id, f"{prefix}未知条件类型 {ctype}")
-        if ctype in ("stat", "counter", "rel", "mood", "energy", "semester"):
+        if ctype in ("stat", "counter", "counter_sum", "rel", "mood", "energy", "semester"):
             if cond.get("op") not in ALLOWED_OPS:
                 _fail(path, obj_id, f"{prefix}运算符非法：{cond.get('op')}")
             if not isinstance(cond.get("value"), int) or isinstance(cond.get("value"), bool):
@@ -310,8 +318,8 @@ class ContentDB:
                       f"priority {priority} 与 {priorities[priority]} 重复")
             priorities[priority] = eid
             self.endings_by_id[eid] = ending
-        if "ending_balanced" not in self.endings_by_id:
-            _fail(paths["endings"], None, "缺少无条件兜底结局 ending_balanced")
+        if "ending_mediocre" not in self.endings_by_id:
+            _fail(paths["endings"], None, "缺少无条件兜底结局 ending_mediocre")
         if not any(not ending.get("conditions") for ending in raw_endings):
             _fail(paths["endings"], None,
                   "至少要有 1 个无条件结局（否则条件全不满足时结算不出结局）")

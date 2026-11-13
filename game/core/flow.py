@@ -28,6 +28,9 @@ from .state import DEFAULT_SPAWN_LOCATION, NPC_IDS, GameState, WorldPos, new_sta
 
 LOG = logging.getLogger("naiwa.flow")
 
+#: 挂在"第 16 天结束"上的学期事件：结算完没有下一天，直接进毕业。
+FINAL_SEMESTER_EVENT_ID = "sem_8_graduation_eve"
+
 #: B 的「日常事件」前缀。这类事件在规则层就已立即结算（B_delivery 第 3 节第 5 条），
 #: 不进 EventScene —— 否则 A 会把 phase 置成 event，B 的 end_day 阶段守卫会拒绝结算，
 #: 当天就再也过不去了（第四周整合时踩到的锁死问题）。
@@ -298,7 +301,8 @@ class GameFlow:
     # ------------------------------------------------------------------ #
     # 新游戏 / 读档
     # ------------------------------------------------------------------ #
-    def new_game(self, seed: int | None = None, skip_intro: bool = False) -> GameState:
+    def new_game(self, seed: int | None = None, skip_intro: bool = False,
+                 spawn: str | None = None) -> GameState:
         actual_seed = int(seed) if seed is not None else _random_seed()
         state = new_state(actual_seed)
         self.state = state
@@ -312,7 +316,8 @@ class GameFlow:
         self.bus.emit(TOPIC_DAY_STARTED, state=state, day_index=state.day_index)
         self._day_start_emitted_for = state.day_index
         if skip_intro:
-            self.enter_campus()
+            # --spawn 以前解析后没人用：调试入口总落在校门，定位问题要走来走去。
+            self.enter_campus(spawn=spawn)
         else:
             # 开场事件必须等校园场景真正建立、淡入结束后再 push：
             # 淡出途中 push 的话，主菜单的 on_exit 会把对话框的按键绑定清掉
@@ -358,22 +363,21 @@ class GameFlow:
         if state.ending_id:
             self._resume_graduation(state)
             return
-        if state.day_index >= config.TOTAL_DAYS or state.phase in ("graduation", "finished"):
-            # 16 天已经走完（或存档停在毕业界面）：评结局后回毕业界面，
-            # 而不是把人扔回"第 15 天"再结算一次。
-            self._handle_graduation(state)
-            return
 
         spawn = state.world.location_id
         pending = state.pending_event_id
         if pending and not self._event_settled(state, pending):
             # 存档是在事件播到一半时退出的（例如学期事件：pre_event 自动存档）。
             # 恢复成"事件待结算"而不是直接回校园，否则事件给的旗标永远拿不到。
-            state.phase = "event"
-            self.enter_campus(
-                spawn=spawn, keep_position=True,
-                on_ready=lambda pid=pending: self._open_pending_event(pid),
-            )
+            # 这一支必须排在毕业判断之前：第 16 天日结算写的 day_end 存档是
+            # day_index=16 + phase=event + pending=sem_8，先判毕业会把 sem_8 的
+            # 选项、旗标和结局判定全部吞掉。
+            self._resume_pending_event(state, pending, spawn)
+            return
+        if state.day_index >= config.TOTAL_DAYS or state.phase in ("graduation", "finished"):
+            # 16 天已经走完（或存档停在毕业界面）：评结局后回毕业界面，
+            # 而不是把人扔回"第 15 天"再结算一次。
+            self._handle_graduation(state)
             return
 
         state.pending_event_id = None
@@ -402,7 +406,33 @@ class GameFlow:
         if event_id not in state.event_log:
             state.event_log.append(event_id)
         self.bus.emit(TOPIC_EVENT_STARTED, event_id=event_id)
-        self.scenes.push("EventScene", event_id=event_id)
+        try:
+            self.scenes.push("EventScene", event_id=event_id)
+        except Exception:
+            # 存档里的 pending_event_id 指向不存在/已改名的事件时，EventScene
+            # 装配会抛 ContentError。此时 phase 还停在 event、也没有覆盖层，
+            # 活动与日结算全部拒绝，玩家只能关窗口。清掉 pending 退回校园。
+            LOG.exception("[FLOW] 重播事件 %s 失败，清掉 pending 退回校园", event_id)
+            state.pending_event_id = None
+            state.phase = "campus"
+            if state.day_finished:
+                self.finish_day()
+            elif self._pending_graduation:
+                self._pending_graduation = False
+                self._handle_graduation(state)
+
+    def _resume_pending_event(self, state: GameState, event_id: str, spawn: str) -> None:
+        """重播未结算事件；它属于最后一天时，播完直接进毕业而不是换日。"""
+        if event_id == FINAL_SEMESTER_EVENT_ID or state.day_index >= config.TOTAL_DAYS:
+            # 第 8 学期事件挂在"第 16 天结束"这个节点上：结算完没有下一天，
+            # 必须走毕业。_pending_graduation 由 handle_event_result 消费。
+            self._pending_graduation = True
+            self._pending_day_start = False
+        state.phase = "event"
+        self.enter_campus(
+            spawn=spawn, keep_position=True,
+            on_ready=lambda pid=event_id: self._open_pending_event(pid),
+        )
 
     def _resume_graduation(self, state: GameState) -> None:
         """读档落在一份已毕业的存档上：回到毕业界面，而不是不能操作的校园。"""
@@ -717,16 +747,22 @@ class GameFlow:
             if not allowed:
                 LOG.warning("[FLOW] manual save rejected: %s", reason)
                 return False
-        self._autosave(state, reason="manual", slot=slot)
-        return True
+        return self._autosave(state, reason="manual", slot=slot)
 
-    def _autosave(self, state: GameState, reason: str, slot: str = config.AUTOSAVE_SLOT) -> None:
+    def _autosave(self, state: GameState, reason: str,
+                  slot: str = config.AUTOSAVE_SLOT) -> bool:
+        """写一份存档；返回是否真的写成功。
+
+        以前吞掉 OSError 后无条件 return True：磁盘满/只读时暂停菜单显示
+        "已保存"，玩家以为进度安全，实际一个文件都没写。
+        """
         try:
             path = self.saves.save(state, slot, reason=reason)
-        except OSError as exc:
+        except (OSError, ValueError) as exc:
             LOG.error("[FLOW] autosave failed (%s): %s", reason, exc)
-            return
+            return False
         self.bus.emit(TOPIC_SAVE_WRITTEN, slot=slot, path=str(path), reason=reason)
+        return True
 
     # ------------------------------------------------------------------ #
     # 暂停与毕业收尾

@@ -389,6 +389,61 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 
 ---
 
+## 体验 BUG 排查修复（2026-11-13，第 13 轮）
+
+四路独立审查（core / systems / world / ui）+ 动态复现，共修 12 条。
+每条都有复现脚本或截图，守卫测试写进 `tests/core/test_bughunt_regressions.py`、
+`tests/core/test_input_router.py`、`tests/ui/test_bughunt_ui_regressions.py`、
+`tests/world/test_gui_scene.py`。
+
+### P0（卡死 / 丢进度 / 误操作）
+
+| # | 问题 | 改法 |
+| --- | --- | --- |
+| 1 | **最后一天学期事件被读档吞掉**：`day_end` 存档是 `day_index=16 + phase=event + pending=sem_8`，`adopt_loaded_state` 先命中 `day_index>=TOTAL_DAYS → 毕业`，sem_8 的选项/旗标/结局判定全部跳过 | 把"待结算事件重播"移到毕业判断之前；新增 `_resume_pending_event()`，事件属于最后一天时置 `_pending_graduation`，结算后走毕业 |
+| 2 | **设置界面按 Space 在背后开新游戏**：SettingsMenu 没绑 space，引擎的 accept 只有"后绑定覆盖"，按键直接落到下层主菜单 | `InputRouter` 统一挂分发器，新增 `blocked_by(owner)`；`SceneManager.blocks_input()` 规定"覆盖层打开时只有栈顶覆盖层收键"；设置界面补 `space` 绑定 |
+| 3 | **存档 pending 事件不存在 → 软锁**：push EventScene 抛异常后 phase 仍为 event，无场景可操作、活动与日结算全拒 | `_open_pending_event()` 捕获装配失败，清 pending + phase 回 campus，必要时补结算/毕业 |
+| 4 | **存档写盘失败仍报成功**：`_autosave` 吞 OSError，`request_save` 无条件 `return True` | `_autosave` 返回 bool，`request_save` 透传；存读档面板新增状态行（保存失败/空存档位/已保存） |
+
+### P1（每次都看得见）
+
+| # | 问题 | 改法 |
+| --- | --- | --- |
+| 5 | 日结算「学期事件预告」与「[Space] 继续」重叠成一行 | 预告占第 7 行，继续提示压到面板下缘；截图复核 |
+| 6 | **图书馆门位错 3.7 m**：立面画的入口在 u≈0.307，配置 `door_anchor_u=0.08`，地垫/触发点落在草坪 | `building_visuals.json` 改 0.307 → 重跑 `tools/align_building_doors.py` → 同步 `tests/world/test_map_data.py` 三处期望值 |
+| 7 | 文本速度 slow/normal 无区别（`int(cps*dt+0.999)` 每帧至少 1 字 → 都变成 60 字/秒） | 改小数累加 `_reveal_accum`，按配置 20/40/80 字每秒 |
+| 8 | 设置「快速」档直接印出 `#ui.settings.speed.fast` | `strings.json` 补 key；守卫断言 4 档文案齐全 |
+| 9 | 室内地垫红圈/NPC 圈/flatten 全是死代码（`_panel_edge` 插在 `_build()` 尾部之前） | 三段代码移回 `_build()` 末尾；守卫断言室内至少 1 条 GeomLines |
+| 10 | 毕业结局正文不折行，456px 冲出 480 画布被裁 | `GraduationScene._wrap_body()` 用 `theme.wrap_cjk` 按 400px 折行，行数超 3 时压缩行距 |
+
+### P1 补完
+
+| # | 问题 | 改法 |
+| --- | --- | --- |
+| 14 | 读空存档槽零反馈（只写日志，面板不关、无提示音，观感像卡死） | `SaveMenu` 增加状态行；空槽/损坏显示「这个存档位是空的」，成功显示「已保存/已读取」 |
+| 15 | 设置落盘失败时 `_persist()` 重新抛出，设置界面关不掉 | 记 warning 后吞掉，照常 hide + 返回 |
+
+### P2（边界/低频）
+
+| # | 问题 | 改法 |
+| --- | --- | --- |
+| 11 | HUD 精力上限 100 时 `100/100` 压住精力条（数字起点 418 < 条尾 422） | 两条 StatBar 宽度 78 → 72 |
+| 12 | CLI 崩溃：`--scene EventScene` AttributeError、未知场景 KeyError、`--load slot_9` ValueError；`--spawn` 解析后无人使用 | 三处都回退主菜单并记日志；`new_game(spawn=...)` 接上 `--spawn` |
+| 13 | 出门冷却固定传 `1/60` dt（30fps 时冷却 2 秒） | `_check_autostep(dt)` 使用真实帧间隔 |
+
+### 未修（登记为接口请求）
+
+- `game.sim.simulator` 不调用 `RelationshipService.check_stage`，与人玩终局关系/旗标
+  57% 不同。修它会改动 B 的 B9 基线快照（`tests/systems/fixtures/smoke_seed42.json`），
+  按协作约定不能由 A 单方面改期望值 —— 登记 REQ-004，待 B 确认后重跑基线。
+- 非 16:9 窗口：UI 用 `w/480`、渲染管线用 `min(w/480, h/270)`，窗口拖成 16:10 时
+  整体错位。涉及 D 的 `UITransform` 与 A 的管线约定，登记 REQ-005。
+
+验证：`pytest tests` → 676 passed；`--autoplay --seed 42` → 48 行动 / 8 学期事件 /
+`ending_balanced` / `errors=[]`；6 策略 × 50 seed 全部命中预期结局。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |
@@ -396,3 +451,5 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 | REQ-001 | `InteractionService.query()` 的 `cost_preview` 键名与 B 的 `effects` 键表对齐 | C/D | 待 B 确认 |
 | REQ-002 | `EventScene` 需要 `page_text_ids` 之外的立绘 `portrait_id` 字段 | D | 待评估（会改 `EventView`） |
 | REQ-003 | `SaveManager` 增加“导出/导入单个存档”接口供 E 的测试包使用 | E | 待评估 |
+| REQ-004 | `game.sim.simulator` 接入 `RelationshipService.check_stage`，并重跑 B9 基线快照 | B | 待 B 确认 |
+| REQ-005 | 非 16:9 窗口下 UI 与渲染管线使用同一套 viewport scale/offset | D/A | 待评估 |

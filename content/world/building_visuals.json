@@ -70,7 +70,7 @@
       ],
       "width": 16.176258,
       "height": 13.5,
-      "door_anchor_u": 0.08
+      "door_anchor_u": 0.307
     },
     "loc_clubroom": {
       "blender_object": "Game_Building_loc_clubroom",

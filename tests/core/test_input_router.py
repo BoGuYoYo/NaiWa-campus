@@ -132,3 +132,69 @@ def test_empty_event_or_handler_is_ignored():
     router.bind("menu", "enter", None)
     assert router.events == []
     assert messenger.accept_calls == []
+
+
+# --------------------------------------------------------------------------- #
+# 第 13 轮：覆盖层打开时，按键不能漏到下层（设置界面按 Space = 背后开新游戏）
+# --------------------------------------------------------------------------- #
+class StackedOwners:
+    """blocked_by 的替身：只有栈顶 owner 能收到按键。"""
+
+    def __init__(self) -> None:
+        self.stack: list[object] = []
+
+    def push(self, owner) -> None:
+        self.stack.append(owner)
+
+    def pop(self) -> None:
+        if self.stack:
+            self.stack.pop()
+
+    def __call__(self, owner) -> bool:
+        return bool(self.stack) and owner is not self.stack[-1]
+
+
+def make_blocking_router() -> tuple[InputRouter, FakeMessenger, StackedOwners]:
+    messenger = FakeMessenger()
+    owners = StackedOwners()
+    router = InputRouter(messenger.accept, messenger.ignore, blocked_by=owners)
+    return router, messenger, owners
+
+
+def test_unbound_key_in_overlay_does_not_reach_the_scene_below():
+    """设置界面没绑 Space 时，Space 不能触发主菜单的「新游戏」。"""
+    router, messenger, owners = make_blocking_router()
+    calls: list[str] = []
+    router.bind("menu", "space", lambda: calls.append("menu"))
+    router.bind("settings", "escape", lambda: calls.append("settings"))
+    owners.push("menu")
+    messenger.send("space")
+    assert calls == ["menu"]
+
+    owners.push("settings")     # 设置界面压上来
+    messenger.send("space")
+    assert calls == ["menu"], "覆盖层没绑的键被吞掉，不能落到下层"
+
+
+def test_overlay_own_binding_still_wins():
+    router, messenger, owners = make_blocking_router()
+    calls: list[str] = []
+    router.bind("menu", "space", lambda: calls.append("menu"))
+    router.bind("settings", "space", lambda: calls.append("settings"))
+    owners.push("menu")
+    owners.push("settings")
+    messenger.send("space")
+    assert calls == ["settings"]
+
+
+def test_scene_regains_keys_after_the_overlay_pops():
+    router, messenger, owners = make_blocking_router()
+    calls: list[str] = []
+    router.bind("menu", "space", lambda: calls.append("menu"))
+    router.bind("settings", "space", lambda: calls.append("settings"))
+    owners.push("menu")
+    owners.push("settings")
+    messenger.send("space")
+    owners.pop()
+    messenger.send("space")
+    assert calls == ["settings", "menu"]

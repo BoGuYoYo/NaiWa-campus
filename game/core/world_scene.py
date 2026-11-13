@@ -343,7 +343,7 @@ class WorldSceneBase:
         self._refresh_prompt()
         self.hud.update(self._state)
         self.hud.tick(dt)
-        self._check_autostep()
+        self._check_autostep(dt)
 
     def _on_tutorial_day_ended(self, **_data: Any) -> None:
         if self.tutorial is not None:
@@ -385,7 +385,7 @@ class WorldSceneBase:
     def _update_scene_camera(self, dt: float, force: bool) -> None:
         raise NotImplementedError
 
-    def _check_autostep(self) -> None:
+    def _check_autostep(self, dt: float = 0.0) -> None:
         """室内地垫：踩上去自动回室外。"""
 
     # ------------------------------------------------------------------ 输入
@@ -734,12 +734,14 @@ class InteriorSceneAdapter(WorldSceneBase):
     def _update_scene_camera(self, dt: float, force: bool) -> None:
         pass
 
-    def _check_autostep(self) -> None:
+    def _check_autostep(self, dt: float = 0.0) -> None:
         """踩到入口地垫 → 回到门外 1 米处（1 秒冷却由 C 的 update_mat 负责）。"""
         if self.scene is None or self._state is None:
             return
         motion = self.player.motion
-        if not self.scene.update_mat(motion.x, motion.y, 1.0 / 60.0):
+        # 冷却必须用真实帧间隔：以前固定传 1/60，30fps 时冷却实际 2 秒、
+        # 120fps 时只有 0.5 秒（帧率越高越容易反复进出）。
+        if not self.scene.update_mat(motion.x, motion.y, dt if dt > 0.0 else 1.0 / 60.0):
             return
         exit_x, exit_y, facing = self.scene.exit_world()
         building_id = self.scene_id
@@ -1159,6 +1161,7 @@ class SettingsMenuSceneAdapter(WidgetSceneBase):
         self.bind("arrow_right", lambda: self._adjust(1))
         self.bind("d", lambda: self._adjust(1))
         self.bind("enter", self.widget.confirm)
+        self.bind("space", self.widget.confirm)
         self.bind("escape", self.widget.cancel)
 
     def _adjust(self, direction: int) -> None:

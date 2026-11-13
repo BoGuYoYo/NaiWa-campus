@@ -396,3 +396,101 @@ def test_valid_rules_still_load():
     db = ContentDB()
     assert db.event("sem_1_club_fair") is not None
     assert spec_data.TOTAL_DAYS == config.TOTAL_DAYS
+
+
+# --------------------------------------------------------------------------- #
+# 第 13 轮（2026-11-13）：最后一天读档、未知事件、存档假成功
+# --------------------------------------------------------------------------- #
+def _to_final_day(flow: GameFlow) -> GameState:
+    """把状态推到"最后一天、3 次行动用完"。"""
+    state = flow.require_state()
+    state.day_index = config.TOTAL_DAYS - 1
+    state.action_slot = config.ACTIONS_PER_DAY
+    return state
+
+
+def test_final_day_autosave_replays_last_semester_event(tmp_path):
+    """day_index=16 + phase=event + pending=sem_8 的自动存档读档后必须重播事件。
+
+    以前 adopt_loaded_state 先判 day_index>=TOTAL_DAYS 就毕业：sem_8 的
+    选项、旗标和结局判定全部被吞掉。
+    """
+    flow = make_flow(tmp_path)
+    flow.new_game(seed=1, skip_intro=True)
+    state = _to_final_day(flow)
+    flow.finish_day()                 # day_index -> 16，sem_8 入队
+    flow.scenes.pop()                 # 玩家关掉 DaySummary
+    flow.close_day_summary()          # pre_event 自动存档 + push EventScene
+    assert state.pending_event_id == "sem_8_graduation_eve"
+    flow.saves.save(state, "autosave")
+
+    reloaded = make_flow(tmp_path, name="saves")
+    loaded = reloaded.load_game("autosave")
+    assert loaded.phase == "event"
+    assert loaded.pending_event_id == "sem_8_graduation_eve"
+    assert reloaded.scenes.top_overlay_id == "EventScene"
+
+
+def test_replayed_final_event_graduates_and_records_choice(tmp_path):
+    flow = make_flow(tmp_path)
+    flow.new_game(seed=1, skip_intro=True)
+    state = _to_final_day(flow)
+    flow.finish_day()
+    flow.scenes.pop()
+    flow.close_day_summary()
+    flow.saves.save(state, "autosave")
+
+    reloaded = make_flow(tmp_path, name="saves")
+    loaded = reloaded.load_game("autosave")
+    event_id = loaded.pending_event_id
+    result = reloaded.services.event.choose(
+        loaded, event_id, first_enabled_choice(reloaded, loaded, event_id)
+    )
+    reloaded.scenes.pop()
+    reloaded.handle_event_result(result)
+    assert loaded.phase == "graduation", "第 8 学期事件结算后应直接进毕业"
+    assert any(entry.startswith(f"{event_id}:") for entry in loaded.event_log)
+
+
+def test_unknown_pending_event_falls_back_to_campus(tmp_path):
+    """存档的 pending_event_id 指向不存在的事件：不能把玩家锁在 event 相位。"""
+    flow = make_flow(tmp_path)
+    flow.new_game(seed=1, skip_intro=True)
+    state = flow.state
+    state.phase = "event"
+    state.pending_event_id = "rel_npc_sumo_999"
+    flow.saves.save(state, "slot_1")
+
+    # 真实 EventScene 适配层遇到未知事件会抛 ContentError；这里用同样的失败模型，
+    # 断言 GameFlow 不会把 phase 留在 event。
+    bus = EventBus()
+
+    def factory(scene_id, kwargs):
+        if scene_id == "EventScene" and kwargs.get("event_id") == "rel_npc_sumo_999":
+            raise RuntimeError("EventService: 事件 rel_npc_sumo_999 不存在")
+        return DummyScene(scene_id, **kwargs)
+
+    scenes = SceneManager(app=None, factory=factory, bus=bus, fade_seconds=0.0)
+    reloaded = GameFlow(app=FakeApp(None), scenes=scenes,
+                        saves=SaveManager(saves_root=tmp_path / "saves"), bus=bus,
+                        services=resolve_services())
+    loaded = reloaded.load_game("slot_1")
+    assert loaded.pending_event_id is None
+    assert loaded.phase == "campus"
+    assert reloaded.scenes.top_overlay_id is None
+    assert reloaded.services.activity.can_start(loaded, "attend_class")[0]
+
+
+def test_request_save_reports_write_failure(tmp_path, monkeypatch):
+    """写盘失败必须返回 False（暂停菜单据此提示"保存失败"）。"""
+    flow = make_flow(tmp_path)
+    flow.new_game(seed=1, skip_intro=True)
+
+    def boom(*_args, **_kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(flow.saves, "save", boom)
+    assert flow.request_save("slot_1") is False
+    monkeypatch.undo()
+    assert flow.request_save("slot_1") is True
+    assert flow.saves.path_for("slot_1").exists()

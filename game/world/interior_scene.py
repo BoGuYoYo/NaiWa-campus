@@ -146,6 +146,18 @@ class InteriorScene:
                 make_box(self.root, ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1, 0.0,
                          FURNITURE_HEIGHT, self.furniture_color)
 
+        # 入口地垫红圈 + NPC 站位圈。这两段与 flattenStrong 以前落在
+        # _panel_edge() 的 return 之后（fc758d2 插入新方法时被截成死代码）：
+        # 室内看不到出口位置，5 个室内也没有合批。
+        mx, my, mr = self.mat_world()
+        make_circle_lines(self.root, mx, my, mr, 0.05, MAT_COLOR, thickness=3.0)
+
+        for mark in self.interior.npc_marks:
+            make_circle_lines(self.root, ox + mark.x, oy + mark.y, 0.4, 0.05,
+                              NPC_MARK_COLOR, segments=16)
+
+        self.root.flattenStrong()
+
     def _panel_edge(self, rect: Rect, side: str, w: float, h: float) -> tuple[float, float, float, float]:
         """墙面卡片的底边（房间本地坐标，往房里缩进一点避免与墙体共面闪烁）。"""
         inset = WALL_PANEL_INSET
@@ -156,14 +168,6 @@ class InteriorScene:
         if side == "w":
             return (rect.x1 + inset, 0.0, rect.x1 + inset, h)
         return (rect.x0 - inset, 0.0, rect.x0 - inset, h)
-
-        mx, my, mr = self.mat_world()
-        make_circle_lines(self.root, mx, my, mr, 0.05, MAT_COLOR, thickness=3.0)
-
-        for mark in self.interior.npc_marks:
-            make_circle_lines(self.root, ox + mark.x, oy + mark.y, 0.4, 0.05, NPC_MARK_COLOR, segments=16)
-
-        self.root.flattenStrong()
 
     # ------------------------------------------------------------------ 查询
     def colliders_local(self) -> tuple[Rect, ...]:

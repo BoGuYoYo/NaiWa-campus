@@ -86,15 +86,16 @@ class NaiwaApp(ShowBase):
         self.settings = config.Settings.load()
         super().__init__()
 
-        # 按键绑定统一走路由：ignore() 是全局接口，场景退场时不能把别人的绑定一起拆掉
-        self.input = InputRouter(self.accept, self.ignore)
+        # 按键绑定统一走路由：ignore() 是全局接口，场景退场时不能把别人的绑定一起拆掉。
+        # blocked_by 接受 owner：覆盖层打开时，下层场景/控件的绑定全部失效。
         self.bus = EventBus(logger=logging.getLogger("naiwa.bus"), strict_topics=options.dev)
+        self.scenes = SceneManager(self, factory=self.make_scene, bus=self.bus)
+        self.input = InputRouter(self.accept, self.ignore, blocked_by=self.scenes.blocks_input)
         self.registry = AssetRegistry(loader=self, bus=self.bus)
         self.pipeline = LowResPipeline(self)
         self.pipeline.setup()
         self.audio = AudioManager(self.registry, self.settings, enabled=not options.offscreen)
         self.saves = SaveManager()
-        self.scenes = SceneManager(self, factory=self.make_scene, bus=self.bus)
         self.services = resolve_services()
 
         # D 的文本库与 UI 坐标系：界面全部画在 aspect2d 之上，与 480×270 同比例
@@ -263,12 +264,14 @@ class NaiwaApp(ShowBase):
         if options.load:
             try:
                 self.flow.load_game(options.load)
-            except SaveLoadError as exc:
+            except (SaveLoadError, ValueError) as exc:
+                # --load slot_9 以前抛 ValueError 一路冒到顶层；参数错误也只该回主菜单。
                 self.log.error("[APP] load %s failed: %s", options.load, exc)
                 self.scenes.start("MainMenu")
             return
         if options.scene in ("CampusScene", "InteriorScene"):
-            self.flow.new_game(seed=options.seed, skip_intro=True)
+            self.flow.new_game(seed=options.seed, skip_intro=True,
+                               spawn=getattr(options, "spawn", None))
             if options.day is not None:
                 state = self.flow.require_state()
                 state.day_index = max(0, min(config.TOTAL_DAYS - 1, int(options.day)))
@@ -276,9 +279,15 @@ class NaiwaApp(ShowBase):
                 self._debug_inspect_character()
             return
         if options.scene == "EventScene":
-            self.scenes.start("CampusScene")
+            # EventScene 是覆盖层，不能单独当基础场景：以前直接 start 会带着
+            # state=None 装配，PlayerController 抛 AttributeError 崩溃。
+            self.flow.new_game(seed=options.seed, skip_intro=True)
             return
-        self.scenes.start(options.scene)
+        try:
+            self.scenes.start(options.scene)
+        except KeyError:
+            self.log.error("[APP] 未知场景 %r，回到主菜单", options.scene)
+            self.scenes.start("MainMenu")
 
     # ------------------------------------------------------------------ #
     # 离屏截图与冒烟

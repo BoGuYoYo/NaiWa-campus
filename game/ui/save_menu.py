@@ -42,6 +42,11 @@ class SaveMenu(UIWidget):
                               y + 6 + 2 * theme.LINE_HEIGHT, ">", color=theme.COLOR_CURSOR)
         self.hint = UILabel(root, transform, x + 10, y + rect[3] - 26,
                             text_db.get("ui.save.hint"), color=theme.COLOR_SECONDARY)
+        #: 操作结果/错误提示（空槽、写盘失败、已保存）。以前这些情况只写日志，
+        #: 玩家按了 Space 看不到任何变化，观感就是"界面卡死"。
+        self.status = UILabel(root, transform, x + 8, y + rect[3] - 42, "",
+                              color=theme.COLOR_WARN)
+        self.status.hide()
 
         self.mode = "save"
         self.index = 0
@@ -52,12 +57,18 @@ class SaveMenu(UIWidget):
         super().__init__(root)
         self.hide()
 
+    def _show_status(self, text: str) -> None:
+        self.status.set_text(text)
+        self.status.show()
+
     # ------------------------------------------------------------------
     def open(self, mode: str, save_manager, state_provider=None) -> None:
         self.mode = mode
         self.save_manager = save_manager
         self.state_provider = state_provider
         self.index = 0
+        self.status.set_text("")
+        self.status.hide()
         self.title.set_text(
             self.text_db.get("ui.save.title" if mode == "save" else "ui.save.load_title")
         )
@@ -130,14 +141,16 @@ class SaveMenu(UIWidget):
             state = self.state_provider() if self.state_provider else None
             if state is None:
                 _log.error("没有可保存的 GameState，忽略本次存档")
+                self._show_status(self.text_db.get("ui.save.failed"))
                 return
             try:
                 self.save_manager.save(state, slot)
             except Exception as exc:
                 _log.error("存档失败 slot=%s: %s", slot, exc)
+                self._show_status(self.text_db.get("ui.save.failed"))
                 return
             self.refresh()
-            self.hide()
+            self._show_status(self.text_db.get("ui.save.saved"))
             if self.on_done:
                 self.on_done(True)
             return
@@ -145,9 +158,15 @@ class SaveMenu(UIWidget):
             state = self.save_manager.load(slot)
         except Exception as exc:
             _log.warning("读档失败 slot=%s: %s", slot, exc)
+            # 空槽/损坏存档必须给反馈：以前只写日志，玩家按 Space 后
+            # 面板毫无变化，看起来就是"死了"。
+            self._show_status(self.text_db.get("ui.save.empty_slot"))
             return
         if state is None:
+            self._show_status(self.text_db.get("ui.save.empty_slot"))
             return
+        self.refresh()
+        self._show_status(self.text_db.get("ui.save.loaded"))
         self.hide()
         if self.on_loaded:
             self.on_loaded(state)

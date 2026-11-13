@@ -232,7 +232,7 @@
       "name": "图书馆门",
       "scene": "campus",
       "location_id": "loc_library",
-      "x": 60.896,
+      "x": 64.568,
       "y": 31.017,
       "radius": 1.2,
       "type": "door",

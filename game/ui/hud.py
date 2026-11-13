@@ -63,16 +63,18 @@ class HUD(UIWidget):
         self.gauge_panel = self._make_panel(root, theme.RECTS["hud_gauges"])
         self.energy_icon = UIIcon(root, transform, 332, 14, theme.STAT_ICON_IDS["energy"],
                                   8.0, asset_registry)
-        # 条宽从 100 收到 86：右边要腾出位置写「84/84」，否则数字会顶出画布
+        # 条宽收到 72：右边要腾出位置写「100/100」——stamina 刷满后
+        # 最宽的 7 字符数字宽 49.8px，右对齐锚点 468 起退到 418.2，
+        # 条尾 422 时数字压在条上（截图可见）。
         self.energy_bar = StatBar(root, transform, 344, 14, fill_color=theme.COLOR_GAIN,
-                                  asset_registry=asset_registry, width=78)
+                                  asset_registry=asset_registry, width=72)
         self.energy_label = UILabel(root, transform, 468, 13, "", color=theme.COLOR_TEXT,
                                     align=TextNode.A_right)
         self.mood_icon = UIIcon(root, transform, 332, 26, theme.STAT_ICON_IDS["mood"],
                                 8.0, asset_registry, fallback_color=theme.COLOR_WARN)
         self.mood_bar = StatBar(root, transform, 344, 26,
                                 fill_color=theme.hex_to_rgba(theme.HEX["warn"]),
-                                asset_registry=asset_registry, width=78)
+                                asset_registry=asset_registry, width=72)
         self.mood_label = UILabel(root, transform, 468, 25, "", color=theme.COLOR_TEXT,
                                   align=TextNode.A_right)
 

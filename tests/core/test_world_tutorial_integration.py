@@ -61,7 +61,7 @@ class _HarnessScene(WorldSceneBase):
     def _refresh_prompt(self, force=False) -> None:
         pass
 
-    def _check_autostep(self) -> None:
+    def _check_autostep(self, dt: float = 0.0) -> None:
         pass
 
 

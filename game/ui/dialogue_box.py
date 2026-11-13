@@ -79,6 +79,10 @@ class DialogueBox(UIWidget):
         self._revealed_chars = 0
         self._total_chars = 0
         self._cps = theme.chars_per_second(theme.DEFAULT_TEXT_SPEED)
+        #: 打字机的小数余量。以前用 int(cps*dt+0.999) 向上取整，60fps 时
+        #: cps*dt<1 导致每帧至少蹦 1 个字：slow(20) 实际也是 60 字/秒，
+        #: 和 normal 完全没区别。改成累加后取整，余量留到下一帧。
+        self._reveal_accum = 0.0
         self._typing_done_callback = None
         super().__init__(root)
         self.hide()
@@ -156,6 +160,7 @@ class DialogueBox(UIWidget):
         self._full_lines = self._wrap_lines(lines)
         self._total_chars = sum(len(line) for line in self._full_lines)
         self._revealed_chars = 0 if self._cps > 0 else self._total_chars
+        self._reveal_accum = 0.0
         self._apply_typewriter()
         self.continue_mark.hide()
 
@@ -204,9 +209,12 @@ class DialogueBox(UIWidget):
     def tick(self, dt: float) -> None:
         if not self.visible or self._cps <= 0 or self._revealed_chars >= self._total_chars:
             return
-        self._revealed_chars = min(
-            self._total_chars, self._revealed_chars + int(self._cps * dt + 0.999)
-        )
+        self._reveal_accum += self._cps * dt
+        steps = int(self._reveal_accum)
+        if steps <= 0:
+            return
+        self._reveal_accum -= steps
+        self._revealed_chars = min(self._total_chars, self._revealed_chars + steps)
         self._apply_typewriter()
 
     def advance(self) -> bool:

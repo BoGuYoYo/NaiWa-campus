@@ -161,6 +161,38 @@ def test_every_interior_builds(base, map_data, building_id):
         scene.destroy()
 
 
+@pytest.mark.parametrize("building_id", INTERIOR_IDS)
+def test_interior_draws_the_exit_mat_and_npc_mark_circles(base, map_data, building_id):
+    """室内必须画出出口地垫红圈与 NPC 站位圈。
+
+    fc758d2 把 _panel_edge() 插到 _build() 尾部代码之前，红圈与 flatten
+    全被 return 截成死代码：室内看不出出口在哪，5 个房间也不再合批。
+    """
+    from panda3d.core import GeomLines, GeomNode
+
+    from game.world.interior_scene import InteriorScene
+
+    scene = InteriorScene(map_data, building_id, base.render)
+    try:
+        circles = 0
+        stack = [scene.root]
+        while stack:
+            node = stack.pop()
+            geom_node = node.node()
+            if isinstance(geom_node, GeomNode):
+                for index in range(geom_node.get_num_geoms()):
+                    geom = geom_node.get_geom(index)
+                    if isinstance(geom, GeomLines) or (
+                        geom.get_num_primitives() and
+                        geom.get_primitive(0).get_class_type().name == "GeomLines"
+                    ):
+                        circles += 1
+            stack.extend(node.getChildren())
+        assert circles >= 1, f"{building_id} 室内没有地垫/NPC 圆圈"
+    finally:
+        scene.destroy()
+
+
 def test_interior_entry_mat_triggers_once_with_cooldown(base, map_data):
     from game.world.interior_scene import EXIT_COOLDOWN, InteriorScene
 

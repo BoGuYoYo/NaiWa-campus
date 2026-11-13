@@ -32,12 +32,15 @@ class DaySummary(UIWidget):
             for i in range(3)
         ]
         self.energy_line = UILabel(root, transform, x + 8, y + 6 + 6 * theme.LINE_HEIGHT, "")
+        # 预告行和「[Space] 继续」以前都落在 y+h-26=178：两行字在截图里糊成
+        # 一句「接下来，有一件重要的事.[Space] 继续」。现在预告占第 7 行
+        # （176..188），继续提示贴到面板下缘（190..202，面板底 204）。
         self.event_tease = UILabel(
-            root, transform, x + 8, y + 6 + 7 * theme.LINE_HEIGHT, "",
+            root, transform, x + 8, y + 6 + 7 * theme.LINE_HEIGHT - 2, "",
             color=theme.COLOR_WARN,
         )
         self.continue_hint = UILabel(
-            root, transform, x + w - 96, y + h - 26,
+            root, transform, x + w - 104, y + h - 18,
             text_db.get("ui.day_summary.continue"), color=theme.COLOR_SECONDARY,
         )
         self.on_close = None

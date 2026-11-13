@@ -9,10 +9,13 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Callable
 
 from game.ui import theme
 from game.ui.widgets import UILabel, UIPanel, UITransform, UIWidget
+
+_log = logging.getLogger("naiwa.ui.settings_menu")
 
 RECT = (120, 40, 240, 190)
 ROW_HEIGHT = 20
@@ -107,9 +110,10 @@ class SettingsMenu(UIWidget):
         if callable(save):
             try:
                 save()
-            except Exception:  # pragma: no cover - 落盘失败不应影响返回
-                self.text_db  # noqa: B018 - 保持引用，异常由 A 的日志记录
-                raise
+            except Exception as exc:  # pragma: no cover - 落盘失败不应影响返回
+                # 以前这里是 raise：磁盘只读时 confirm() 在 hide() 前抛异常，
+                # 设置界面关不掉、按键持续报错。记日志后照常返回。
+                _log.warning("设置落盘失败（%s），本次修改仅在内存生效", exc)
 
     def confirm(self) -> None:
         self._persist()

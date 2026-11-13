@@ -34,9 +34,13 @@ class InputRouter:
         self,
         accept: Callable[[str, Handler], Any],
         ignore: Callable[[str], Any],
+        blocked_by: Callable[[Any], bool] | None = None,
     ) -> None:
         self._accept = accept
         self._ignore = ignore
+        #: 传入 owner，返回 True 表示"该 owner 现在被上层盖住了，按键不能给它"。
+        #: 游戏里由 SceneManager 判断：覆盖层打开时，基础场景的绑定全部失效。
+        self._blocked_by = blocked_by
         self._claims: dict[str, list[tuple[Any, Handler]]] = {}
 
     # ------------------------------------------------------------------ #
@@ -48,7 +52,25 @@ class InputRouter:
             return
         claims = self._claims.setdefault(event, [])
         claims.append((owner, handler))
-        self._accept(event, handler)
+        # 引擎只接受"一个事件一个 handler"，所以统一挂分发器；由它按
+        # 遮挡规则挑当前有效的那条。直接 accept(handler) 会让下层菜单
+        # 在覆盖层打开时继续收键（设置界面按 Space = 背后开新游戏）。
+        self._accept(event, lambda ev=event: self.dispatch(ev))
+
+    def dispatch(self, event: str) -> None:
+        """把按键交给"当前可用的最上层绑定"。
+
+        从后往前找第一条未被 ``blocked_by`` 判为遮挡的绑定；命中后只调用它。
+        全部被遮挡时什么也不做 —— 按键被覆盖层吞掉，这正是模态面板的语义。
+        """
+        claims = self._claims.get(event)
+        if not claims:
+            return
+        for owner, handler in reversed(claims):
+            if self._blocked_by is not None and self._blocked_by(owner):
+                continue
+            handler()
+            return
 
     def bind_many(self, owner: Any, mapping: Iterable[tuple[str, Handler]]) -> None:
         for event, handler in mapping:
@@ -71,7 +93,9 @@ class InputRouter:
                 self._ignore(event)
                 continue
             self._claims[event] = kept
-            self._accept(event, kept[-1][1])
+            # 重新挂的必须是分发器而不是上一个 handler：直接 accept(handler)
+            # 会绕过遮挡判断，覆盖层下的按键又会漏到基础场景去。
+            self._accept(event, lambda ev=event: self.dispatch(ev))
         return affected
 
     # ------------------------------------------------------------------ #

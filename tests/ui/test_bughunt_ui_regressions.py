@@ -390,3 +390,71 @@ def test_tutorial_banner_times_out_instead_of_hanging():
 
     controller.notify("tick", dt=theme.TUTORIAL_STEP_TIMEOUT_SECONDS + 1.0)
     assert controller.active_step is None, "教程横幅必须能自己消失，不能永久占位"
+
+
+# --------------------------------------------------------------------------- #
+# 第 13 轮（2026-11-13）：日结算重叠、文本速度、缺失文案、设置按键
+# --------------------------------------------------------------------------- #
+def test_day_summary_tease_and_continue_hint_do_not_overlap():
+    """预告行与「[Space] 继续」曾经同在 y=178，两行字压成一行。"""
+    from game.ui import theme
+
+    x, y, w, h = theme.RECTS["day_summary"]
+    line_y = y + 6 + 7 * theme.LINE_HEIGHT
+    continue_y = y + h - 14
+    # 两行 12px 字：预告占 line_y..line_y+12，继续提示占 continue_y..continue_y+12
+    assert line_y + 12 <= continue_y, (line_y, continue_y)
+    assert continue_y + 12 <= y + h, "继续提示超出面板下缘"
+
+
+def test_typewriter_slow_and_normal_really_differ():
+    """int(cps*dt+0.999) 会把 20/40 字每秒都抬到 60；累加后必须按配置走。"""
+    from game.ui.dialogue_box import DialogueBox
+
+    def speed_for(cps_name: str) -> float:
+        box = DialogueBox.__new__(DialogueBox)
+        box.visible = True
+        box._cps = 40.0 if cps_name == "normal" else 20.0
+        box._total_chars = 600
+        box._revealed_chars = 0
+        box._reveal_accum = 0.0
+        box._apply_typewriter = lambda: None
+        dt = 1 / 60
+        for _ in range(60):
+            DialogueBox.tick(box, dt)
+        return box._revealed_chars
+
+    slow, normal = speed_for("slow"), speed_for("normal")
+    assert slow == pytest.approx(20, abs=2)
+    assert normal == pytest.approx(40, abs=2)
+    assert normal >= slow * 1.8
+
+
+def test_every_settings_speed_label_has_text():
+    """设置界面「快速」档以前会直接印出 #ui.settings.speed.fast。"""
+    import json
+    from pathlib import Path
+
+    strings = json.loads(
+        (Path(__file__).resolve().parents[2] / "content/text/zh_CN/strings.json")
+        .read_text(encoding="utf-8")
+    )
+    from game.ui.settings_menu import SPEED_TEXT_IDS
+
+    missing = [key for key in SPEED_TEXT_IDS.values() if key not in strings]
+    assert missing == []
+    for key in ("ui.save.failed", "ui.save.empty_slot"):
+        assert key in strings, f"缺 {key}：存读档失败/空槽没有提示文案"
+
+
+def test_settings_adapter_binds_space_like_other_menus():
+    """菜单约定 Space=确认（docs/ui/screens.md）；设置界面以前只绑 Enter/Esc。"""
+    from game.core.world_scene import SettingsMenuSceneAdapter
+
+    events = []
+    adapter = SettingsMenuSceneAdapter.__new__(SettingsMenuSceneAdapter)
+    adapter.widget = FakeWidget()
+    adapter.bind = lambda event, handler: events.append(event)
+    adapter.bind_input()
+    for key in ("enter", "space", "escape", "arrow_up", "arrow_down"):
+        assert key in events, f"设置界面缺 {key} 绑定"

@@ -423,5 +423,8 @@
   "ui.tab.unknown.sumo": "图书馆里的陌生人",
   "ui.tab.unknown.chenlang": "社团楼里的陌生人",
   "ui.tab.unknown.xiaoyou": "食堂里的陌生人",
-  "ui.hud.slot_legend": "今日行动"
+  "ui.hud.slot_legend": "今日行动",
+  "ui.save.failed": "保存失败",
+  "ui.save.empty_slot": "这个存档位是空的",
+  "ui.settings.speed.fast": "快速"
 }

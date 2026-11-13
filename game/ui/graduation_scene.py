@@ -8,8 +8,12 @@
 
 from __future__ import annotations
 
+import logging
+
 from game.ui import theme
 from game.ui.widgets import UILabel, MultilineLabel, UIPanel, UITransform, UIWidget
+
+_log = logging.getLogger("naiwa.ui.graduation")
 
 PAGES = ("stats", "review", "ending", "credits")
 
@@ -28,6 +32,18 @@ class GraduationScene(UIWidget):
                                     size=theme.TITLE_SIZE / 2, color=theme.COLOR_WARN)
         self.ending_body = MultilineLabel(root, transform, 60, 92, [])
         self.credits = MultilineLabel(root, transform, 60, 96, [])
+        #: 折行测量节点（与正文同字体同字号）。结局正文是整段中文、不带换行，
+        #: 以前直接 set_lines 原样输出：实测最宽 456px，从 x=60 起会冲出 480
+        #: 画布右缘，末尾几个字被裁掉。这里按可用宽度重新折。
+        from panda3d.core import TextNode
+
+        from game.ui.widgets import default_font
+
+        self._measure_node = TextNode("graduation_measure")
+        self._measure_node.set_align(TextNode.A_left)
+        chosen_font = default_font()
+        if chosen_font is not None:
+            self._measure_node.set_font(chosen_font)
         self.page_hint = UILabel(
             root, transform, 60, 244,
             text_db.get("ui.graduation.page_hint"), color=theme.COLOR_SECONDARY,
@@ -86,6 +102,32 @@ class GraduationScene(UIWidget):
             return ""
         return ""
 
+    def _wrap_body(self, lines: list[str]) -> list[str]:
+        """按画布可用宽度折行；折出来的行数超过版面容量时压一下行距。
+
+        正文从 x=60 起，右缘留 20px 边距，可用 480-60-20=400 逻辑像素。
+        三行正文按 12px 字号、22px 行距排得下 3~5 行；更多行说明文案过长，
+        继续缩行距会糊在一起，所以只在 92..240 的高度里平均分配。
+        """
+        limit = 480.0 - 60.0 - 20.0
+        wrapped: list[str] = []
+        for line in lines:
+            wrapped.extend(theme.wrap_cjk(str(line), limit, self._measure))
+        if len(wrapped) > 5:
+            _log.warning("结局正文 %d 行，超过版面容量（5 行），按 5 行显示", len(wrapped))
+            wrapped = wrapped[:5]
+        line_height = 22.0
+        if len(wrapped) > 3:
+            # 92 起、到返回提示 244 之前：最多 152px 可用
+            line_height = min(line_height, 150.0 / max(1, len(wrapped) - 1))
+        self.ending_body._line_height = line_height
+        self.ending_body.set_lines(wrapped)
+        return wrapped
+
+    def _measure(self, text: str) -> float:
+        self._measure_node.set_text(text)
+        return self._measure_node.get_width() * 12.0
+
     def _render(self) -> None:
         for widget in (self.content, self.ending_title, self.ending_body, self.credits):
             widget.hide()
@@ -132,7 +174,7 @@ class GraduationScene(UIWidget):
             self.ending_title.set_text(self.text_db.get(f"ending.{ending_id}.title"))
             self.ending_title.show()
             body = [self.text_db.get(f"ending.{ending_id}.body.{i}") for i in (1, 2, 3)]
-            self.ending_body.set_lines(body)
+            self.ending_body.set_lines(self._wrap_body(body))
             self.ending_body.show()
             self.page_hint.show()
         else:

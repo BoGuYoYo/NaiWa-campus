@@ -185,6 +185,18 @@ def _fit(obj: Image.Image, size: tuple[int, int]) -> Image.Image:
     return canvas
 
 
+def _trim(obj: Image.Image) -> Image.Image:
+    """裁掉透明留白。
+
+    留白不能留：渲染时 `height = 画布高 / 24`、宽度按贴图比例反推，
+    多出来的透明边会被算进实物尺寸里——打饭窗口就是这样变成
+    "8 米宽的空画布中间摆一个 2.7 米的小台子"。
+    裁到物体之后画布 = 实物，比例才是真的。
+    """
+    bbox = obj.getbbox()
+    return obj.crop(bbox) if bbox else obj
+
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="导入室内家具图")
@@ -198,8 +210,8 @@ def main(argv: list[str] | None = None) -> int:
         if not src.exists():
             missing.append(name)
             continue
-        art = _fit(_cut_object(Image.open(src)), size)
-        results.append((building, short, size, art))
+        art = _trim(_fit(_cut_object(Image.open(src)), size))
+        results.append((building, short, art.size, art))
         if not args.verify:
             out = ROOT / "assets" / "interior" / building / f"furn_{short}.png"
             out.parent.mkdir(parents=True, exist_ok=True)

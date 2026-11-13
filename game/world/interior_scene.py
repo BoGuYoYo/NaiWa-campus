@@ -15,6 +15,9 @@
 
 from __future__ import annotations
 
+import math
+
+from game import config
 from game.world.campus_scene import (
     make_box,
     make_circle_lines,
@@ -41,7 +44,8 @@ WALL_COLOR = (0.36, 0.37, 0.42, 1.0)
 WALL_PANEL_INSET = 0.02
 FURNITURE_HEIGHT = 1.0
 EXIT_COOLDOWN = 1.0
-
+#: 家具正面卡按镜头俯角后倒的"倒伏系数"：顶端比底边后退 height × CARD_LEAN_SIN
+CARD_LEAN_SIN = abs(math.sin(math.radians(config.CAMERA_TILT_DEGREES)))
 #: 地板贴图一次平铺覆盖的米数（96 px / 4 m = 24 px/m，与游戏像素密度一致）
 FLOOR_TILE_M = 4.0
 #: 墙面贴图一次平铺覆盖的米数；实际由 manifest 的 tile_m 覆盖
@@ -107,6 +111,10 @@ class InteriorScene:
                     texture=self.floor_texture, tile_m=self.floor_tile_m)
 
         thickness = self.map_data.interior_wall_thickness
+        #: 北墙内侧（世界坐标）。家具正面卡按 −40° 后倒 height×sin40°，
+        #: 贴墙摆的家具顶端会扎进墙里被吃掉（打饭窗口只剩台座），
+        #: 所以底边要往前让出倒伏量——见下面的 base_y。
+        back_face = oy + h
         for r in self.map_data.interior_walls(self.building_id):
             side = wall_side(r, (w, h), thickness)
             height = SOUTH_WALL_HEIGHT if side == "s" else WALL_HEIGHT
@@ -116,14 +124,24 @@ class InteriorScene:
                 px0, py0, px1, py1 = self._panel_edge(r, side, w, h)
                 make_wall_panel(self.root, ox + px0, oy + py0, ox + px1, oy + py1,
                                 0.0, height, self.wall_texture, self.wall_tile_m)
+            if side == "n":
+                back_face = min(back_face, oy + r.y0 - WALL_PANEL_INSET)
 
         for furn in self.interior.furniture:
             r = furn.rect
             art = self.furniture_art.get(furn.id)
             if art is not None:
                 texture, height = art
-                make_prop_card(self.root, Rect(ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1),
-                               texture, height, name=f"furn_{furn.id}")
+                make_prop_card(
+                    self.root,
+                    Rect(ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1),
+                    texture,
+                    height,
+                    name=f"furn_{furn.id}",
+                    width=r.x1 - r.x0,
+                    tile=True,
+                    base_y=min(oy + r.y0, back_face - height * CARD_LEAN_SIN),
+                )
             else:
                 make_box(self.root, ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1, 0.0,
                          FURNITURE_HEIGHT, self.furniture_color)

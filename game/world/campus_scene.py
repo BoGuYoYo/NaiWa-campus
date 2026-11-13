@@ -293,24 +293,55 @@ def rect_tuple(r: Rect) -> tuple[float, float, float, float]:
     return (r.x0, r.y0, r.x1, r.y1)
 
 
-def make_prop_card(parent: NodePath, rect: Rect, texture, height: float, name: str = "prop_card") -> NodePath:
+def make_prop_card(
+    parent: NodePath,
+    rect: Rect,
+    texture,
+    height: float,
+    name: str = "prop_card",
+    *,
+    width: float | None = None,
+    tile: bool = False,
+    base_y: float | None = None,
+) -> NodePath:
     """把道具正面图立成一张卡片：底边贴在地面上，按 −40° 俯角朝镜头。
 
-    宽度按贴图比例算，避免拉伸；用 M_binary（alpha 测试）而不是 M_alpha，
+    宽度默认按贴图比例算，避免拉伸；用 M_binary（alpha 测试）而不是 M_alpha，
     这样卡片能正常写深度、树与树之间不会互相穿插。
+
+    `width` + `tile` 给室内家具用：占地矩形往往比一张图宽得多（打饭窗口 8 米、
+    课桌连排 6 米），只放一张卡会在房间里留一大片空。这时按"一张卡的自然宽度"
+    算出需要几份，均匀铺满整个占地宽度——长条家具本来就是重复的单元。
+
+    返回值是这一组卡片的父节点（单份时就是卡片本身）。
+
+    `base_y` 覆盖卡片底边的 y：卡片按 −40° 前倾贴镜头，顶端会往后倒
+    `height × sin40°`，靠墙的家具（打饭窗口、北墙书架）顶端就扎进墙里被吃掉。
+    调用方按"墙面前沿 − 倒伏量"算好底边位置传进来即可。
     """
     from game import config
 
-    width = max(0.2, height * texture.getXSize() / max(1, texture.getYSize()))
+    unit_w = max(0.2, height * texture.getXSize() / max(1, texture.getYSize()))
     cx = (rect.x0 + rect.x1) / 2.0
-    cm = CardMaker(name)
-    cm.set_frame(-width / 2.0, width / 2.0, 0.0, height)
-    card = parent.attach_new_node(cm.generate())
-    card.set_texture(texture)
-    card.set_transparency(TransparencyAttrib.M_binary)
-    card.set_light_off()
-    card.set_p(config.CAMERA_TILT_DEGREES)
-    card.set_pos(cx, rect.y0, 0.0)
+    span = max(0.2, width) if width is not None else unit_w
+    copies = 1
+    if tile and span > unit_w * 1.15:
+        copies = max(1, int(round(span / unit_w)))
+    card_w = span / copies
+
+    group = parent.attach_new_node(f"{name}_group") if copies > 1 else parent
+    left = cx - span / 2.0 + card_w / 2.0
+    foot_y = rect.y0 if base_y is None else base_y
+    card = group
+    for i in range(copies):
+        cm = CardMaker(f"{name}_{i}" if copies > 1 else name)
+        cm.set_frame(-card_w / 2.0, card_w / 2.0, 0.0, height)
+        card = group.attach_new_node(cm.generate())
+        card.set_texture(texture)
+        card.set_transparency(TransparencyAttrib.M_binary)
+        card.set_light_off()
+        card.set_p(config.CAMERA_TILT_DEGREES)
+        card.set_pos(left + i * card_w, foot_y, 0.0)
     return card
 
 

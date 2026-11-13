@@ -170,11 +170,19 @@ fully transparent background, no text.
 | 墙面 | 5 | `assets/interior/<building>/wall.png` | 64×72 无缝（纯正面） |
 | 家具 | 17 | `assets/interior/<building>/furn_<id>.png` | 见 §4 |
 
-`<building>`：`dorm / classroom / library / clubroom / canteen`；`<id>` 取 `map.json` 的 `furniture[].id` 去掉 `furn_` 前缀。
+`<building>`：`dorm / teaching / library / club / canteen`（= 建筑 id 去掉 `loc_` 后再短写）；
+`<id>` 取 `map.json` 的 `furniture[].id` 去掉 `furn_` 前缀。
 
-**渲染侧怎么用**：`make_prop_card(rect, texture, height)` 里
-`卡片宽度 = height × 画布宽/高`。§4 的画布比例 = `占地宽 : (实物高 + 0.34×可视进深)`，
-所以调用时 `height` 要传**画布高 / 24**（含那条顶面），卡片才正好占满占地宽度。
+**渲染侧怎么用**：`make_prop_card(rect, texture, height, width=…, tile=True, base_y=…)`
+
+1. **画布必须裁到物体**（`_trim`）。导入时留透明边 = 把留白也算进实物尺寸：
+   打饭窗口 192×41 的图里物体只有 65×41，card 会变成"8 米空画布中间一个 2.7 米小台子"。
+2. `height` = **裁好后的画布高 / 24**；`卡片宽度 = height × 画布宽/高` = 这一件家具的自然宽度。
+3. 占地矩形通常比一张图宽（打饭窗口 8 m、课桌连排 6 m、书架（北）5 m）：
+   传 `width=占地宽, tile=True`，按自然宽度算出要几份、均匀铺满整个占地宽度
+   （单份 ≈ 取整后的 `占地宽 / 自然宽`，每份再微调到正好整除）。
+4. 卡片按 −40° 后倒 `height × sin40°`，贴墙家具的上半截会扎进墙里被吃掉：
+   `base_y = min(rect.y0, 北墙内侧 − height × sin40°)`，把底边往前让出倒伏量。
 
 **交付前自查**
 
@@ -192,5 +200,5 @@ fully transparent background, no text.
 1. 地板/墙面：`tools/import_interior_art.py`（已完成，10 张，LIC-0213）；
    家具：`tools/import_interior_furniture.py`（已完成，16 件，LIC-0214）。
 2. `game/world/interior_scene.py`：地板换平铺贴图（`set_wrap_u/v(WM_repeat)`），
-   家具由 `make_box` 换成 `make_prop_card`，`height = 画布高 / 24`。
+   家具由 `make_box` 换成 `make_prop_card`（`width` = 占地宽、`tile=True`、`base_y` 让出倒伏量）。
 3. 碰撞仍用 `map.json` 的 rect，不改玩法。

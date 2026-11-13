@@ -174,7 +174,7 @@ ENDING_SETUPS = {
     },
     "ending_club_leader": {
         "stats.social": 60, "counters.club_count": 10,
-        "relationships.npc_chenlang": 60, "flags": ["ran_for_president"],
+        "relationships.npc_sumo": 60, "flags": ["ran_for_president"],
     },
     "ending_creator": {
         "stats.interest": 60, "counters.create_count": 8, "flags": ["held_exhibition"],

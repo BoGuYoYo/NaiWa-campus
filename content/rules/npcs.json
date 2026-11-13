@@ -2,10 +2,10 @@
   {
     "id": "npc_sumo",
     "name": "符闹吃",
-    "role": "同班同学，学习方向，嘴硬心软的抬杠担当",
-    "location": "loc_library",
+    "role": "社团联合会干事，爱张罗活动，嗓门比谁都大",
+    "location": "loc_clubroom",
     "relation_sources": [
-      "library_study",
+      "join_club",
       "talk",
       "semester_event"
     ]
@@ -13,10 +13,10 @@
   {
     "id": "npc_chenlang",
     "name": "李振兴",
-    "role": "社团联合会干事，爱张罗活动的壮汉",
-    "location": "loc_clubroom",
+    "role": "同班同学，学习方向，嘴硬心软的抬杠担当",
+    "location": "loc_library",
     "relation_sources": [
-      "join_club",
+      "library_study",
       "talk",
       "semester_event"
     ]

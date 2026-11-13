@@ -8,7 +8,7 @@
       "library_study",
       "rest_dorm"
     ],
-    "talk_npc": "npc_sumo",
+    "talk_npc": "npc_chenlang",
     "talk_every": 7,
     "prefs": {
       "1": "fair_lab",
@@ -29,7 +29,7 @@
       "join_club",
       "rest_dorm"
     ],
-    "talk_npc": "npc_chenlang",
+    "talk_npc": "npc_sumo",
     "talk_every": 5,
     "prefs": {
       "1": "fair_club",
@@ -89,7 +89,7 @@
       "campus_walk",
       "exercise"
     ],
-    "talk_npc": "npc_chenlang",
+    "talk_npc": "npc_sumo",
     "talk_every": 6,
     "prefs": {
       "1": "fair_club",

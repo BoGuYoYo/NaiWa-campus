@@ -101,7 +101,7 @@ def test_real_adapter_builds_rule_aware_view_and_settles_event():
     adapter._choose("sem_1_club_fair", "fair_lab")
 
     assert state.stats["academic"] == 14
-    assert state.relationships["npc_sumo"] == 10
+    assert state.relationships["npc_chenlang"] == 10
     assert "lab_visited" in state.flags
     assert state.event_log == ["sem_1_club_fair:fair_lab"]
     assert len(handled) == 0
@@ -122,8 +122,8 @@ def test_adapter_uses_all_pages_from_real_textdb():
     assert fair.page_text_ids == [
         f"evt.sem_1_club_fair.body.{i}" for i in range(1, 5)
     ]
-    assert adapter.app.text.get_dialogue(fair.page_text_ids[1])["portrait"] == "portrait_npc_chenlang_happy"
-    assert adapter.app.text.get_dialogue(fair.page_text_ids[2])["portrait"] == "portrait_npc_sumo_neutral"
+    assert adapter.app.text.get_dialogue(fair.page_text_ids[1])["portrait"] == "portrait_npc_sumo_happy"
+    assert adapter.app.text.get_dialogue(fair.page_text_ids[2])["portrait"] == "portrait_npc_chenlang_neutral"
     assert adapter.app.text.get_dialogue(fair.page_text_ids[3])["portrait"] == "portrait_npc_xiaoyou_surprised"
 
 

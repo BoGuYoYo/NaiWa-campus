@@ -3,7 +3,7 @@
     "id": "sem_1_club_fair",
     "kind": "semester",
     "semester_no": 1,
-    "speaker": "npc_chenlang",
+    "speaker": "npc_sumo",
     "pages": [
       "evt.sem_1_club_fair.body.1"
     ],
@@ -13,7 +13,7 @@
         "conditions": [],
         "effects": {
           "social": 4,
-          "rel.npc_chenlang": 10
+          "rel.npc_sumo": 10
         },
         "add_flags": [
           "club_member"
@@ -25,7 +25,7 @@
         "conditions": [],
         "effects": {
           "academic": 4,
-          "rel.npc_sumo": 10
+          "rel.npc_chenlang": 10
         },
         "add_flags": [
           "lab_visited"
@@ -188,7 +188,7 @@
     "id": "sem_5_club_election",
     "kind": "semester",
     "semester_no": 5,
-    "speaker": "npc_chenlang",
+    "speaker": "npc_sumo",
     "pages": [
       "evt.sem_5_club_election.body.1",
       "evt.sem_5_club_election.body.2"
@@ -210,7 +210,7 @@
         ],
         "effects": {
           "social": 5,
-          "rel.npc_chenlang": 10
+          "rel.npc_sumo": 10
         },
         "add_flags": [
           "ran_for_president"
@@ -222,7 +222,7 @@
         "conditions": [],
         "effects": {
           "social": 3,
-          "rel.npc_chenlang": 5
+          "rel.npc_sumo": 5
         },
         "add_flags": [],
         "remove_flags": []
@@ -242,7 +242,7 @@
     "id": "sem_6_lab_invite",
     "kind": "semester",
     "semester_no": 6,
-    "speaker": "npc_sumo",
+    "speaker": "npc_chenlang",
     "pages": [
       "evt.sem_6_lab_invite.body.1"
     ],
@@ -260,7 +260,7 @@
         "effects": {
           "academic": 6,
           "mood": -3,
-          "rel.npc_sumo": 8
+          "rel.npc_chenlang": 8
         },
         "add_flags": [
           "accepted_lab"

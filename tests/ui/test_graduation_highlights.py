@@ -40,7 +40,7 @@ def test_counter_highlight_is_localized(scene):
 
 
 def test_semester_choice_highlight_uses_choice_label(scene):
-    assert scene._highlight_line("sem_1_club_fair:fair_club") == "跟李振兴去社团摊位"
+    assert scene._highlight_line("sem_1_club_fair:fair_club") == "跟符闹吃去社团摊位"
 
 
 def test_unknown_highlight_is_dropped_not_printed(scene):

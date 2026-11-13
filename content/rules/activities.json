@@ -24,7 +24,7 @@
       "energy": -20,
       "mood": -3,
       "academic": 5,
-      "rel.npc_sumo": 2
+      "rel.npc_chenlang": 2
     },
     "counter": "library_count",
     "daily_limit": null,
@@ -79,7 +79,7 @@
       "mood": -2,
       "social": 4,
       "interest": 1,
-      "rel.npc_chenlang": 3
+      "rel.npc_sumo": 3
     },
     "counter": "club_count",
     "daily_limit": null,

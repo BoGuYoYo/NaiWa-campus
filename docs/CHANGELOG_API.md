@@ -444,6 +444,48 @@ B 只产出 `text_id`，正文归 D。合入时关系事件（27）、日常事�
 
 ---
 
+## 角色互换：符闹吃 ↔ 李振兴（2026-11-13，需求变更）
+
+用户要求两名 NPC 交换角色。互换口径：**内部 id 跟着角色走**（`npc_sumo` 永远是符闹吃、
+`npc_chenlang` 永远是李振兴，存档里的 `relationships.npc_*`、`npc_*_stageN` 旗标与立绘
+`portrait_npc_*` 都不用迁），交换的是**职务、所在建筑、关系来源与全部剧情文本**。
+
+| 项目 | 互换前 | 互换后 |
+| --- | --- | --- |
+| 符闹吃 `npc_sumo` | 图书馆 · 学习方向 · 抬杠担当 | **社团楼 · 社团联合会干事 · 爱张罗活动** |
+| 李振兴 `npc_chenlang` | 社团楼 · 社团联合会干事 | **图书馆 · 学习方向 · 抬杠担当** |
+| 图书馆学习加关系 | `rel.npc_sumo` +2 | `rel.npc_chenlang` +2 |
+| 参加社团加关系 | `rel.npc_chenlang` +3 | `rel.npc_sumo` +3 |
+| 社团领袖结局 | 李振兴关系 ≥60 | 符闹吃关系 ≥60 |
+
+改动面：
+
+1. `game/systems/spec_data.py` → 重新 `python -m game.systems.spec_export`：
+   `NPCS` 的 role/location/relation_sources 互换；`ACTIVITIES` 的关系来源互换；
+   `sem_1` / `sem_5` 的说话人与关系收益换成 `npc_sumo`，`sem_6` 换成 `npc_chenlang`；
+   `ENDINGS` 社团领袖的 rel 键换成 `npc_sumo`；`STRATEGIES` 的 `talk_npc`
+   （academic → `npc_chenlang`、club_leader / vibrant → `npc_sumo`）。
+2. `content/world/map.json`：图书馆 `npc_marks` 改「李振兴」、社团楼改「符闹吃」
+   —— `InteriorSceneAdapter.NPC_ART` 按显示名取立绘，两张图随之换房间。
+3. `content/world/interactables.json`：`ia_npc_sumo` 移到社团楼 (12,5)、
+   `ia_npc_chenlang` 移到图书馆 (11,6)；id 与 `target` 不变（id 跟着角色）。
+4. `content/text/zh_CN/strings.json`：37 条文案（招新/换届/毕业前夜选项与结果、
+   `npc.*.talk`、创作台词、结局正文、关系事件标题与结果）。
+5. `content/text/zh_CN/dialogues.json`：招新（第 2、3 页）、换届、导师邀请的说话人与立绘换位；
+   六段关系事件整段互换并改写口吻——社团线（缺人的海报 / 活动前夜 / 交接钥匙）归符闹吃，
+   学习线（借你一支笔 / 错题本 / 窗边的位置）归李振兴。
+6. 回归基线：`tests/expected/unit_expect.json`（B-T02 的关系键）、
+   `tests/expected/smoke_seed42.json`（六套策略的关系归属）、
+   `tests/systems/test_event.py`、`tests/core/test_event_scene_adapter.py`、
+   `tests/world/test_map_data.py`、`tests/ui/test_graduation_highlights.py` 同步。
+7. `docs/story/ending_routes.md` 全篇按新分工重写人名。
+
+验证：`pytest tests` 全绿；六套策略 seed 42 仍分别命中
+`ending_academic / club_leader / creator / digital / vibrant / balanced`，
+stats / mood / min_end_energy 与互换前完全一致，只有关系归属对称互换。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

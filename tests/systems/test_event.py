@@ -20,7 +20,7 @@ def test_choice_applies_effects_and_flags(state, events):
     assert [c.choice_id for c in view.choices] == ["fair_club", "fair_lab", "fair_game"]
     result = events.choose(state, "sem_1_club_fair", "fair_lab")
     assert state.stats["academic"] == 14
-    assert state.relationships["npc_sumo"] == 10
+    assert state.relationships["npc_chenlang"] == 10
     assert "lab_visited" in state.flags
     assert result.added_flags == ["lab_visited"]
     assert "sem_1_club_fair:fair_lab" in state.event_log

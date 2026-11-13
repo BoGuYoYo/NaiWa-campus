@@ -87,10 +87,10 @@
     {
       "id": "ia_npc_sumo",
       "name": "符闹吃",
-      "scene": "loc_library",
-      "location_id": "loc_library",
-      "x": 11.0,
-      "y": 6.0,
+      "scene": "loc_clubroom",
+      "location_id": "loc_clubroom",
+      "x": 12.0,
+      "y": 5.0,
       "radius": 1.3,
       "type": "npc",
       "target": "npc_sumo"
@@ -164,10 +164,10 @@
     {
       "id": "ia_npc_chenlang",
       "name": "李振兴",
-      "scene": "loc_clubroom",
-      "location_id": "loc_clubroom",
-      "x": 12.0,
-      "y": 5.0,
+      "scene": "loc_library",
+      "location_id": "loc_library",
+      "x": 11.0,
+      "y": 6.0,
       "radius": 1.3,
       "type": "npc",
       "target": "npc_chenlang"

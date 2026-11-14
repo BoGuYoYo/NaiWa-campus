@@ -375,3 +375,42 @@ def test_rejects_unknown_interactable_type():
     raw_ia["interactables"][0]["type"] = "portal"
     with pytest.raises(MapDataError, match="type 不合法"):
         MapData(_raw_map(), raw_ia)
+
+
+# --------------------------------------------------------------- 第 14 轮：道具与地面
+
+def test_props_do_not_overlap_each_other(map_data):
+    """道具之间不能重叠：喷泉里长过路灯、篮球架压过沙坑。"""
+    props = list(map_data.props)
+    for i, a in enumerate(props):
+        for b in props[i + 1:]:
+            ar, br = a.rect, b.rect
+            assert (ar.x1 <= br.x0 or br.x1 <= ar.x0
+                    or ar.y1 <= br.y0 or br.y1 <= ar.y0), f"{a.id} 与 {b.id} 重叠"
+
+
+def test_props_inside_the_area_they_decorate(map_data):
+    """新接的场地道具必须落在对应区域内。
+
+    行道树/路灯/垃圾桶按设计摆在草皮空地（区域之间），不参与这条检查。
+    """
+    area_only = ("prop_goal", "prop_basket", "prop_hurdle", "prop_scoreboard",
+                 "prop_bench_sport", "prop_plaza_bench", "prop_fountain",
+                 "prop_flowerbed", "prop_stele", "prop_kiosk")
+    rects = [a.rect for a in map_data.areas] + [b.rect for b in map_data.buildings]
+    for prop in map_data.props:
+        if prop.id not in area_only:
+            continue
+        r = prop.rect
+        inside = any(r.x0 >= a.x0 and r.x1 <= a.x1 and r.y0 >= a.y0 and r.y1 <= a.y1
+                     for a in rects)
+        assert inside, f"{prop.id} 不在任何区域/建筑占地内"
+
+
+def test_interactables_are_not_buried_inside_props(map_data):
+    """交互点不能在道具占地内部，否则提示框会被立牌挡住。"""
+    for item in map_data.interactables:
+        for prop in map_data.props:
+            r = prop.rect
+            if r.x0 <= item.x <= r.x1 and r.y0 <= item.y <= r.y1:
+                raise AssertionError(f"{item.id} 落在 {prop.id} 内")

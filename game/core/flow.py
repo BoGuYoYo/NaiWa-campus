@@ -417,11 +417,14 @@ class GameFlow:
             LOG.exception("[FLOW] 重播事件 %s 失败，清掉 pending 退回校园", event_id)
             state.pending_event_id = None
             state.phase = "campus"
-            if state.day_finished:
-                self.finish_day()
-            elif self._pending_graduation:
+            # 顺序不能反：day_index 已到 16 时 finish_day() 会被 calendar 拒绝
+            # （只允许在毕业之前结算），异常又被 on_ready 吞掉，玩家停在
+            # day=16 + campus、所有活动 E_NO_SLOT，彻底卡死。
+            if self._pending_graduation or state.day_index >= config.TOTAL_DAYS:
                 self._pending_graduation = False
                 self._handle_graduation(state)
+            elif state.day_finished:
+                self.finish_day()
 
     def _resume_pending_event(self, state: GameState, event_id: str, spawn: str) -> None:
         """重播未结算事件；它属于最后一天时，播完直接进毕业而不是换日。"""

@@ -42,6 +42,10 @@ class EventScene(UIWidget):
         rect = theme.RECTS["event_choices"]
         self.panel = UIPanel(root, transform, rect, asset_registry)
         self.choice_labels: list[UILabel] = []
+        # 选项行距与面板高度按选项数自适应：v2 的 sem_7 有 4 个选项，
+        # 固定 20px 行距会把第 4 项挤到面板外、压在对话框上沿（截图可见）。
+        # 面板底边固定在 160（对话框顶 166 之前），从底往上长。
+        self._choice_row_h = 20
         # 锁定原因提示挂在选项面板上方：旧位置在面板内部最后一行，
         # 3 个选项时会直接把第三个选项压掉。
         self.lock_hint = UILabel(
@@ -133,6 +137,21 @@ class EventScene(UIWidget):
         if not self._cursor:
             self.lock_hint.set_text("")
             return
+        count = len(self._cursor.items)
+        # 面板底边固定（rect[1]+rect[3]=160），高度随选项数长高；
+        # 4 项时行距压到 16，加上内边距共 4+4*16+4=72 → 顶边 88，不碰对话框。
+        row_h = 20 if count <= 3 else 16
+        height = max(rect[3], 8 + row_h * count)
+        top = rect[1] + rect[3] - height
+        self._choice_row_h = row_h
+        # 只在尺寸变化时重建面板：load_event 每次都调用本方法，
+        # 无条件重建会在同一帧里反复拆节点。
+        if getattr(self, "_panel_size", None) != (height, top):
+            self._panel_size = (height, top)
+            self.panel.destroy()
+            self.panel = UIPanel(
+                self.root, self.transform, (rect[0], top, rect[2], height), self.assets,
+            )
         for i, (choice_id, enabled, _reason) in enumerate(self._cursor.items):
             # 优先用 B 给的 text_id（ChoiceView.text_id），没有才按命名约定拼
             text_id = self._choice_text_ids.get(choice_id) or f"evt.{self._event_id}.choice.{choice_id}"
@@ -140,7 +159,7 @@ class EventScene(UIWidget):
             # 再喂绝对逻辑坐标会被平移两次，选项文字会跑到面板外面（面板看着是空的）。
             label = UILabel(
                 self.root, self.transform,
-                rect[0] + 12, rect[1] + 4 + i * 20,
+                rect[0] + 12, top + 4 + i * row_h,
                 self.text_db.get(text_id),
                 color=theme.COLOR_TEXT if enabled else theme.COLOR_DISABLED,
             )

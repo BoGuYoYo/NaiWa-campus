@@ -90,21 +90,22 @@ def _check_conditions(path: Path, obj_id: str, conditions: list[dict[str, Any]],
                               referenced)
             continue
         if ctype in ("stat",):
-            if cond.get("key") not in STAT_KEYS:
+            if not isinstance(cond.get("key"), str) or cond.get("key") not in STAT_KEYS:
                 _fail(path, obj_id, f"{prefix}stat 条件 key 非法：{cond.get('key')}")
         elif ctype == "counter":
-            if cond.get("key") not in counters:
+            if not isinstance(cond.get("key"), str) or cond.get("key") not in counters:
                 _fail(path, obj_id, f"{prefix}counter 条件引用了未定义的计数器：{cond.get('key')}")
         elif ctype == "counter_sum":
             keys = cond.get("keys")
             if not isinstance(keys, list) or not keys:
                 _fail(path, obj_id, f"{prefix}counter_sum 条件必须提供非空 keys")
-            unknown = [key for key in keys if key not in counters]
+            unknown = [key for key in keys
+                       if not isinstance(key, str) or key not in counters]
             if unknown:
                 _fail(path, obj_id,
                       f"{prefix}counter_sum 条件引用了未定义的计数器：{unknown[0]}")
         elif ctype == "rel":
-            if cond.get("key") not in npc_ids:
+            if not isinstance(cond.get("key"), str) or cond.get("key") not in npc_ids:
                 _fail(path, obj_id, f"{prefix}rel 条件引用了不存在的 NPC：{cond.get('key')}")
         elif ctype in ("mood", "energy", "semester"):
             pass

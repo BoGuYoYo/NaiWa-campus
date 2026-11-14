@@ -79,6 +79,9 @@ class SaveManager:
         summary_extra: dict[str, Any] | None = None,
     ) -> Path:
         self._validate_slot(slot)
+        # 内层 save_version 也强制对齐：从 v1 存档读出来的 state.save_version=1，
+        # 直接 to_dict() 会写出「顶层 2 / 内层 1」的自相矛盾存档。
+        state.save_version = int(config.SAVE_VERSION)
         payload = {
             # 版本号必须写当前格式版本；剧情规则重写后旧版本存档不再兼容。
             "save_version": int(config.SAVE_VERSION),
@@ -103,7 +106,12 @@ class SaveManager:
             try:
                 if bak.exists():
                     bak.unlink()
-                target.replace(bak)
+                # 旧主文件的版本不支持时不要留在 .bak：读档回退会读到
+                # 一份永远打不开的存档，界面还会把它列成有效摘要。
+                if self._file_version_supported(target):
+                    target.replace(bak)
+                else:
+                    target.unlink()
             except OSError as exc:
                 self.log.warning("[SAVE] cannot rotate %s -> %s: %s", target.name, bak.name, exc)
 
@@ -225,6 +233,8 @@ class SaveManager:
         """只读摘要，不构建完整状态，用于读档界面。
 
         主文件损坏时回退 .bak —— 否则存档列表显示「空」、实际却能读出来。
+        版本不兼容的存档（例如 v2 客户端里的 v1 存档）不能被当成有效摘要：
+        以前列表照常显示「第 8 天」，点开却报"空槽"，玩家会以为存档丢了。
         """
         self._validate_slot(slot)
         target = self.path_for(slot)
@@ -234,6 +244,9 @@ class SaveManager:
                 continue
             raw = self._read_summary_payload(candidate)
             if raw is None:
+                continue
+            if not self._version_supported(raw):
+                self.log.warning("[SAVE] %s 版本不兼容，不在列表中显示", candidate.name)
                 continue
             if candidate != target:
                 self.log.warning("[SAVE] %s 损坏，摘要回退到 %s", target.name, candidate.name)
@@ -245,6 +258,17 @@ class SaveManager:
                 summary=summary if isinstance(summary, dict) else {},
             )
         return None
+
+    @staticmethod
+    def _version_supported(raw: dict[str, Any]) -> bool:
+        version = raw.get("save_version", 0)
+        if not isinstance(version, int):
+            return False
+        return MIN_SUPPORTED_SAVE_VERSION <= version <= config.SAVE_VERSION
+
+    def _file_version_supported(self, path: Path) -> bool:
+        raw = self._read_summary_payload(path)
+        return raw is not None and self._version_supported(raw)
 
     @staticmethod
     def _read_summary_payload(path: Path) -> dict[str, Any] | None:

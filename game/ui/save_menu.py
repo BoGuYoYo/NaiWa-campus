@@ -158,9 +158,19 @@ class SaveMenu(UIWidget):
             state = self.save_manager.load(slot)
         except Exception as exc:
             _log.warning("读档失败 slot=%s: %s", slot, exc)
-            # 空槽/损坏存档必须给反馈：以前只写日志，玩家按 Space 后
-            # 面板毫无变化，看起来就是"死了"。
-            self._show_status(self.text_db.get("ui.save.empty_slot"))
+            # 不同失败原因要分开说：版本不兼容不能显示成"空槽"，
+            # 否则玩家会以为存档丢了（v1 → v2 升级时最常见）。
+            code = getattr(exc, "code", None) or getattr(
+                getattr(exc, "error", None), "code", None)
+            if code == "E_SAVE_VERSION":
+                text_id = "err.save_version"
+            elif code == "E_SLOT_EMPTY":
+                text_id = "ui.save.empty_slot"
+            elif code == "E_SAVE_CORRUPT":
+                text_id = "err.save_corrupt"
+            else:
+                text_id = "ui.save.failed"
+            self._show_status(self.text_db.get(text_id))
             return
         if state is None:
             self._show_status(self.text_db.get("ui.save.empty_slot"))

@@ -458,3 +458,82 @@ def test_settings_adapter_binds_space_like_other_menus():
     adapter.bind_input()
     for key in ("enter", "space", "escape", "arrow_up", "arrow_down"):
         assert key in events, f"设置界面缺 {key} 绑定"
+
+
+# --------------------------------------------------------------------------- #
+# 第 14 轮：v2 的 sem_7 有 4 个选项，面板/行距必须随选项数自适应
+# --------------------------------------------------------------------------- #
+def test_event_choice_panel_grows_for_four_options():
+    """4 个选项时第 4 行以前会落到面板外、压在对话框上沿。"""
+    from game.ui import theme
+
+    rect = theme.RECTS["event_choices"]
+    dialogue_top = theme.RECTS["dialogue"][1]
+    count = 4
+    row_h = 20 if count <= 3 else 16
+    height = max(rect[3], 8 + row_h * count)
+    top = rect[1] + rect[3] - height
+    last_row_bottom = top + 4 + (count - 1) * row_h + 12
+    assert top >= 0
+    assert last_row_bottom <= rect[1] + rect[3], (last_row_bottom, rect[1] + rect[3])
+    assert rect[1] + rect[3] <= dialogue_top, "选项面板底边不能压到对话框"
+    # 3 项时保持原高度不变
+    h3 = max(rect[3], 8 + 20 * 3)
+    assert h3 == rect[3]
+
+
+def test_event_adapter_binds_digits_beyond_three():
+    from game.core.world_scene import EventSceneAdapter
+
+    adapter = EventSceneAdapter.__new__(EventSceneAdapter)
+    events = []
+
+    class _EventWidget(FakeWidget):
+        def __getattr__(self, _name):
+            return lambda *a, **k: None
+
+    adapter.widget = _EventWidget()
+    adapter.bind = lambda event, handler: events.append(event)
+    adapter.bind_input()
+    for digit in ("1", "2", "3", "4"):
+        assert digit in events, f"数字键 {digit} 没绑定，第 4 个选项只能靠方向键"
+
+
+# --------------------------------------------------------------------------- #
+# 第 14 轮：v2 文案错配（角色互换后的残留）
+# --------------------------------------------------------------------------- #
+def test_tab_unknown_npc_clues_match_actual_locations():
+    """关系为 0 时 Tab 显示的"在哪遇到"必须和真实建筑一致。"""
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    strings = json.loads((root / "content/text/zh_CN/strings.json").read_text(encoding="utf-8"))
+    world = json.loads((root / "content/world/interactables.json").read_text(encoding="utf-8"))
+    location = {item["target"]: item["location_id"]
+                for item in world["interactables"] if item["id"].startswith("ia_npc")}
+    expected = {
+        "npc_sumo": "社团楼",
+        "npc_chenlang": "图书馆",
+        "npc_xiaoyou": "食堂",
+    }
+    for npc_id, place in expected.items():
+        assert location[npc_id] == {
+            "npc_sumo": "loc_clubroom", "npc_chenlang": "loc_library",
+            "npc_xiaoyou": "loc_canteen"}[npc_id]
+        clue = strings[f"ui.tab.unknown.{npc_id.removeprefix('npc_')}"]
+        assert place in clue, f"{npc_id} 的线索写的是 {clue!r}，实际在 {place}"
+
+
+def test_ending_counter_labels_match_renamed_activities():
+    """行动改名后，毕业回顾的计数器文案必须跟着改。"""
+    import json
+    from pathlib import Path
+
+    strings = json.loads(
+        (Path(__file__).resolve().parents[2] / "content/text/zh_CN/strings.json")
+        .read_text(encoding="utf-8")
+    )
+    action_name = strings["act.create_work.name"]
+    counter_label = strings["ending.counter.create_count"]
+    assert action_name in counter_label, (action_name, counter_label)

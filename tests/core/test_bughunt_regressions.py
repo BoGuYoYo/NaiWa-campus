@@ -495,3 +495,88 @@ def test_request_save_reports_write_failure(tmp_path, monkeypatch):
     monkeypatch.undo()
     assert flow.request_save("slot_1") is True
     assert flow.saves.path_for("slot_1").exists()
+
+
+# --------------------------------------------------------------------------- #
+# 第 14 轮：v1 存档在 v2 客户端里的表现
+# --------------------------------------------------------------------------- #
+def _write_fake_save(path, version: int, day: int = 7) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "save_version": version,
+        "saved_at": "2025-01-01T00:00:00+08:00",
+        "game_version": "0.0.9",
+        "reason": "manual",
+        "summary": {"day_index": day, "stats": {}, "phase": "campus"},
+        "state": new_state(1).to_dict(),
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+
+def test_peek_hides_saves_from_unsupported_versions(tmp_path):
+    """v1 存档不能出现在读档列表里：以前显示「第 8 天」，点开却说空槽。"""
+    manager = SaveManager(saves_root=tmp_path / "saves")
+    _write_fake_save(manager.path_for("slot_1"), version=1, day=7)
+    assert manager.peek("slot_1") is None
+    assert manager.list_slots() == []
+
+
+def test_peek_still_sees_current_version(tmp_path):
+    flow = make_flow(tmp_path, name="saves2")
+    flow.new_game(seed=1, skip_intro=True)
+    flow.saves.save(flow.state, "slot_1")
+    assert flow.saves.peek("slot_1") is not None
+
+
+def test_stale_v1_backup_is_dropped_on_next_save(tmp_path):
+    """v2 写盘时不能把 v1 主文件轮转成 .bak：回退读档会读到打不开的档。"""
+    flow = make_flow(tmp_path)
+    flow.new_game(seed=1, skip_intro=True)
+    target = flow.saves.path_for("autosave")
+    _write_fake_save(target, version=1, day=9)
+
+    flow.saves.save(flow.state, "autosave")
+    raw = json.loads(target.read_text(encoding="utf-8"))
+    assert raw["save_version"] == config.SAVE_VERSION
+    assert raw["state"]["save_version"] == config.SAVE_VERSION
+    assert not flow.saves.bak_path_for("autosave").exists()
+
+
+def test_loading_v1_save_reports_version_error(tmp_path):
+    from game.core.save_manager import SaveLoadError
+
+    manager = SaveManager(saves_root=tmp_path / "saves")
+    _write_fake_save(manager.path_for("slot_1"), version=1)
+    with pytest.raises(SaveLoadError) as info:
+        manager.load("slot_1")
+    assert info.value.code == "E_SAVE_VERSION"
+
+
+# --------------------------------------------------------------------------- #
+# 第 14 轮：第 16 天未知待结算事件
+# --------------------------------------------------------------------------- #
+def test_unknown_pending_event_on_final_day_graduates(tmp_path):
+    """day=16 + 事件装配失败：必须进毕业，而不是停在 campus 无行动可用。"""
+    flow = make_flow(tmp_path)
+    flow.new_game(seed=1, skip_intro=True)
+    state = flow.state
+    state.day_index = config.TOTAL_DAYS
+    state.phase = "event"
+    state.pending_event_id = "sem_8_removed_event"
+    flow.saves.save(state, "slot_1")
+
+    bus = EventBus()
+
+    def factory(scene_id, kwargs):
+        if scene_id == "EventScene":
+            raise RuntimeError("EventService: 事件不存在")
+        return DummyScene(scene_id, **kwargs)
+
+    scenes = SceneManager(app=None, factory=factory, bus=bus, fade_seconds=0.0)
+    reloaded = GameFlow(app=FakeApp(None), scenes=scenes,
+                        saves=SaveManager(saves_root=tmp_path / "saves"), bus=bus,
+                        services=resolve_services())
+    loaded = reloaded.load_game("slot_1")
+    assert loaded.phase == "graduation"
+    assert loaded.ending_id
+    assert reloaded.scenes.base_id == "GraduationScene"

@@ -528,6 +528,52 @@ stats / mood / min_end_energy 与互换前完全一致，只有关系归属对�
 
 ---
 
+## v2 体验排查修复（2026-11-14，第 14 轮）
+
+v2.0.0 重构 + 操场/广场素材接入后，四路审查（结局规则 / 世界素材 / 文本 UI / 存档流程）
+共修 10 条。守卫测试分布在 `tests/ui/test_bughunt_ui_regressions.py`、
+`tests/core/test_bughunt_regressions.py`、`tests/world/test_map_data.py`、
+`tests/systems/test_content_coverage.py`。
+
+### 界面
+
+| # | 问题 | 改法 |
+| --- | --- | --- |
+| 1 | **sem_7 第 4 个选项画出面板并压住对话框**：v2 把 S7 从 3 项扩到 4 项，但面板高 68 / 行距 20 仍是 3 项假设；数字键只绑 1/2/3 | `EventScene._build_choice_labels()` 按选项数自适应：≥4 项时行距 16、面板从底边 160 向上长到 72；数字键改为 1~9 |
+| 2 | **Tab 面板「未结识 NPC」地点线索在角色互换后错配**：符闹吃显示「图书馆里的陌生人」，实际在社团楼 | `ui.tab.unknown.sumo` ↔ `chenlang` 互换 |
+| 3 | 毕业回顾把「敲代码」印成「搞创作」 | `ending.counter.create_count` 改为「敲代码 {n} 次」 |
+| 4 | 延毕结局正文末行折出孤字（420px > 400 上限） | 缩短该句到 384px，三行都不再折 |
+
+### 素材与布局
+
+| # | 问题 | 改法 |
+| --- | --- | --- |
+| 5 | **广场长椅一直是棕色方块**：`PROP_ART` 前缀写成 `prop_bench_plaza`，地图 id 是 `prop_plaza_bench`，永不命中 | 前缀改为 `prop_plaza_bench` |
+| 6 | **路灯长在喷泉里**：`prop_lamp_w2` [35.4,29.8,35.8,30.2] 完全落在 `prop_fountain` [32,29,37,32] 内 | 移到广场边 (30.7,27.2) |
+| 7 | **操场白色分道线被抠断**：地面图先被抠图工具做了"口袋消除"，被红跑道包住的白色分道线被整段当背景挖掉，实机露草地 | `cut_background(pockets=False)` 用于地面图；喷泉单独列入 `PROPS_KEEP_POCKETS`（白色水柱同色，也会被挖） |
+| 8 | 石碑底座两侧漂浮黑渣、喷泉水柱破洞 | 新增 `_drop_small_islands()`：缩放后再删一次连通小块；喷泉关闭口袋消除 |
+| 9 | 篮球架/记分牌/场边长椅压在跑道上 | 篮球架移到内场 (24.0,4.2)，记分牌 (24.8,12.6)，栏架 (21.8,6.0)，场边长椅 (21.6,9.6)；均落在草地，且不与球门/沙坑重叠 |
+
+### 存档与流程
+
+| # | 问题 | 改法 |
+| --- | --- | --- |
+| 10 | **v1 存档在 v2 客户端里三种表现都错**：主菜单「继续」亮着但按了没反应；读档列表显示「第 8 天」、点开却说"空槽"；首次 v2 写盘后 `.bak` 仍是 v1 | `peek()` 校验版本（不兼容不进列表）；`_has_autosave()` 用 peek 判定，并新增「旧版本存档」标签；`SaveMenu` 按 `SaveLoadError.code` 区分提示；写盘时版本不支持的旧主文件直接丢弃、不轮转成 `.bak`；`save()` 强制内层 `save_version` 与顶层一致；补齐 `err.save_version / err.save_corrupt / err.save_io / err.slot_empty` 文案 |
+| 11 | **第 16 天待结算事件装配失败仍卡死**：兜底先判 `day_finished` 调 `finish_day()`，而 calendar 在 `day_index>=16` 直接抛错，异常被 on_ready 吞掉 | 兜底顺序改为先 `_pending_graduation or day_index>=TOTAL_DAYS → 毕业` |
+| 12 | NPC 台词/简介仍是互换前身份（符闹吃讲学习、李振兴讲社团） | `npc.sumo.*` / `npc.chenlang.*` 的 bio 与 greet 1~3 全部按新分工重写 |
+
+### 工具与命令行
+
+- `python -m game.sim` 默认策略 `balanced` 已不存在（exit 2），改为 `kaoyan`；docstring 示例同步。
+- 条件校验对非字符串 key（`{"x":1}`）抛 `TypeError`，改为统一抛 `ContentError` 并带文件上下文。
+- `tools/import_outdoor_props.py` 额外支持 `--verify` 的重新核对；重新导入后 10 张道具图与操场地面图同步更新。
+
+验证：`pytest tests` → 688 passed；`--autoplay --seed 42 --frames 200` → 48 行动 /
+16 天 / `ending_mediocre` / `errors=[]`；五套策略 seed 42 全部命中；`align_building_doors --check`
+0 mismatch；`make_text_index --check` 已同步；`make_placeholders check` → assets=161 missing=0。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

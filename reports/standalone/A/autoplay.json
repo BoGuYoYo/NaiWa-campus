@@ -33,11 +33,10 @@
   ],
   "ending_id": "ending_mediocre",
   "day_index": 16,
-  "play_seconds": 0.18,
+  "play_seconds": 0.23,
   "errors": [],
   "missing_assets": [],
   "save_slots": [
-    "slot_1",
     "autosave"
   ]
 }

@@ -334,3 +334,26 @@ def test_invalid_operator_is_rejected(tmp_path):
 
     with pytest.raises(ContentError, match="运算符非法"):
         _broken_db(tmp_path, mutate)
+
+
+# --------------------------------------------------------------- 第 14 轮：条件类型校验
+
+def test_non_string_condition_keys_raise_content_error(tmp_path):
+    """畸形条件键（dict / None）必须抛 ContentError，而不是 TypeError。"""
+    import json
+    import shutil
+
+    from game.systems.content_db import RULES_DIR, ContentDB, ContentError
+
+    rules = tmp_path / "rules"
+    shutil.copytree(RULES_DIR, rules)
+    path = rules / "endings.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for ending in data:
+        if ending["id"] == "ending_romance_nailong":
+            ending["conditions"] = [
+                {"type": "counter_sum", "keys": [{"x": 1}], "op": ">=", "value": 10},
+            ]
+    path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(ContentError):
+        ContentDB(rules)

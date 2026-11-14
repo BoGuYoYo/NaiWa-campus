@@ -492,7 +492,9 @@ class CampusSceneAdapter(WorldSceneBase):
         ("prop_hurdle", "campus_texture_prop_hurdle", 1.12),
         ("prop_scoreboard", "campus_texture_prop_scoreboard", 1.67),
         ("prop_bench_sport", "campus_texture_prop_bench_sport", 1.25),
-        ("prop_bench_plaza", "campus_texture_prop_bench_plaza", 1.17),
+        # 地图里的 id 是 prop_plaza_bench（广场长椅），以前前缀写成
+        # prop_bench_plaza 永远匹配不上：广场中央一直是棕色方块。
+        ("prop_plaza_bench", "campus_texture_prop_bench_plaza", 1.17),
         ("prop_fountain", "campus_texture_prop_fountain", 4.33),
         ("prop_flowerbed", "campus_texture_prop_flowerbed", 1.92),
         ("prop_stele", "campus_texture_prop_stele", 1.75),
@@ -1020,7 +1022,8 @@ class EventSceneAdapter(WidgetSceneBase):
         self.bind("w", lambda: self.widget.on_move(-1))
         self.bind("arrow_down", lambda: self.widget.on_move(1))
         self.bind("s", lambda: self.widget.on_move(1))
-        for digit in (1, 2, 3):
+        # 1~9：事件选项数不再固定为 3（v2 的 sem_7 有 4 个）。
+        for digit in range(1, 10):
             self.bind(str(digit), lambda d=digit: self.widget.on_digit(d))
         # 事件不能中途退出，但 Esc 必须有反应：跳过打字机 / 翻页 / 关掉结果页，
         # 到了选项阶段则提示「先选一个选项」——不能像旧版那样绑一个空 lambda。

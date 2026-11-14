@@ -57,6 +57,10 @@ GROUNDS: dict[str, tuple[str, tuple[int, int], bool]] = {
 
 PX_PER_M = 24
 
+#: 这些道具内部有"和背景同色的实体"，不能做口袋消除：
+#: 喷泉的白色水柱/水花与棋盘格背景同色，按口袋抠掉后只剩一个喷口。
+PROPS_KEEP_POCKETS = {"喷泉.jfif"}
+
 
 # ---------------------------------------------------------------------------
 # 去背景
@@ -135,7 +139,13 @@ def _close_mask(mask: np.ndarray, radius: int = 4) -> np.ndarray:
     return np.array(img) > 0
 
 
-def cut_background(img: Image.Image, tol: int = 26) -> Image.Image:
+def cut_background(img: Image.Image, tol: int = 26, pockets: bool = True) -> Image.Image:
+    """抠掉与边框同色的背景。
+
+    ``pockets=False`` 用于**地面图**：地面整体是一张会被包住的图
+    （跑道白线、内场草地都被红色跑道围着），口袋消除会把白线当成
+    "被围住的背景"整段挖掉，游戏里直接露出底下的草地色。
+    """
     rgb = np.array(img.convert("RGB"))
     tones = _border_tones(rgb)
     mask = _tone_mask(rgb, tones, tol)
@@ -147,7 +157,7 @@ def cut_background(img: Image.Image, tol: int = 26) -> Image.Image:
     # 2) 被物体围住的背景口袋（长椅条板之间、凉亭立柱之间的空格）：
     #    连通块颜色落在边缘色上、且面积不大，就一并抠掉。
     flat = rgb.astype(int)
-    for _ in range(120):
+    for _ in range(120 if pockets else 0):
         rest = mask & ~bg
         if not rest.any():
             break
@@ -193,6 +203,24 @@ def _fit_exact(obj: Image.Image, size: tuple[int, int]) -> Image.Image:
     return obj.resize(size, Image.LANCZOS)
 
 
+def _drop_small_islands(obj: Image.Image, min_ratio: float = 0.02,
+                        floor_px: int = 8) -> Image.Image:
+    """缩放后再删一次小块。
+
+    缩放前 _keep_large 的阈值按源图（2000+ px）的 2% 算；
+    缩到 60 px 宽后这些"大块"只剩几个像素，会以漂浮黑渣的形式留在
+    石碑底座两侧（实测 11 px 的碎块）。
+    """
+    alpha = np.array(obj.getchannel("A"))
+    fg = alpha >= 128
+    kept = _keep_large(fg, min_ratio)
+    if int(kept.sum()) < floor_px:      # 物体本身很小，别把主体删掉
+        return obj
+    out = obj.copy()
+    out.putalpha(Image.fromarray(np.where(kept, 255, 0).astype(np.uint8), "L"))
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="导入操场/广场素材")
     parser.add_argument("--verify", action="store_true", help="只出核对图，不写 assets")
@@ -206,7 +234,8 @@ def main(argv: list[str] | None = None) -> int:
         if not src.exists():
             missing.append(name)
             continue
-        art = _fit_width(cut_background(Image.open(src)), round(width_m * PX_PER_M))
+        cut = cut_background(Image.open(src), pockets=name not in PROPS_KEEP_POCKETS)
+        art = _drop_small_islands(_fit_width(cut, round(width_m * PX_PER_M)))
         results.append(("props", short, art, width_m))
 
     for name, (short, size, need_cut) in GROUNDS.items():
@@ -214,7 +243,9 @@ def main(argv: list[str] | None = None) -> int:
         if not src.exists():
             missing.append(name)
             continue
-        cut = cut_background(Image.open(src)) if need_cut else Image.open(src).convert("RGBA")
+        # 地面不做口袋消除：跑道白线会被整段当成背景挖掉（见 cut_background 注释）。
+        cut = (cut_background(Image.open(src), pockets=False)
+               if need_cut else Image.open(src).convert("RGBA"))
         # 居中裁到目标比例，再缩到目标像素（避免拉伸变形）
         target_ratio = size[0] / size[1]
         w, h = cut.size

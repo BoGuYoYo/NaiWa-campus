@@ -57,21 +57,45 @@ class MainMenu(UIWidget):
         self.refresh()
 
     def _has_autosave(self) -> bool:
+        """只在自动存档"确实能读"时点亮「继续」。
+
+        以前只判文件存在：v1 存档在 v2 客户端里继续按钮亮着，按下去
+        什么也没发生（load 抛 E_SAVE_VERSION 只写日志）。
+        """
+        return self._autosave_state() == "ok"
+
+    def _autosave_state(self) -> str:
+        """none = 没有存档；ok = 可读；incompatible = 有文件但版本不支持。"""
         if self.save_manager is None:
-            return False
+            return "none"
         try:
-            return bool(self.save_manager.exists("autosave"))
+            if self.save_manager.peek("autosave"):
+                return "ok"
         except Exception:
-            return False
+            return "none"
+        try:
+            return "incompatible" if self.save_manager.exists("autosave") else "none"
+        except Exception:
+            return "none"
 
     def refresh(self) -> None:
-        self.enabled["continue"] = self._has_autosave()
+        state = self._autosave_state()
+        self.enabled["continue"] = state == "ok"
         for i, (text_id, key) in enumerate(ITEMS):
             enabled = self.enabled[key]
-            self.labels[i].set_text(
-                self.text_db.get_raw(text_id) if enabled
-                else f"{self.text_db.get_raw(text_id)}（{self.text_db.get('ui.menu.reason.no_save_short')}）"
-            )
+            if enabled:
+                self.labels[i].set_text(self.text_db.get_raw(text_id))
+            elif key == "continue" and state == "incompatible":
+                # 单独标出来：玩家上一版的存档还在，但这一版打不开。
+                self.labels[i].set_text(
+                    f"{self.text_db.get_raw(text_id)}"
+                    f"（{self.text_db.get('ui.menu.reason.incompatible_save')}）"
+                )
+            else:
+                self.labels[i].set_text(
+                    f"{self.text_db.get_raw(text_id)}"
+                    f"（{self.text_db.get('ui.menu.reason.no_save_short')}）"
+                )
             self.labels[i].set_color(theme.COLOR_TEXT if enabled else theme.COLOR_DISABLED)
         if not self.enabled[ITEMS[self.index][1]]:
             self.index = 0

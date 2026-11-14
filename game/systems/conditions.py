@@ -54,7 +54,7 @@ def evaluate(state: GameState, cond: dict[str, Any]) -> bool:
     if ctype == "counter":
         return _compare(state.counters.get(cond["key"], 0), cond["op"], int(cond["value"]))
     if ctype == "counter_sum":
-        keys = cond.get("keys", [])
+        keys = cond.get("keys") or []
         total = sum(state.counters.get(str(key), 0) for key in keys)
         return _compare(total, cond["op"], int(cond["value"]))
     if ctype == "rel":

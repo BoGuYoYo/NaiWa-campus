@@ -1,9 +1,9 @@
 """模拟器命令行（开发者 B，手册 B11）。
 
-    python -m game.sim --strategy academic --seed 42 --out reports/academic_42.json
+    python -m game.sim --strategy kaoyan --seed 42 --out reports/kaoyan_42.json
     python -m game.sim --strategy all --seeds 0-199 --summary
     python -m game.sim --random 3000 --summary --out reports/random_3000.json
-    python -m game.sim --strategy academic --seed 42 --save-resume --out ...
+    python -m game.sim --strategy kaoyan --seed 42 --save-resume --out ...
 
 退出码：0 成功；1 结局与 --expect 不符；2 运行异常。
 """
@@ -51,7 +51,7 @@ def _run_one(strategy_name: str, seed: int, save_resume: bool) -> dict[str, Any]
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m game.sim",
                                      description="奶娃：大学四年 无界面模拟器")
-    parser.add_argument("--strategy", default="balanced",
+    parser.add_argument("--strategy", default=spec_data.STRATEGY_NAMES[0],
                         help="策略名，可选 all / " + " / ".join(spec_data.STRATEGY_NAMES)
                              + " / random")
     parser.add_argument("--seed", type=int, default=42)

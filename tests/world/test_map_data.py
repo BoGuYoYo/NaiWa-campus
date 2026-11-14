@@ -46,7 +46,7 @@ DOC_BUILDINGS = {
 
 DOC_AREAS = {
     "loc_gate": (34.0, 0.0, 46.0, 8.0),
-    "loc_playground": (22.0, 10.0, 34.0, 24.0),
+    "loc_playground": (19.0, 1.0, 31.0, 15.0),
     "loc_plaza": (30.0, 26.0, 50.0, 42.0),
     "road_main": (37.0, 0.0, 43.0, 48.0),
     "road_east_west": (18.0, 15.0, 62.0, 19.0),
@@ -67,7 +67,7 @@ DOC_INTERIOR_ORIGINS = {
 
 DOC_INTERACTABLES = {
     "ia_gate_notice": ("campus", 43.0, 4.0, 1.5, "inspect", "inspect.gate_notice"),
-    "ia_track_start": ("campus", 28.0, 17.0, 2.0, "activity", "exercise"),
+    "ia_track_start": ("campus", 25.0, 8.0, 2.0, "activity", "exercise"),
     "ia_plaza_bench": ("campus", 40.0, 33.0, 1.5, "activity", "campus_walk"),
     "ia_class_desk": ("loc_classroom", 8.0, 6.0, 1.2, "activity", "attend_class"),
     "ia_course_board": ("loc_classroom", 3.0, 9.0, 1.2, "inspect", "inspect.course_board"),
@@ -171,7 +171,7 @@ def test_to_world_offsets_interior_coordinates(map_data):
 
 def test_area_at_returns_first_matching_area(map_data):
     assert map_data.area_at(40.0, 5.0) == "loc_gate"  # 与 road_main 重叠时取先声明者
-    assert map_data.area_at(28.0, 17.0) == "loc_playground"
+    assert map_data.area_at(25.0, 8.0) == "loc_playground"
     assert map_data.area_at(40.0, 30.0) == "loc_plaza"
     assert map_data.area_at(50.0, 50.0) is None
 

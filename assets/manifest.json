@@ -1833,6 +1833,222 @@
         ],
         "height_m": 1.208
       }
+    },
+    {
+      "id": "campus_texture_prop_goal",
+      "type": "image",
+      "path": "campus/textures/props/goal.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          72,
+          42
+        ],
+        "width_m": 3.0,
+        "height_m": 1.75
+      }
+    },
+    {
+      "id": "campus_texture_prop_basket",
+      "type": "image",
+      "path": "campus/textures/props/basket.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          48,
+          101
+        ],
+        "width_m": 2.0,
+        "height_m": 4.208
+      }
+    },
+    {
+      "id": "campus_texture_prop_hurdle",
+      "type": "image",
+      "path": "campus/textures/props/hurdle.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          36,
+          27
+        ],
+        "width_m": 1.5,
+        "height_m": 1.125
+      }
+    },
+    {
+      "id": "campus_texture_prop_scoreboard",
+      "type": "image",
+      "path": "campus/textures/props/scoreboard.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          48,
+          40
+        ],
+        "width_m": 2.0,
+        "height_m": 1.667
+      }
+    },
+    {
+      "id": "campus_texture_prop_bench_sport",
+      "type": "image",
+      "path": "campus/textures/props/bench_sport.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          48,
+          30
+        ],
+        "width_m": 2.0,
+        "height_m": 1.25
+      }
+    },
+    {
+      "id": "campus_texture_prop_bench_plaza",
+      "type": "image",
+      "path": "campus/textures/props/bench_plaza.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          48,
+          28
+        ],
+        "width_m": 2.0,
+        "height_m": 1.167
+      }
+    },
+    {
+      "id": "campus_texture_prop_flowerbed",
+      "type": "image",
+      "path": "campus/textures/props/flowerbed.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          72,
+          46
+        ],
+        "width_m": 3.0,
+        "height_m": 1.917
+      }
+    },
+    {
+      "id": "campus_texture_prop_fountain",
+      "type": "image",
+      "path": "campus/textures/props/fountain.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          120,
+          104
+        ],
+        "width_m": 5.0,
+        "height_m": 4.333
+      }
+    },
+    {
+      "id": "campus_texture_prop_stele",
+      "type": "image",
+      "path": "campus/textures/props/stele.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          58,
+          42
+        ],
+        "width_m": 2.417,
+        "height_m": 1.75
+      }
+    },
+    {
+      "id": "campus_texture_prop_kiosk",
+      "type": "image",
+      "path": "campus/textures/props/kiosk.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          58,
+          67
+        ],
+        "width_m": 2.417,
+        "height_m": 2.792
+      }
+    },
+    {
+      "id": "campus_texture_area_playground",
+      "type": "image",
+      "path": "campus/textures/ground_playground.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          288,
+          336
+        ],
+        "width_m": 12.0,
+        "height_m": 14.0
+      }
+    },
+    {
+      "id": "campus_texture_area_plaza",
+      "type": "image",
+      "path": "campus/textures/ground_plaza.png",
+      "license_id": "LIC-0215",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          480,
+          384
+        ],
+        "width_m": 20.0,
+        "height_m": 16.0
+      }
     }
   ]
 }

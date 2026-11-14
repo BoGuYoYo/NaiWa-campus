@@ -481,12 +481,38 @@ class CampusSceneAdapter(WorldSceneBase):
     scene_id = "campus"
 
     #: 道具 id 前缀 -> (贴图 asset_id, 世界高度米)。没登记的道具继续用方块白模。
+    #: 高度 = 画布高 / 24（画布已按占地宽度缩好，卡片宽度会正好等于 map.json 的占地宽）。
     PROP_ART = (
         ("prop_tree", "campus_texture_prop_tree", 4.5),
         ("prop_lamp", "campus_texture_prop_lamp", 4.0),
         ("prop_bin", "campus_texture_prop_bin", 1.0),
         ("prop_gate_notice", "campus_texture_prop_sign", 2.4),
+        ("prop_goal", "campus_texture_prop_goal", 1.75),
+        ("prop_basket", "campus_texture_prop_basket", 4.21),
+        ("prop_hurdle", "campus_texture_prop_hurdle", 1.12),
+        ("prop_scoreboard", "campus_texture_prop_scoreboard", 1.67),
+        ("prop_bench_sport", "campus_texture_prop_bench_sport", 1.25),
+        ("prop_bench_plaza", "campus_texture_prop_bench_plaza", 1.17),
+        ("prop_fountain", "campus_texture_prop_fountain", 4.33),
+        ("prop_flowerbed", "campus_texture_prop_flowerbed", 1.92),
+        ("prop_stele", "campus_texture_prop_stele", 1.75),
+        ("prop_kiosk", "campus_texture_prop_kiosk", 2.79),
     )
+
+    #: 区域地面贴图：area_id -> (asset_id, 平铺米数|None)。None = 一张图整块铺满该区域。
+    AREA_ART = {
+        "loc_playground": ("campus_texture_area_playground", None),
+        "loc_plaza": ("campus_texture_area_plaza", None),
+    }
+
+    def _area_texture(self, area_id: str):
+        entry = self.AREA_ART.get(area_id)
+        if entry is None:
+            return None
+        asset_id, tile_m = entry
+        texture = self._texture(asset_id)
+        return None if texture is None else (texture, tile_m)
+
 
     def _prop_art(self, prop_id: str):
         for prefix, asset_id, height in self.PROP_ART:
@@ -554,6 +580,7 @@ class CampusSceneAdapter(WorldSceneBase):
             building_art=self._building_art,
             building_side_art=self._building_side_art,
             building_visuals=building_visuals,
+            area_textures=self._area_texture,
         )
 
     def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:

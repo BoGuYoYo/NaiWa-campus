@@ -23,8 +23,8 @@
       "name": "跑道起点",
       "scene": "campus",
       "location_id": "loc_playground",
-      "x": 28.0,
-      "y": 17.0,
+      "x": 25.0,
+      "y": 8.0,
       "radius": 2.0,
       "type": "activity",
       "target": "exercise"

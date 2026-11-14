@@ -118,10 +118,12 @@ def make_ground(
     color,
     texture=None,
     tile_m: float | None = None,
+    alpha_test: bool = False,
 ) -> NodePath:
     """一块水平面片（朝上）。
 
-    给了 texture 就按 tile_m 米一次平铺（草地用）；否则是纯色面片（道路/广场）。
+    给了 texture 就贴图：`tile_m` 有值按米平铺（草地/铺装），没值就整块铺满一块区域
+    （操场那种一张图一整个场地的素材）；`alpha_test` 给四角透明的场地图用。
     """
     has_uv = texture is not None
     fmt = GeomVertexFormat.getV3n3c4t2() if has_uv else GeomVertexFormat.getV3n3c4()
@@ -137,13 +139,17 @@ def make_ground(
         r = g = b = 1.0
     width = max(1e-6, x1 - x0)
     height = max(1e-6, y1 - y0)
-    tile = tile_m if tile_m and tile_m > 0 else max(width, height)
+    tile = tile_m if tile_m and tile_m > 0 else None
     for vx, vy in ((x0, y0), (x1, y0), (x1, y1), (x0, y1)):
         vw.addData3(vx, vy, z)
         nw.addData3(0, 0, 1)
         cw.addData4(r, g, b, a)
         if tw is not None:
-            tw.addData2((vx - x0) / tile, (vy - y0) / tile)
+            if tile is None:
+                # 整块铺满：UV 0..1 正好贴满这块区域（不按米平铺）
+                tw.addData2((vx - x0) / width, (vy - y0) / height)
+            else:
+                tw.addData2((vx - x0) / tile, (vy - y0) / tile)
     tris = GeomTriangles(Geom.UHStatic)
     tris.addVertices(0, 1, 2)
     tris.addVertices(0, 2, 3)
@@ -157,7 +163,8 @@ def make_ground(
         texture.set_wrap_u(Texture.WM_repeat)
         texture.set_wrap_v(Texture.WM_repeat)
         np.set_texture(texture)
-        np.set_transparency(TransparencyAttrib.M_none)
+        np.set_transparency(TransparencyAttrib.M_binary if alpha_test
+                            else TransparencyAttrib.M_none)
     np.setTwoSided(True)
     np.setLightOff()
     return np
@@ -422,7 +429,8 @@ class CampusScene:
 
     def __init__(self, map_data, parent: NodePath, *, dev: bool = False,
                  ground_texture=None, prop_art=None, building_art=None,
-                 building_side_art=None, building_visuals=None):
+                 building_side_art=None, building_visuals=None,
+                 area_textures=None):
         self.map_data = map_data
         self.root = parent.attachNewNode("CampusScene")
         self.dev = dev
@@ -431,6 +439,8 @@ class CampusScene:
         self.building_art = building_art
         self.building_side_art = building_side_art
         self.building_visuals = building_visuals or {}
+        #: callable(area_id) -> (texture, tile_m|None)；没登记的区域继续用纯色
+        self.area_textures = area_textures
         self.colliders = map_data.colliders_for(CAMPUS_SCENE)
         self.bounds = map_data.bounds
         self._build()
@@ -445,7 +455,16 @@ class CampusScene:
         for area in self.map_data.areas:
             color = AREA_COLORS.get(area.id, (0.6, 0.6, 0.6, 1.0))
             z = AREA_Z.get(area.id, Z_AREA)
-            make_ground(self.root, area.rect.x0, area.rect.y0, area.rect.x1, area.rect.y1, z, color)
+            art = self.area_textures(area.id) if callable(self.area_textures) else None
+            if art is None:
+                make_ground(self.root, area.rect.x0, area.rect.y0, area.rect.x1,
+                            area.rect.y1, z, color)
+            else:
+                texture, tile_m = art
+                # 场地贴图四角是透明的（跑道圆角），按 alpha 测试画到草地上
+                make_ground(self.root, area.rect.x0, area.rect.y0, area.rect.x1,
+                            area.rect.y1, z, color, texture=texture, tile_m=tile_m,
+                            alpha_test=True)
 
         art_buildings = []
         for building in self.map_data.buildings:

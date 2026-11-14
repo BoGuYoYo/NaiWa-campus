@@ -28,6 +28,11 @@ def test_preview_returns_nominal_effects(state, activity, db, activity_id):
     """preview 返回该活动的名义变化，且不修改状态。"""
     before = state.to_dict()
     expected = {k: int(v) for k, v in db.activity(activity_id)["effects"].items()}
+    expected = {
+        key: value for key, value in expected.items()
+        if not key.startswith("rel.")
+        or spec_data.met_npc_flag(key[4:]) in state.flags
+    }
     if db.activity(activity_id).get("halve_academic_on_low_mood") and state.mood < 30:
         expected["academic"] //= 2
     assert activity.preview(state, activity_id) == expected

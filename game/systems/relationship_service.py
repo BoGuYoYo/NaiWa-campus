@@ -41,6 +41,8 @@ class RelationshipService:
         added_flags: list[str] = []
         triggered: str | None = None
         deltas: dict[str, int] = {}
+        if spec_data.met_npc_flag(npc_id) not in state.flags:
+            return None, added_flags, deltas
         relation = state.relationships.get(npc_id, 0)
         for stage in spec_data.REL_STAGES:
             stage_flag = f"{npc_id}_stage{stage['stage']}"
@@ -67,13 +69,19 @@ class RelationshipService:
         if not ok:
             return ActivityResult(ok=False, activity_id=f"talk.{npc_id}", error_code=code)
 
+        met_flag = spec_data.met_npc_flag(npc_id)
+        first_talk = met_flag not in state.flags
+        state.flags.add(met_flag)
+        added_flags: list[str] = [met_flag] if first_talk else []
+
         effects = dict(spec_data.TALK_EFFECTS)
         effects[f"rel.{npc_id}"] = spec_data.TALK_RELATION_GAIN
         deltas = apply(state, effects)
         state.talked_today.add(npc_id)
         state.action_slot += 1
 
-        triggered, added_flags, bonus = self.check_stage(state, npc_id)
+        triggered, stage_flags, bonus = self.check_stage(state, npc_id)
+        added_flags.extend(stage_flags)
         if triggered:
             deltas[f"rel.{npc_id}"] = deltas.get(f"rel.{npc_id}", 0) + bonus[f"rel.{npc_id}"]
 

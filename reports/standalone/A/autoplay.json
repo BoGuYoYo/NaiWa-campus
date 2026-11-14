@@ -1,9 +1,7 @@
 {
   "ok": true,
-  "steps": 58,
+  "steps": 57,
   "phase_trail": [
-    "campus",
-    "event",
     "campus",
     "event",
     "campus",
@@ -26,17 +24,16 @@
   "events": [
     "sem_1_club_fair:fair_club",
     "sem_2_first_exam:cram",
-    "sem_3_art_contest:help_friend",
-    "sem_4_sports_meet:cheer",
-    "sem_5_club_election:support",
-    "rel_npc_chenlang_1:continue",
-    "sem_6_lab_invite:accept_lab",
-    "sem_7_final_project:internship",
+    "sem_3_art_contest:library_docs",
+    "sem_4_sports_meet:library_mock",
+    "sem_5_club_election:kaoyan_books",
+    "sem_6_lab_invite:tech_continue",
+    "sem_7_final_project:kaoyan_sprint",
     "sem_8_graduation_eve:thesis"
   ],
-  "ending_id": "ending_balanced",
+  "ending_id": "ending_mediocre",
   "day_index": 16,
-  "play_seconds": 0.2,
+  "play_seconds": 0.18,
   "errors": [],
   "missing_assets": [],
   "save_slots": [

@@ -43,6 +43,13 @@ class ActivityService:
     # ---- 预览 -----------------------------------------------------------
     def _nominal_effects(self, state: GameState, activity: dict[str, Any]) -> dict[str, int]:
         effects = {k: int(v) for k, v in activity.get("effects", {}).items()}
+        # Relationship gains from activities unlock after the player has met
+        # that NPC through the dedicated talk interaction.
+        for key in list(effects):
+            if key.startswith("rel."):
+                npc_id = key[4:]
+                if spec_data.met_npc_flag(npc_id) not in state.flags:
+                    del effects[key]
         halve = (activity.get("halve_academic_on_low_mood") is True
                  and state.mood < spec_data.LOW_MOOD_THRESHOLD)
         if halve and "academic" in effects:

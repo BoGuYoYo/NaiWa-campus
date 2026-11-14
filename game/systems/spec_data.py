@@ -187,6 +187,12 @@ TALK_EFFECTS: dict[str, int] = {"energy": -5, "mood": 2, "social": 2}
 TALK_RELATION_GAIN = 6
 TALK_REQUIRED_ENERGY = 5
 REL_EVENT_BONUS = 5
+MET_NPC_FLAG_PREFIX = "met_"
+
+
+def met_npc_flag(npc_id: str) -> str:
+    """Return the persistent flag set by the player's first conversation."""
+    return f"{MET_NPC_FLAG_PREFIX}{npc_id}"
 
 REL_STAGES: list[dict[str, Any]] = [
     {"stage": 1, "threshold": 20, "min_semester": 2, "require_flag": None},

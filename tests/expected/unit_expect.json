@@ -32,7 +32,7 @@
     {
       "id": "B-T02",
       "kind": "case",
-      "desc": "图书馆学习一次",
+      "desc": "未交谈前图书馆学习不增加李振兴好感",
       "setup": {},
       "stages": [
         {
@@ -46,7 +46,7 @@
             "energy": 64,
             "mood": 57,
             "stats.academic": 15,
-            "relationships.npc_chenlang": 2,
+            "relationships.npc_chenlang": 0,
             "action_slot": 1,
             "counters.library_count": 1,
             "today_counts.library_study": 1
@@ -197,6 +197,7 @@
             "energy": 79,
             "stats.social": 12,
             "flags": [
+              "met_npc_sumo",
               "npc_sumo_stage1"
             ],
             "talked_today": [
@@ -229,7 +230,9 @@
           ],
           "expect": {
             "relationships.npc_sumo": 36,
-            "flags": []
+            "flags": [
+              "met_npc_sumo"
+            ]
           },
           "expect_result": {
             "triggered_event_id": null

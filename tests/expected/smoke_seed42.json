@@ -59,7 +59,7 @@
     "relationships": {
       "npc_sumo": 0,
       "npc_chenlang": 5,
-      "npc_xiaoyou": 58
+      "npc_xiaoyou": 26
     },
     "min_end_energy": 79
   },
@@ -73,9 +73,9 @@
     },
     "mood": 100,
     "relationships": {
-      "npc_sumo": 34,
+      "npc_sumo": 10,
       "npc_chenlang": 5,
-      "npc_xiaoyou": 32
+      "npc_xiaoyou": 16
     },
     "min_end_energy": 72
   }

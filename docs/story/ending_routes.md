@@ -62,6 +62,7 @@
 ## 规则实现
 
 - 关系 ID 保持 npc_chenlang、npc_sumo、npc_xiaoyou，显示名分别为李振兴、符闹吃、奈珑。
+- 活动附带的关系收益需要先完成对应 NPC 的第一次交谈；交谈会写入持久旗标 met_<npc_id>。例如，首次交谈奈珑前打游戏只获得活动本身的收益，交谈后才获得奈珑关系 +2。
 - “创作 + 打游戏 ≥ 10”使用 counter_sum 条件。
 - 规则唯一来源是 game/systems/spec_data.py，JSON 由 python -m game.systems.spec_export 导出。
 - 存档版本提升为 2；旧版本存档不用于本剧情版本的课堂演示。

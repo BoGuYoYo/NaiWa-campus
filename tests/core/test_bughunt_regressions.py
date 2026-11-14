@@ -296,6 +296,7 @@ def test_relationship_event_triggers_from_a_non_talk_activity(tmp_path):
     state = flow.require_state()
     state.day_index = 2
     state.relationships["npc_sumo"] = 20   # 已过 stage1 阈值，但从没交谈过
+    state.flags.add("met_npc_sumo")
 
     result = flow.services.activity.start(state, "attend_class")
     flow.handle_activity_result(result)

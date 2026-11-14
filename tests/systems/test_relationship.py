@@ -30,3 +30,20 @@ def test_only_one_relation_stage_per_talk(state, relationship):
     assert result.triggered_event_id == "rel_npc_sumo_1"
     assert "npc_sumo_stage1" in state.flags
     assert "npc_sumo_stage2" not in state.flags
+
+
+def test_activity_relation_gain_requires_first_talk(state, relationship, activity):
+    before = activity.start(state, "play_games")
+    assert before.ok
+    assert before.deltas.get("rel.npc_xiaoyou", 0) == 0
+    assert state.relationships["npc_xiaoyou"] == 0
+
+    talk = relationship.talk(state, "npc_xiaoyou")
+    assert talk.ok
+    assert state.relationships["npc_xiaoyou"] == 6
+    assert "met_npc_xiaoyou" in state.flags
+
+    after = activity.start(state, "play_games")
+    assert after.ok
+    assert after.deltas["rel.npc_xiaoyou"] == 2
+    assert state.relationships["npc_xiaoyou"] == 8

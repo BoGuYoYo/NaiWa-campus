@@ -137,6 +137,14 @@ def test_hud_panels_leave_inner_padding_for_content():
         assert h >= 40, f"{name} 太矮，放不下 8 px 内边距 + 两行内容"
 
 
+def test_hud_stat_bars_share_a_fixed_aligned_track():
+    from game.ui.hud import STAT_BAR_ROWS, STAT_BAR_WIDTH, STAT_BAR_X, STAT_LABEL_X
+
+    assert STAT_BAR_ROWS == (14, 26)
+    assert STAT_BAR_ROWS[1] - STAT_BAR_ROWS[0] == 12
+    assert STAT_BAR_X + STAT_BAR_WIDTH < STAT_LABEL_X
+
+
 def test_canvas_offset_centers_non_16_9_window():
     """非 16:9 窗口（如 1282×752）画布要垂直居中，Tab 面板才不会看起来偏上。"""
     window_w, window_h = 1282, 752

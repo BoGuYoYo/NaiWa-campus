@@ -357,3 +357,13 @@ def test_non_string_condition_keys_raise_content_error(tmp_path):
     path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ContentError):
         ContentDB(rules)
+
+
+# --------------------------------------------------- 第 15 轮：活动名与场景素材一致
+
+def test_create_work_name_matches_the_easel_furniture():
+    """社团楼摆的是画架（furn_easel），活动显示名是「画画」。"""
+    from game.systems.spec_data import ACTIVITIES
+
+    activity = next(a for a in ACTIVITIES if a["id"] == "create_work")
+    assert activity["name"] == "画画", activity["name"]

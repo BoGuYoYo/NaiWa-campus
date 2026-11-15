@@ -392,7 +392,7 @@ def test_props_do_not_overlap_each_other(map_data):
 def test_props_inside_the_area_they_decorate(map_data):
     """新接的场地道具必须落在对应区域内。
 
-    行道树/路灯/垃圾桶按设计摆在草皮空地（区域之间），不参与这条检查。
+    篮球架特意放在跑道右侧的草地上；行道树/路灯/垃圾桶也摆在区域之间。
     """
     area_only = ("prop_goal", "prop_basket", "prop_hurdle", "prop_scoreboard",
                  "prop_bench_sport", "prop_plaza_bench", "prop_fountain",
@@ -402,6 +402,15 @@ def test_props_inside_the_area_they_decorate(map_data):
         if prop.id not in area_only:
             continue
         r = prop.rect
+        if prop.id == "prop_basket":
+            playground = map_data.area("loc_playground").rect
+            bounds = map_data.bounds
+            assert r.x0 >= playground.x1, f"{prop.id} 仍在操场跑道范围内"
+            assert (r.x0 >= bounds.x0 and r.y0 >= bounds.y0
+                    and r.x1 <= bounds.x1 and r.y1 <= bounds.y1), (
+                f"{prop.id} 超出室外地图边界：{r}，地图为 {bounds}"
+            )
+            continue
         inside = any(r.x0 >= a.x0 and r.x1 <= a.x1 and r.y0 >= a.y0 and r.y1 <= a.y1
                      for a in rects)
         assert inside, f"{prop.id} 不在任何区域/建筑占地内"

@@ -29,6 +29,10 @@ BLINK_INTERVAL = 0.5
 #: HUD 底板边框（逻辑像素）：36 高的面板放不下 8×6 的标准边框
 HUD_PANEL_BORDER_X = 4.0
 HUD_PANEL_BORDER_Y = 3.0
+STAT_BAR_X = 344
+STAT_BAR_WIDTH = 72
+STAT_BAR_ROWS = (14, 26)
+STAT_LABEL_X = 468
 
 
 class HUD(UIWidget):
@@ -63,19 +67,20 @@ class HUD(UIWidget):
         self.gauge_panel = self._make_panel(root, theme.RECTS["hud_gauges"])
         self.energy_icon = UIIcon(root, transform, 332, 14, theme.STAT_ICON_IDS["energy"],
                                   8.0, asset_registry)
-        # 条宽收到 72：右边要腾出位置写「100/100」——stamina 刷满后
-        # 最宽的 7 字符数字宽 49.8px，右对齐锚点 468 起退到 418.2，
-        # 条尾 422 时数字压在条上（截图可见）。
-        self.energy_bar = StatBar(root, transform, 344, 14, fill_color=theme.COLOR_GAIN,
-                                  asset_registry=asset_registry, width=72)
-        self.energy_label = UILabel(root, transform, 468, 13, "", color=theme.COLOR_TEXT,
+        # 固定轨道宽 72，填充内缩 1 px 留出完整边框；右侧数字从约 418 px 起。
+        self.energy_bar = StatBar(
+            root, transform, STAT_BAR_X, STAT_BAR_ROWS[0], fill_color=theme.COLOR_GAIN,
+            asset_registry=asset_registry, width=STAT_BAR_WIDTH, fill_inset=1.0,
+        )
+        self.energy_label = UILabel(root, transform, STAT_LABEL_X, 13, "", color=theme.COLOR_TEXT,
                                     align=TextNode.A_right)
         self.mood_icon = UIIcon(root, transform, 332, 26, theme.STAT_ICON_IDS["mood"],
                                 8.0, asset_registry, fallback_color=theme.COLOR_WARN)
-        self.mood_bar = StatBar(root, transform, 344, 26,
+        self.mood_bar = StatBar(root, transform, STAT_BAR_X, STAT_BAR_ROWS[1],
                                 fill_color=theme.hex_to_rgba(theme.HEX["warn"]),
-                                asset_registry=asset_registry, width=72)
-        self.mood_label = UILabel(root, transform, 468, 25, "", color=theme.COLOR_TEXT,
+                                asset_registry=asset_registry, width=STAT_BAR_WIDTH,
+                                fill_inset=1.0)
+        self.mood_label = UILabel(root, transform, STAT_LABEL_X, 25, "", color=theme.COLOR_TEXT,
                                   align=TextNode.A_right)
 
         # 按键提示（前 3 天显示）

@@ -520,7 +520,7 @@ class UIIcon(UIWidget):
 
 
 class StatBar(UIWidget):
-    """数值条：背景 + 前景填充。
+    """数值条：固定轨道 + 按比例填充，可选内缩以保留轨道边框。
 
     条总宽 100 逻辑像素（HUD 规定），按 0..100 归一。
     """
@@ -537,6 +537,7 @@ class StatBar(UIWidget):
         fill_color=theme.COLOR_GAIN,
         asset_registry=None,
         width: float | None = None,
+        fill_inset: float = 0.0,
     ) -> None:
         self.transform = transform
         self._fill_color = fill_color
@@ -544,13 +545,17 @@ class StatBar(UIWidget):
         self._y = y
         self._registry = asset_registry
         self.width = float(self.BAR_WIDTH if width is None else width)
+        self.fill_inset = max(0.0, min(float(fill_inset), self.BAR_HEIGHT / 2.0))
+        fill_width = max(0.0, self.width - self.fill_inset * 2.0)
+        fill_height = max(0.0, self.BAR_HEIGHT - self.fill_inset * 2.0)
         self.container = parent.attach_new_node("statbar")
         self.back = self._make_card(
             self.container, x, y, self.width, self.BAR_HEIGHT,
             theme.hex_to_rgba("#000000", 0.55), "ui_bar_frame", asset_registry,
         )
         self.fill = self._make_card(
-            self.container, x, y, self.width, self.BAR_HEIGHT, fill_color,
+            self.container, x + self.fill_inset, y + self.fill_inset,
+            fill_width, fill_height, fill_color,
             "ui_bar_fill", asset_registry,
         )
         super().__init__(self.container)
@@ -576,10 +581,11 @@ class StatBar(UIWidget):
 
     def set_value(self, value: float, maximum: float = 100.0) -> None:
         ratio = 0.0 if maximum <= 0 else max(0.0, min(1.0, value / maximum))
-        width = self.width * ratio
+        width = max(0.0, self.width - self.fill_inset * 2.0) * ratio
         self.fill.remove_node()
         self.fill = self._make_card(
-            self.container, self._x, self._y, width, self.BAR_HEIGHT,
+            self.container, self._x + self.fill_inset, self._y + self.fill_inset,
+            width, max(0.0, self.BAR_HEIGHT - self.fill_inset * 2.0),
             self._fill_color, "ui_bar_fill", self._registry,
         )
 

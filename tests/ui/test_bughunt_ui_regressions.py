@@ -525,8 +525,8 @@ def test_tab_unknown_npc_clues_match_actual_locations():
         assert place in clue, f"{npc_id} 的线索写的是 {clue!r}，实际在 {place}"
 
 
-def test_ending_counter_labels_match_renamed_activities():
-    """行动改名后，毕业回顾的计数器文案必须跟着改。"""
+def test_create_work_copy_is_painting_not_coding():
+    """活动名改「画画」后，结果文案与计数器不能还写「代码 / 键盘」。"""
     import json
     from pathlib import Path
 
@@ -534,6 +534,53 @@ def test_ending_counter_labels_match_renamed_activities():
         (Path(__file__).resolve().parents[2] / "content/text/zh_CN/strings.json")
         .read_text(encoding="utf-8")
     )
-    action_name = strings["act.create_work.name"]
-    counter_label = strings["ending.counter.create_count"]
-    assert action_name in counter_label, (action_name, counter_label)
+    assert strings["act.create_work.name"] == "画画"
+    for index in (1, 2, 3):
+        text = strings[f"act.create_work.result.{index}"]
+        assert "代码" not in text and "键盘" not in text and "屏幕" not in text, text
+    assert "画画" in strings["ending.counter.create_count"]
+
+
+def test_main_menu_paints_the_cover_background():
+    """主菜单要有封面背景层，且必须排在面板之下（fixed bin 30 < 面板 40）。"""
+    import inspect
+
+    from game.ui import main_menu
+
+    source = inspect.getsource(main_menu.MainMenu)
+    assert "ui_menu_bg" in source
+    assert 'set_bin("fixed", 30)' in source
+    assert "_make_scrim" in source, "浅色封面上必须压一层遮罩，否则白字看不清"
+
+
+def test_ending_counter_labels_exist_for_every_counter():
+    """毕业回顾的每个计数器都要有文案（不能印出 #ending.counter.*）。"""
+    import json
+    from pathlib import Path
+
+    strings = json.loads(
+        (Path(__file__).resolve().parents[2] / "content/text/zh_CN/strings.json")
+        .read_text(encoding="utf-8")
+    )
+    for key in ("create_count", "games_count", "club_count", "library_count",
+                "class_count", "exercise_count", "meal_count", "rest_count", "walk_count"):
+        text_id = f"ending.counter.{key}"
+        assert text_id in strings, text_id
+        assert "{n}" in strings[text_id], text_id
+
+
+def test_create_work_is_named_painting_at_the_easel():
+    """社团楼摆的是画架（furn_easel），活动显示名必须是「画画」。
+
+    只约束显示名：结果文案、插图、图标仍是原来的写代码口径（用户要求保留）。
+    """
+    import json
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    strings = json.loads((root / "content/text/zh_CN/strings.json").read_text(encoding="utf-8"))
+    assert strings["act.create_work.name"] == "画画"
+
+    world = json.loads((root / "content/world/interactables.json").read_text(encoding="utf-8"))
+    easel = next(i for i in world["interactables"] if i["id"] == "ia_easel")
+    assert easel["target"] == "create_work"

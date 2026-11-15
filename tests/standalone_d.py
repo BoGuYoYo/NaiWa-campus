@@ -50,12 +50,13 @@ def run_text_check(locale: str) -> int:
         "endings": _count(db.strings, "ending.", ".title"),
     }
 
+    # v2.0.0 结局集合重写为 5 条（延毕 / 考研 / 技术大牛 / 坠入爱河 / 平平无奇）。
     expected = {
         "activities": 9,
         "semester_events": 8,
         "relationship_events": 9,
         "daily_events": 12,
-        "endings": 6,
+        "endings": 5,
     }
     for key, want in expected.items():
         if counts[key] != want:

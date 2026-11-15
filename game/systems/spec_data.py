@@ -106,7 +106,7 @@ ACTIVITIES: list[dict[str, Any]] = [
     },
     {
         "id": "create_work",
-        "name": "创作",
+        "name": "画画",
         "location": "loc_clubroom",
         "effects": {"energy": -15, "mood": 1, "interest": 4, "rel.npc_xiaoyou": 2},
         "counter": "create_count",

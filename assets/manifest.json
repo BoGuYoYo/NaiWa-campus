@@ -2049,6 +2049,23 @@
         "width_m": 20.0,
         "height_m": 16.0
       }
+    },
+    {
+      "id": "ui_menu_bg",
+      "type": "image",
+      "path": "ui/menu_bg.png",
+      "license_id": "LIC-0216",
+      "tags": [
+        "final",
+        "ui",
+        "generated_from_user_art"
+      ],
+      "raw": {
+        "canvas": [
+          480,
+          270
+        ]
+      }
     }
   ]
 }

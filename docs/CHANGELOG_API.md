@@ -551,8 +551,8 @@ v2.0.0 重构 + 操场/广场素材接入后，四路审查（结局规则 / 世
 | 5 | **广场长椅一直是棕色方块**：`PROP_ART` 前缀写成 `prop_bench_plaza`，地图 id 是 `prop_plaza_bench`，永不命中 | 前缀改为 `prop_plaza_bench` |
 | 6 | **路灯长在喷泉里**：`prop_lamp_w2` [35.4,29.8,35.8,30.2] 完全落在 `prop_fountain` [32,29,37,32] 内 | 移到广场边 (30.7,27.2) |
 | 7 | **操场白色分道线被抠断**：地面图先被抠图工具做了"口袋消除"，被红跑道包住的白色分道线被整段当背景挖掉，实机露草地 | `cut_background(pockets=False)` 用于地面图；喷泉单独列入 `PROPS_KEEP_POCKETS`（白色水柱同色，也会被挖） |
-| 8 | 石碑底座两侧漂浮黑渣、喷泉水柱破洞 | 新增 `_drop_small_islands()`：缩放后再删一次连通小块；喷泉关闭口袋消除 |
-| 9 | 篮球架/记分牌/场边长椅压在跑道上 | 篮球架移到内场 (24.0,4.2)，记分牌 (24.8,12.6)，栏架 (21.8,6.0)，场边长椅 (21.6,9.6)；均落在草地，且不与球门/沙坑重叠 |
+| 8 | 石碑底座两侧漂浮黑渣、喷泉水柱破洞 | 新增 `_drop_small_islands()` 与 `_clean_stele_edges()`；喷泉关闭口袋消除 |
+| 9 | 篮球架/记分牌/场边长椅压在跑道上 | 篮球架移到内场 (26.5,4.0)，记分牌 (26.8,11.0)，栏架 (23.0,6.0)，场边长椅 (23.0,9.2)；均落在草地，且不与球门/沙坑重叠 |
 
 ### 存档与流程
 
@@ -571,6 +571,50 @@ v2.0.0 重构 + 操场/广场素材接入后，四路审查（结局规则 / 世
 验证：`pytest tests` → 688 passed；`--autoplay --seed 42 --frames 200` → 48 行动 /
 16 天 / `ending_mediocre` / `errors=[]`；五套策略 seed 42 全部命中；`align_building_doors --check`
 0 mismatch；`make_text_index --check` 已同步；`make_placeholders check` → assets=161 missing=0。
+
+---
+
+## 主菜单封面 + 画画语义（2026-11-15，第 15 轮）
+
+### 主菜单封面
+
+用户交付 `素材/游戏封面.jfif`（2752×1536），设为主菜单背景：
+
+| 项目 | 内容 |
+| --- | --- |
+| 资源 | 新增 `ui_menu_bg`（`assets/ui/menu_bg.png`，480×270，`LIC-0216`）：居中裁 16:9 → LANCZOS 缩到内部画布原尺寸，最近邻放大交给渲染管线 |
+| `game/ui/main_menu.py` | 新增 `_make_background()`（`fixed` bin 30）与 `_make_scrim()`（bin 31，0.55 黑遮罩）；面板是 bin 40/41，所以背景必须在它们下面 |
+| 标题布局 | 有封面时标题移到左上（24,18）、副标题下移，避免压在角色脸上；无封面时保持旧的 (90,40) |
+| `game/ui/theme.py` | `RECTS["main_menu"]` 从 `(180,150,120,90)` 改为 `(10,168,116,88)`：封面三个角色偏中右，菜单摆中间会压住奶娃 |
+| `assets/LICENSES.csv` | 新增 `LIC-0216`（用户提供的 AI 生成游戏封面） |
+
+坑：CardMaker 的本地坐标是 x `0..1`、z `-1..0`（底边在 -1）。按"左上角"直接 `set_pos` 会把图往下多画一倍，
+必须用画布两个角的 `to_aspect2d()` 差值算 scale，再把本地顶边（z=0）对齐到画布上沿。
+
+### `create_work` 全面改为画画
+
+`create_work` 的语义此前是「敲代码」，但社团楼摆的是**画架**（`furn_easel`），交互点叫「创作台」。
+用户确认后统一改为画画语义（活动 ID 不动）：
+
+| 位置 | 改前 | 改后 |
+| --- | --- | --- |
+| `spec_data.ACTIVITIES` / `activities.json` | 创作 | **画画** |
+| `act.create_work.result.1~3` | 屏幕上跑通 / 重构三个函数 / 这行可以删 | 画布上的颜色终于铺满 / 改了三遍构图 / 这块留白真敢留 |
+| `ending.counter.create_count` | 敲代码 {n} 次 | **画画 {n} 次** |
+| `ending.ending_romance_nailong.body.2` | 创作、联机… | 画画、联机… |
+| `ia_easel.name` | 创作台 | **画架** |
+| `ui_icon_create_work` | 终端图标（3×3 sheet 第 4 格） | 手绘 16×16 画架（画布 + 三脚架，同色系） |
+
+`spec_data.py` 是规则唯一来源，改完必须跑 `python -m game.systems.spec_export` 同步 JSON。
+
+未改：`cg_naiwan_create_work`（结果面板 160×90 插图）仍是写代码画面——`素材/场景/` 里没有画画主题源图，
+需要用户提供新图后用 `tools/import_generated_art.py` 落位。
+
+守卫：`tests/ui/test_bughunt_ui_regressions.py` 的 `test_create_work_copy_is_painting_not_coding`、
+`test_main_menu_paints_the_cover_background`，以及 `tests/systems/test_content_coverage.py` 的活动名断言。
+
+验证：`pytest tests` → 695 passed；`--autoplay --frames 200` → 48 行动 / `errors=[]`；五套策略 seed 42 全命中；
+`spec_export --check` 一致；`make_placeholders check` → assets=162 missing=0；`align_building_doors --check` 0 mismatch。
 
 ---
 

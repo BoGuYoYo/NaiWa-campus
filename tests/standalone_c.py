@@ -230,6 +230,14 @@ class RouteRunner:
 _CLASSROOM_IN = [(12.0, 1.6), (12.0, 6.0)]
 _LIBRARY_IN = [(3.0, 1.6), (3.0, 5.0)]
 
+#: 室外绕行点（世界坐标）。walk_to 是贪心直线行走，撞到道具会贴墙停住；
+#: 广场的喷泉 / 公告亭正好在旧路线上，真实玩家会绕，脚本必须显式给点。
+_PLAZA_DETOUR_Y = 27.0      # 喷泉南侧 3 米通道
+
+
+def _detour_between(start, end, via=()):
+    return list(via) + [end]
+
 
 def run_route(map_data: MapData, route_id: str, out_path: Path) -> dict:
     if route_id != "C-R1":
@@ -266,6 +274,9 @@ def run_route(map_data: MapData, route_id: str, out_path: Path) -> dict:
     r.exit("loc_classroom", vias_local=[(12.0, 6.0), (12.0, 1.6)])
 
     # → 图书馆（进出）
+    # 教室门与图书馆门之间横着广场喷泉；真实玩家从喷泉南侧绕，脚本照做。
+    r.walk(22.0, _PLAZA_DETOUR_Y, label="喷泉绕行 1")
+    r.walk(60.0, _PLAZA_DETOUR_Y, label="喷泉绕行 2")
     r.walk_to_interactable("ia_door_library")
     if r.interact("ia_door_library") != "door":
         r.problems.append("图书馆门未返回 door")
@@ -297,9 +308,9 @@ def run_route(map_data: MapData, route_id: str, out_path: Path) -> dict:
     r.interact("ia_food_window")
     r.exit("loc_canteen")
 
-    # → 校门（绕开告示牌：先东移至 x=44.5，再南下落到底部，最后向北靠近）
-    r.walk(44.5, 46.2, label="校门绕行 1")
-    r.walk(44.5, 2.0, label="校门绕行 2")
+    # → 校门（绕开广场长椅/花坛/公告亭：沿主路西侧 x=38 一线下行到南端，再东移到告示牌）
+    r.walk(38.0, 46.2, label="校门绕行 1")
+    r.walk(38.0, 2.0, label="校门绕行 2")
     r.walk_to_interactable("ia_gate_notice")
     r.interact("ia_gate_notice")
 

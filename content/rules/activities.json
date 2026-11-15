@@ -55,7 +55,7 @@
   },
   {
     "id": "create_work",
-    "name": "创作",
+    "name": "画画",
     "location": "loc_clubroom",
     "effects": {
       "energy": -15,

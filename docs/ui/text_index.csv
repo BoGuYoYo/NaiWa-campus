@@ -38,10 +38,10 @@ act.exercise.name,4,结果面板
 act.exercise.result.1,15,结果面板
 act.exercise.result.2,15,结果面板
 act.exercise.result.3,17,结果面板
-act.create_work.name,3,结果面板
-act.create_work.result.1,15,结果面板
-act.create_work.result.2,16,结果面板
-act.create_work.result.3,19,结果面板
+act.create_work.name,2,结果面板
+act.create_work.result.1,20,结果面板
+act.create_work.result.2,15,结果面板
+act.create_work.result.3,21,结果面板
 ui.talk.name,2,其他
 npc.sumo.name,3,对话框
 npc.sumo.bio,35,对话框
@@ -263,7 +263,7 @@ npc.xiaoyou.talk_prompt,5,对话框
 ending.counter.class_count,8,毕业界面
 ending.counter.library_count,10,毕业界面
 ending.counter.games_count,9,毕业界面
-ending.counter.create_count,9,毕业界面
+ending.counter.create_count,8,毕业界面
 ending.counter.club_count,10,毕业界面
 ending.counter.exercise_count,10,毕业界面
 ending.counter.meal_count,9,毕业界面

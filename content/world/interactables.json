@@ -141,7 +141,7 @@
     },
     {
       "id": "ia_easel",
-      "name": "创作台",
+      "name": "画架",
       "scene": "loc_clubroom",
       "location_id": "loc_clubroom",
       "x": 8.0,

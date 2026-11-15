@@ -221,6 +221,40 @@ def _drop_small_islands(obj: Image.Image, min_ratio: float = 0.02,
     return out
 
 
+def _clean_stele_edges(obj: Image.Image) -> Image.Image:
+    """裁掉校训石碑底座两侧由棋盘格残留形成的黑色碎片。"""
+    w, h = obj.size
+    if w < 16 or h < 16:
+        return obj
+
+    # 石碑源图的主体轮廓固定，底部两侧的棋盘格会和黑色描边粘连，
+    # 单纯按连通块无法区分；用归一化轮廓保留主体和右侧台阶阴影。
+    points = [
+        (round(w * 0.33), 0), (round(w * 0.66), 0),
+        (round(w * 0.69), round(h * 0.07)),
+        (round(w * 0.69), round(h * 0.67)),
+        (round(w * 0.74), round(h * 0.67)),
+        (round(w * 0.74), round(h * 0.71)),
+        (round(w * 0.78), round(h * 0.81)),
+        (round(w * 0.78), round(h * 0.93)),
+        (round(w * 0.71), h - 1),
+        (round(w * 0.16), h - 1),
+        (round(w * 0.16), round(h * 0.83)),
+        (round(w * 0.21), round(h * 0.83)),
+        (round(w * 0.21), round(h * 0.76)),
+        (round(w * 0.29), round(h * 0.67)),
+        (round(w * 0.31), round(h * 0.67)),
+        (round(w * 0.31), round(h * 0.07)),
+    ]
+    silhouette = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(silhouette).polygon(points, fill=255)
+    alpha = np.array(obj.getchannel("A"), dtype=np.uint8)
+    keep = np.array(silhouette, dtype=np.uint8) > 0
+    out = obj.copy()
+    out.putalpha(Image.fromarray(np.where(keep, alpha, 0).astype(np.uint8), "L"))
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="导入操场/广场素材")
     parser.add_argument("--verify", action="store_true", help="只出核对图，不写 assets")
@@ -236,6 +270,8 @@ def main(argv: list[str] | None = None) -> int:
             continue
         cut = cut_background(Image.open(src), pockets=name not in PROPS_KEEP_POCKETS)
         art = _drop_small_islands(_fit_width(cut, round(width_m * PX_PER_M)))
+        if name == "校训石碑.jfif":
+            art = _clean_stele_edges(art)
         results.append(("props", short, art, width_m))
 
     for name, (short, size, need_cut) in GROUNDS.items():

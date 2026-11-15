@@ -390,10 +390,12 @@ err.save_io,6,错误提示
 err.slot_empty,6,错误提示
 ui.save.graduated,3,存读档
 evt.story_opening.body.1,32,对话框
-evt.story_opening.body.2,24,对话框
-evt.story_opening.body.3,36,对话框
+evt.story_opening.body.2,43,对话框
+evt.story_opening.body.3,41,对话框
 evt.story_opening.body.4,24,对话框
-evt.story_opening.body.5,13,对话框
+evt.story_opening.body.5,36,对话框
+evt.story_opening.body.6,24,对话框
+evt.story_opening.body.7,13,对话框
 evt.rel_npc_sumo_1.body.1,23,对话框
 evt.rel_npc_sumo_1.body.2,19,对话框
 evt.rel_npc_sumo_1.body.3,16,对话框

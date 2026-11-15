@@ -116,8 +116,9 @@ def test_adapter_uses_all_pages_from_real_textdb():
     opening = adapter._build_view("story_opening")
     fair = adapter._build_view("sem_1_club_fair")
 
+    # 开场：开场白 + 路口两人争论的两页 + 玩法提示，共 7 页
     assert opening.page_text_ids == [
-        f"evt.story_opening.body.{i}" for i in range(1, 6)
+        f"evt.story_opening.body.{i}" for i in range(1, 8)
     ]
     assert fair.page_text_ids == [
         f"evt.sem_1_club_fair.body.{i}" for i in range(1, 5)

@@ -182,6 +182,9 @@ class MapData:
             str(spawn.get("location_id", CAMPUS_SCENE)),
         )
 
+        self._outdoor_npc_marks = self._load_outdoor_npc_marks(
+            raw_map.get("outdoor", {}).get("npc_marks", [])
+        )
         self._buildings = self._load_buildings(raw_map.get("buildings"))
         self._areas = self._load_areas(raw_map.get("areas"))
         self._props = self._load_props(raw_map.get("props", []))
@@ -328,6 +331,23 @@ class MapData:
             )
         return tuple(out)
 
+    def _load_outdoor_npc_marks(self, raw: Any) -> tuple[NpcMark, ...]:
+        if raw in (None, []):
+            return ()
+        if not isinstance(raw, (list, tuple)):
+            raise MapDataError("outdoor.npc_marks 必须是数组")
+        marks: list[NpcMark] = []
+        b = self._bounds
+        for item in raw:
+            if not isinstance(item, dict):
+                raise MapDataError(f"outdoor.npc_marks[] 必须是对象：{item!r}")
+            x = float(item.get("x", 0.0))
+            y = float(item.get("y", 0.0))
+            if not (b.x0 <= x <= b.x1 and b.y0 <= y <= b.y1):
+                raise MapDataError(f"outdoor.npc_marks 站位在场地之外：({x}, {y})")
+            marks.append(NpcMark(name=str(item.get("name", "")), x=x, y=y))
+        return tuple(marks)
+
     def _load_interactables(self, raw: Any) -> tuple[Interactable, ...]:
         if not isinstance(raw, list) or not raw:
             raise MapDataError("interactables 必须是非空数组")
@@ -411,6 +431,11 @@ class MapData:
     @property
     def props(self) -> tuple[Furniture, ...]:
         return self._props
+
+    @property
+    def outdoor_npc_marks(self) -> tuple[NpcMark, ...]:
+        """室外固定 NPC 站位（开局争论、常驻 NPC 等）。"""
+        return self._outdoor_npc_marks
 
     @property
     def interiors(self) -> tuple[Interior, ...]:

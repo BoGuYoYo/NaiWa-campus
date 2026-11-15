@@ -84,13 +84,13 @@ def test_official_content_covers_required_ids(project_root):
 
 
 def test_official_dialogues_cover_all_events(project_root):
-    """开场 5 页 + 8 学期事件 + 9 关系事件均有分页正文。"""
+    """开场 7 页（含路口争论两页）+ 8 学期事件 + 9 关系事件均有分页正文。"""
     base = os.path.join(project_root, "content", "text", "zh_CN")
     with open(os.path.join(base, "dialogues.json"), "r", encoding="utf-8") as f:
         dialogues = json.load(f)
 
     opening_pages = [k for k in dialogues if k.startswith("evt.story_opening.body.")]
-    assert len(opening_pages) == 5
+    assert len(opening_pages) == 7
 
     for n in range(1, 9):
         pages = [k for k in dialogues if k.startswith(f"evt.sem_{n}_") ]

@@ -526,7 +526,18 @@ STORY_EVENTS: list[dict[str, Any]] = [
         "kind": "story",
         "semester_no": 0,
         "speaker": None,
-        "pages": ["evt.story_opening.body.1"],
+        # 开场白 → 路口争论两页 → 玩法提示。
+        # 争论页的文案在 dialogues.json（带 speaker/portrait），
+        # 规则层只负责页码顺序。
+        "pages": [
+            "evt.story_opening.body.1",
+            "evt.story_opening.body.2",
+            "evt.story_opening.body.3",
+            "evt.story_opening.body.4",
+            "evt.story_opening.body.5",
+            "evt.story_opening.body.6",
+            "evt.story_opening.body.7",
+        ],
         "choices": [
             {"id": "begin", "conditions": [], "effects": {}, "add_flags": [], "remove_flags": []}
         ],

@@ -664,6 +664,25 @@ v2.0.0 重构 + 操场/广场素材接入后，四路审查（结局规则 / 世
 
 ---
 
+## 开局路口争论（2026-11-16）
+
+用户要求在开局时看到李振兴与符闹吃在路口争论，两人用各自的「争论」立绘。
+
+| 项目 | 内容 |
+| --- | --- |
+| 新头像 | `portrait_npc_{sumo,chenlang}_argue`（96×96）：由 `tools/import_npc_characters.py` 从 `素材/人物/*争论.jfif` 生成，与 `surprised` 同源但语义分开 |
+| 站位 | `content/world/map.json` 的 `outdoor.npc_marks`：李振兴 (38.6, 8.0)、符闹吃 (41.4, 8.0)——主路与东西向道路交叉口、校门北侧 3 米，正好在用户截图的红框内 |
+| 室外 NPC | `MapData` 新增 `outdoor_npc_marks`（校验站位于场地内）；`WorldSceneBase` 抽出 `npc_marks()` / `_place_npc_marks()` / `_npc_mark_origin()`，室内外共用一套立牌摆放（室内以房间原点为基准） |
+| 剧情 | `story_opening` 从 5 页扩到 7 页，第 2/3 页是争论：符闹吃「像素方块的硬核才是王道，你那卡通画风根本没技巧」/ 李振兴「萌趣的世界才受世界喜爱，你的硬核玩法早就被世界落败」。分页文案在 `dialogues.json`，页码顺序由 `spec_data.EVENTS` 定义并导出 |
+
+注意：`dialogues.json` 的分页键必须从 `body.1` 连续编号（`test_event_pages_consistency` 强校验），
+不能插入 `body.argue.1` 这样的中间键；争论页按位置重新编号为 `body.2` / `body.3`。
+
+验证：`pytest tests` → 696 passed；autoplay 48 行动 / `errors=[]`；`standalone_a` 14/14；
+`standalone_d --text-check` 通过（dialogues 52 → 54 页）；`make_placeholders check` → assets=164 missing=0。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

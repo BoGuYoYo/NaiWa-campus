@@ -207,6 +207,7 @@ class WorldSceneBase:
         # on_update 会提前 return，卡片会一直停在原点 (0, 0)——镜头里就是"人物消失"。
         self.player.apply_pose()
         self._apply_scene_camera()
+        self._place_npc_marks()
 
         self.hud = HUD(self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry)
         self.hud.update(self._state)
@@ -378,6 +379,52 @@ class WorldSceneBase:
 
     def _place_for(self, spawn: str) -> str:
         return spawn
+
+    #: NPC 显示名 -> 角色立绘资产名（室内外共用）
+    NPC_ART: dict[str, str] = {
+        "符闹吃": "sumo", "苏墨": "sumo",
+        "李振兴": "chenlang", "陈朗": "chenlang",
+        "奈珑": "xiaoyou", "小柚": "xiaoyou",
+    }
+
+    def npc_marks(self):
+        """当前场景要摆哪些 NPC 站位。子类覆盖。"""
+        return ()
+
+    def _place_npc_marks(self) -> None:
+        """按 npc_marks 摆 NPC 立牌（正面朝镜头，脚点贴地）。
+
+        室内用房间本地坐标（要加房间原点），室外直接用世界坐标。
+        """
+        marks = self.npc_marks()
+        if not marks or self.scene is None:
+            return
+        from panda3d.core import TextureStage
+
+        ox, oy = self._npc_mark_origin()
+        for mark in marks:
+            short = self.NPC_ART.get(mark.name)
+            if short is None:
+                continue
+            try:
+                sheet = self.app.registry.load_sprite(f"char_npc_{short}_idle")
+            except Exception as exc:
+                LOG.warning("[WORLD] NPC 立绘加载失败 %s: %s", short, exc)
+                continue
+            if sheet is None:
+                continue
+            card = self.app.pipeline.make_character_card(self.scene.root, f"npc_{short}")
+            card.set_texture(sheet.texture, 1)
+            stage = TextureStage.getDefault()
+            u0, v0, u1, v1 = sheet.frame_uv("s", 0)
+            card.set_tex_offset(stage, u0, v0)
+            card.set_tex_scale(stage, u1 - u0, v1 - v0)
+            card.set_pos(ox + mark.x, oy + mark.y, 0.0)
+            card.set_h(0.0)
+
+    def _npc_mark_origin(self) -> tuple[float, float]:
+        """npc_marks 的坐标基准。室内是房间原点，室外是 (0, 0)。"""
+        return (0.0, 0.0)
 
     def _apply_scene_camera(self) -> None:
         raise NotImplementedError
@@ -585,6 +632,9 @@ class CampusSceneAdapter(WorldSceneBase):
             area_textures=self._area_texture,
         )
 
+    def npc_marks(self):
+        return self.md.outdoor_npc_marks
+
     def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:
         """按 A 的渲染管线 film 尺寸钳制镜头目标，保证画面不露出地图外。"""
         import math
@@ -685,39 +735,17 @@ class InteriorSceneAdapter(WorldSceneBase):
         self.rig.set_interior((ox + self.md.interior(self.scene_id).center[0],
                                oy + self.md.interior(self.scene_id).center[1]))
         self.app.pipeline.align_camera(*self.rig.target)
-        self._place_npc_sprites()
+        # 通用摆放已经在 super().on_enter() 里做过一次，那时 scene_id 还是旧的；
+        # 进入房间后按新的 scene_id 重摆一次（坐标基准是房间原点）。
+        self._place_npc_marks()
 
-    def _place_npc_sprites(self) -> None:
-        """在 npc_marks 的位置摆上 NPC 立牌。
+    def npc_marks(self):
+        if not self.scene_id.startswith("loc_"):
+            return ()
+        return self.md.interior(self.scene_id).npc_marks
 
-        以前室内只画一个蓝圈表示"有人站这儿"，玩家看不到 NPC 长什么样；
-        接入角色立绘后把 `char_npc_<short>_idle` 贴成正面朝相机的一张卡。
-        """
-        if self.scene is None:
-            return
-        from panda3d.core import TextureStage
-
-        interior = self.md.interior(self.scene_id)
-        ox, oy = interior.origin
-        for mark in interior.npc_marks:
-            short = self.NPC_ART.get(mark.name)
-            if short is None:
-                continue
-            try:
-                sheet = self.app.registry.load_sprite(f"char_npc_{short}_idle")
-            except Exception as exc:  # 缺资源时保持原来的站位圈，不影响进房间
-                LOG.warning("[WORLD] NPC 立绘加载失败 %s: %s", short, exc)
-                continue
-            if sheet is None:
-                continue
-            card = self.app.pipeline.make_character_card(self.scene.root, f"npc_{short}")
-            card.set_texture(sheet.texture, 1)
-            stage = TextureStage.getDefault()
-            u0, v0, u1, v1 = sheet.frame_uv("s", 0)
-            card.set_tex_offset(stage, u0, v0)
-            card.set_tex_scale(stage, u1 - u0, v1 - v0)
-            card.set_pos(ox + mark.x, oy + mark.y, 0.0)
-            card.set_h(0.0)
+    def _npc_mark_origin(self) -> tuple[float, float]:
+        return self.md.interior(self.scene_id).origin
 
     def build_scene(self, parent):
         from game.world.interior_scene import InteriorScene

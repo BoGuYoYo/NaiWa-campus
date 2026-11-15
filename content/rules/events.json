@@ -574,7 +574,13 @@
     "semester_no": 0,
     "speaker": null,
     "pages": [
-      "evt.story_opening.body.1"
+      "evt.story_opening.body.1",
+      "evt.story_opening.body.2",
+      "evt.story_opening.body.3",
+      "evt.story_opening.body.4",
+      "evt.story_opening.body.5",
+      "evt.story_opening.body.6",
+      "evt.story_opening.body.7"
     ],
     "choices": [
       {

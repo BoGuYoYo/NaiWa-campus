@@ -400,6 +400,16 @@
       ]
     },
     {
+      "id": "portrait_npc_sumo_argue",
+      "type": "image",
+      "path": "portraits/sumo/argue.png",
+      "license_id": "LIC-0211",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ]
+    },
+    {
       "id": "char_npc_chenlang_idle",
       "type": "sprite_sheet",
       "path": "characters/npc/chenlang_idle.png",
@@ -455,6 +465,16 @@
       "id": "portrait_npc_chenlang_surprised",
       "type": "image",
       "path": "portraits/chenlang/surprised.png",
+      "license_id": "LIC-0211",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ]
+    },
+    {
+      "id": "portrait_npc_chenlang_argue",
+      "type": "image",
+      "path": "portraits/chenlang/argue.png",
       "license_id": "LIC-0211",
       "tags": [
         "final",

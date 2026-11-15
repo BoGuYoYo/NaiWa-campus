@@ -20,7 +20,19 @@
       "y": 5.0,
       "facing": "n",
       "location_id": "loc_gate"
-    }
+    },
+    "npc_marks": [
+      {
+        "name": "李振兴",
+        "x": 38.6,
+        "y": 8.0
+      },
+      {
+        "name": "符闹吃",
+        "x": 41.4,
+        "y": 8.0
+      }
+    ]
   },
   "interior_wall_thickness": 0.5,
   "buildings": [

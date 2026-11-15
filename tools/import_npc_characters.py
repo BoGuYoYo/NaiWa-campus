@@ -201,8 +201,15 @@ def process(short: str, spec: dict, *, write: bool) -> dict:
         "neutral": head,
         "happy": head,
         "sad": head,
-        "surprised": make_portrait_from_bust(angry) if angry is not None else head,
     }
+    if angry is not None:
+        angry_portrait = make_portrait_from_bust(angry)
+        portraits["surprised"] = angry_portrait
+        # 有「争论」素材的角色另出一张 argue 表情：开局路口争论用它，
+        # 与 surprised（受惊）语义分开；没有素材的角色不生成（避免造重复文件）。
+        portraits["argue"] = angry_portrait
+    else:
+        portraits["surprised"] = head
     if write:
         (ROOT / "assets" / "characters" / "npc").mkdir(parents=True, exist_ok=True)
         idle.save(ROOT / "assets" / "characters" / "npc" / f"{short}_idle.png")

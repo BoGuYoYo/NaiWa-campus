@@ -8,6 +8,23 @@
     ]
   },
   "evt.story_opening.body.2": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_argue",
+    "lines": [
+      "路口传来争执声。符闹吃把袖子一撸：",
+      "「像素方块的硬核才是王道，你那卡通画风根本没技巧。」"
+    ]
+  },
+  "evt.story_opening.body.3": {
+    "speaker": "npc_chenlang",
+    "portrait": "portrait_npc_chenlang_argue",
+    "lines": [
+      "李振兴抱着手臂，寸步不让：",
+      "「萌趣的世界才受世界喜爱，",
+      "你的硬核玩法早就被世界落败。」"
+    ]
+  },
+  "evt.story_opening.body.4": {
     "speaker": null,
     "portrait": null,
     "lines": [
@@ -15,7 +32,7 @@
       "大学四年，每学期两天，每天三件事。"
     ]
   },
-  "evt.story_opening.body.3": {
+  "evt.story_opening.body.5": {
     "speaker": null,
     "portrait": null,
     "lines": [
@@ -23,7 +40,7 @@
       "Tab 查看状态，Esc 打开菜单。"
     ]
   },
-  "evt.story_opening.body.4": {
+  "evt.story_opening.body.6": {
     "speaker": null,
     "portrait": null,
     "lines": [
@@ -31,7 +48,7 @@
       "去任意地点，做一件想做的事。"
     ]
   },
-  "evt.story_opening.body.5": {
+  "evt.story_opening.body.7": {
     "speaker": null,
     "portrait": null,
     "lines": [

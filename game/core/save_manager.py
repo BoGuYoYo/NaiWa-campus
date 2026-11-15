@@ -261,10 +261,17 @@ class SaveManager:
 
     @staticmethod
     def _version_supported(raw: dict[str, Any]) -> bool:
+        """版本合法，且确实带着可读的 state。
+
+        只校验版本会让"顶层完好、state 缺失/类型错"的存档显示成可读，
+        主菜单「继续」于是亮着，点下去却只抛 E_SAVE_CORRUPT、界面毫无反应。
+        """
         version = raw.get("save_version", 0)
         if not isinstance(version, int):
             return False
-        return MIN_SUPPORTED_SAVE_VERSION <= version <= config.SAVE_VERSION
+        if not MIN_SUPPORTED_SAVE_VERSION <= version <= config.SAVE_VERSION:
+            return False
+        return isinstance(raw.get("state"), dict)
 
     def _file_version_supported(self, path: Path) -> bool:
         raw = self._read_summary_payload(path)

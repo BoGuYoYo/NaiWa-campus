@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 
+from game import config
 from game.ui import theme
 from game.ui.widgets import UILabel, UIPanel, UITransform, UIWidget
 
@@ -107,8 +108,12 @@ class SaveMenu(UIWidget):
             if meta is None:
                 text = f"{name}  {self.text_db.get('ui.save.empty')}"
             else:
-                day = int(meta.get("day_index", 0)) + 1
-                text = f"{name}  第 {day} 天"
+                # 毕业档的 day_index 已经推到 TOTAL_DAYS（16），+1 会显示「第 17 天」。
+                raw_day = int(meta.get("day_index", 0))
+                if raw_day >= config.TOTAL_DAYS:
+                    text = f"{name}  {self.text_db.get('ui.save.graduated')}"
+                else:
+                    text = f"{name}  第 {raw_day + 1} 天"
             self.row_labels[i].set_text(text)
         ax, ay = self.transform.to_aspect2d(
             RECT[0] + 8, RECT[1] + 6 + 2 * theme.LINE_HEIGHT + self.index * ROW_HEIGHT + 12

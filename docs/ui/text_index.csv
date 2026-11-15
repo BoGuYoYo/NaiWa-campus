@@ -41,7 +41,7 @@ act.exercise.result.3,17,结果面板
 act.create_work.name,2,结果面板
 act.create_work.result.1,20,结果面板
 act.create_work.result.2,15,结果面板
-act.create_work.result.3,21,结果面板
+act.create_work.result.3,20,结果面板
 ui.talk.name,2,其他
 npc.sumo.name,3,对话框
 npc.sumo.bio,35,对话框
@@ -383,11 +383,12 @@ ending.ending_mediocre.title,13,毕业界面
 ending.ending_mediocre.body.1,27,毕业界面
 ending.ending_mediocre.body.2,30,毕业界面
 ending.ending_mediocre.body.3,25,毕业界面
-ui.menu.reason.incompatible_save,5,主菜单
-err.save_version,20,错误提示
-err.save_corrupt,10,错误提示
+ui.menu.reason.incompatible_save,4,主菜单
+err.save_version,7,错误提示
+err.save_corrupt,5,错误提示
 err.save_io,6,错误提示
-err.slot_empty,8,错误提示
+err.slot_empty,6,错误提示
+ui.save.graduated,3,存读档
 evt.story_opening.body.1,32,对话框
 evt.story_opening.body.2,24,对话框
 evt.story_opening.body.3,36,对话框

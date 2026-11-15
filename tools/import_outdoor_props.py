@@ -61,6 +61,12 @@ PX_PER_M = 24
 #: 喷泉的白色水柱/水花与棋盘格背景同色，按口袋抠掉后只剩一个喷口。
 PROPS_KEEP_POCKETS = {"喷泉.jfif"}
 
+#: 校训石碑专用：底座下层 (74,76,88) 与棋盘深格 (72,72,80) 只差 4，
+#: 任何颜色容差都会二选一（要么底座没了、要么棋盘格留下来）。
+#: 但物体是冷灰（B-R >= 12），棋盘格是中性灰（|B-R| <= 10）——
+#: 按"冷色"分离，再闭运算 + 取最大连通块，能拿到完整轮廓。
+STELE_SOURCE = "校训石碑.jfif"
+
 
 # ---------------------------------------------------------------------------
 # 去背景
@@ -129,6 +135,19 @@ def _keep_large(fg: np.ndarray, min_area_ratio: float = 0.02) -> np.ndarray:
         if comp.sum() >= threshold:
             kept |= comp
     return kept
+
+
+def cut_stele(img: Image.Image) -> Image.Image:
+    """石碑专用抠图：冷灰 mask（B-R>11）→ 闭运算 → 最大连通块。"""
+    rgb = np.array(img.convert("RGB")).astype(int)
+    cool = (rgb[:, :, 2] - rgb[:, :, 0]) > 11
+    closed = Image.fromarray(np.where(cool, 255, 0).astype(np.uint8), "L")
+    closed = closed.filter(ImageFilter.MaxFilter(11)).filter(ImageFilter.MinFilter(11))
+    keep = _keep_large(np.array(closed) > 0, 0.05)
+    out = img.convert("RGBA")
+    out.putalpha(Image.fromarray(np.where(keep, 255, 0).astype(np.uint8), "L"))
+    bbox = out.getbbox()
+    return out.crop(bbox) if bbox else out
 
 
 def _close_mask(mask: np.ndarray, radius: int = 4) -> np.ndarray:
@@ -268,10 +287,12 @@ def main(argv: list[str] | None = None) -> int:
         if not src.exists():
             missing.append(name)
             continue
-        cut = cut_background(Image.open(src), pockets=name not in PROPS_KEEP_POCKETS)
+        source = Image.open(src)
+        if name == STELE_SOURCE:
+            cut = cut_stele(source)
+        else:
+            cut = cut_background(source, pockets=name not in PROPS_KEEP_POCKETS)
         art = _drop_small_islands(_fit_width(cut, round(width_m * PX_PER_M)))
-        if name == "校训石碑.jfif":
-            art = _clean_stele_edges(art)
         results.append(("props", short, art, width_m))
 
     for name, (short, size, need_cut) in GROUNDS.items():

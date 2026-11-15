@@ -229,6 +229,14 @@ class NaiwaApp(ShowBase):
                 return
         except Exception as exc:
             self.log.debug("[APP] window-event props unavailable: %s", exc)
+        # 尺寸变化必须让 ShowBase 自己重算 aspect2d 与相机镜头：
+        # `accept("window-event", ...)` 会覆盖 ShowBase 内部对同名事件的绑定
+        # （Messenger 按对象去重），不手动转发的话 adjustWindowAspectRatio()
+        # 永不执行，aspect2d 的缩放一直停在上一次窗口尺寸上。
+        try:
+            self.windowEvent(window)
+        except Exception as exc:
+            self.log.debug("[APP] windowEvent forward failed: %s", exc)
         try:
             width, height = int(window.getXSize()), int(window.getYSize())
             self.pipeline.resize(width, height)

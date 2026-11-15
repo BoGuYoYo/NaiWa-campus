@@ -71,13 +71,20 @@ class MainMenu(UIWidget):
         node.set_depth_write(False)
         node.set_transparency(TransparencyAttrib.M_alpha)
         texture = None
+        available = False
         if asset_registry is not None:
-            try:
-                texture = asset_registry.load_texture("ui_menu_bg")
-            except Exception:
-                texture = None
-        self._has_cover = texture is not None
-        if texture is not None:
+            # 必须先问 has_texture：load_texture 对缺失资源返回品红占位图，
+            # 直接判 `texture is not None` 会把占位图当封面，整屏洋红棋盘。
+            checker = getattr(asset_registry, "has_texture", None)
+            available = bool(checker("ui_menu_bg")) if callable(checker) else True
+            if available:
+                try:
+                    texture = asset_registry.load_texture("ui_menu_bg")
+                except Exception:
+                    texture = None
+                    available = False
+        self._has_cover = available and texture is not None
+        if self._has_cover:
             node.set_texture(texture)
             node.set_color(1, 1, 1, 1)
             # 封面是浅色插画，白字直接压上去完全看不清。整张压暗一档，

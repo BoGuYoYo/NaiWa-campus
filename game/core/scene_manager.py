@@ -147,7 +147,17 @@ class SceneManager:
         self.log.info("[SCENE] push %s", overlay_id)
         overlay = self.factory(overlay_id, kwargs)
         self.overlays.append((overlay_id, overlay))
-        self._enter(overlay, kwargs)
+        try:
+            self._enter(overlay, kwargs)
+        except Exception:
+            # 装配失败（例如 EventScene 取不到事件数据）时必须回滚：
+            # 以前只把异常往上抛，覆盖层却留在栈上 —— input_locked 永久为真，
+            # 玩家走不动、开不了暂停，只能结束进程。
+            self.log.exception("[SCENE] push %s failed, rolling back", overlay_id)
+            if self.overlays and self.overlays[-1][1] is overlay:
+                self.overlays.pop()
+            self._exit(overlay)
+            raise
 
     def pop(self) -> str | None:
         if not self.overlays:

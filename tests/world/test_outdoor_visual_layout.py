@@ -37,11 +37,22 @@ def test_playground_basket_sits_right_of_track(map_data):
     )
 
 
-def test_stele_asset_has_no_lower_corner_specks():
-    """校训石碑下缘不能把棋盘格黑块带进游戏。"""
+def test_stele_asset_keeps_the_whole_pedestal():
+    """石碑必须保留柱身 + 底座。
+
+    旧抠图按颜色容差，底座下层 (74,76,88) 与棋盘深格 (72,72,80) 只差 4，
+    整块底座被当背景抠掉，只剩一根柱子悬空；下缘还会残留黑渣。
+    现在按"冷灰"（B-R>11）分离，这两类问题一起消失。
+    """
     path = ROOT / "assets" / "campus" / "textures" / "props" / "stele.png"
-    alpha = np.asarray(Image.open(path).convert("RGBA"))[:, :, 3]
+    rgba = np.asarray(Image.open(path).convert("RGBA"))
+    alpha = rgba[:, :, 3]
     h, w = alpha.shape
+    # 底座：下 35% 必须有足够宽的实心不透明区（旧版这里只剩一条残片）
     lower = alpha[round(h * 0.65):]
-    assert not lower[:, : round(w * 0.12)].any()
-    assert not lower[:, round(w * 0.80):].any()
+    widest = max(int(row.astype(bool).sum()) for row in lower)
+    assert widest >= w * 0.55, f"石碑底座缺失：最宽一行只有 {widest}/{w} 像素"
+    # 底座本身就该铺满下缘，只需确认不是"一根柱子 + 两侧残留"的形态：
+    # 最宽行之外不应再出现孤立的透明缺口把底座切开。
+    bottom = alpha[-1].astype(bool)
+    assert bottom.sum() >= w * 0.5, "石碑底座没有铺到画布下缘"

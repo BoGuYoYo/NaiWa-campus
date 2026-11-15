@@ -362,6 +362,14 @@ class AssetRegistry:
             return None
         return entry
 
+    def has_texture(self, asset_id: str) -> bool:
+        """资源是否真的存在（不会返回占位图）。
+
+        ``load_texture()`` 在缺失时返回品红占位纹理而不是 None，
+        想"缺了就换布局"的调用方必须先用这个判断，否则会把占位图当真图用。
+        """
+        return self._entry_or_missing(asset_id, ("image", "sprite_sheet")) is not None
+
     # ------------------------------------------------------------------ #
     # 图形资源（需要 panda3d）
     # ------------------------------------------------------------------ #

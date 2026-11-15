@@ -41,7 +41,7 @@
   "act.create_work.name": "画画",
   "act.create_work.result.1": "一整个下午过去，画布上的颜色终于铺满了。",
   "act.create_work.result.2": "改了三遍构图，铅笔屑落了一桌。",
-  "act.create_work.result.3": "符闹吃凑过来看了一眼：「这块留白真敢留。」",
+  "act.create_work.result.3": "奈珑凑过来看了一眼：「这块留白真敢留。」",
   "ui.talk.name": "交谈",
   "npc.sumo.name": "符闹吃",
   "npc.sumo.bio": "同班同学，社团联合会的干事。嗓门最大，最爱张罗活动，看着凶其实讲义气。",
@@ -383,9 +383,10 @@
   "ending.ending_mediocre.body.1": "没有跌宕起伏的剧本，却把每一天都过成了安稳顺遂的模样。",
   "ending.ending_mediocre.body.2": "你按时上课，也认识了朋友，在社团和兴趣之间保持了自己的节奏。",
   "ending.ending_mediocre.body.3": "平凡从不是平庸，愿你走进社会后依然守住这份生活感。",
-  "ui.menu.reason.incompatible_save": "旧版本存档",
-  "err.save_version": "这个存档来自旧版本，无法读取，请开新游戏",
-  "err.save_corrupt": "存档已损坏，无法读取",
+  "ui.menu.reason.incompatible_save": "旧版存档",
+  "err.save_version": "存档版本不兼容",
+  "err.save_corrupt": "存档已损坏",
   "err.save_io": "存档读写失败",
-  "err.slot_empty": "这个存档位是空的"
+  "err.slot_empty": "存档位是空的",
+  "ui.save.graduated": "已毕业"
 }

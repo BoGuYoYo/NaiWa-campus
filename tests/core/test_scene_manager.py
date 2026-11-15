@@ -223,3 +223,42 @@ def test_on_ready_exception_is_contained():
     manager.start("MainMenu", on_ready=boom)  # 不应把构造/main loop 带崩
     manager.update(0.3)
     assert manager.current_id == "MainMenu"
+
+
+# --------------------------------------------------------------- 第 16 轮：装配失败回滚
+
+def test_push_rolls_back_when_on_enter_raises():
+    """覆盖层装配失败必须从栈上弹出。
+
+    真实失败点在 EventSceneAdapter.apply → EventService.get_view（事件 id 不存在），
+    此时 factory 已成功、overlay 已 append，异常发生在 on_enter 里。
+    不回滚的话 input_locked 永久为 True，玩家连暂停都开不了。
+    """
+    from game.core.scene_manager import SceneManager
+
+    class _Dummy:
+        def on_enter(self, **kwargs):
+            pass
+
+        def on_exit(self):
+            pass
+
+    class Boom:
+        def on_enter(self, **kwargs):
+            raise RuntimeError("EventService: 事件不存在")
+
+        def on_exit(self):
+            pass
+
+    def factory(scene_id, kwargs):
+        return Boom() if scene_id == "EventScene" else _Dummy()
+
+    scenes = SceneManager(app=None, factory=factory, fade_seconds=0.0)
+    scenes.start("CampusScene")
+    assert not scenes.input_locked
+
+    with pytest.raises(RuntimeError):
+        scenes.push("EventScene", event_id="missing")
+
+    assert scenes.overlays == [], "失败的覆盖层留在栈上会导致永久锁输入"
+    assert not scenes.input_locked

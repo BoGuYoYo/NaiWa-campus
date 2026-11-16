@@ -1753,9 +1753,9 @@
       }
     },
     {
-      "id": "furn_club_pc_desk",
+      "id": "furn_dorm_game_pc",
       "type": "image",
-      "path": "interior/club/furn_pc_desk.png",
+      "path": "interior/dorm/furn_game_pc.png",
       "license_id": "LIC-0214",
       "tags": [
         "final",

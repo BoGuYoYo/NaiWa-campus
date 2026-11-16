@@ -252,6 +252,9 @@ def run_route(map_data: MapData, route_id: str, out_path: Path) -> dict:
     r.enter("loc_dorm")
     r.walk_to_interactable("ia_bed")
     r.interact("ia_bed")
+    # 游戏电脑已从社团楼搬到宿舍（床与书桌之间）
+    r.walk_to_interactable("ia_game_pc")
+    r.interact("ia_game_pc")
     r.exit("loc_dorm")
 
     # → 操场
@@ -295,8 +298,8 @@ def run_route(map_data: MapData, route_id: str, out_path: Path) -> dict:
     if r.interact("ia_door_clubroom") != "door":
         r.problems.append("社团楼门未返回 door")
     r.enter("loc_clubroom")
-    r.walk_to_interactable("ia_game_pc")
-    r.interact("ia_game_pc")
+    r.walk_to_interactable("ia_easel")
+    r.interact("ia_easel")
     r.exit("loc_clubroom")
 
     # → 食堂（进出）
@@ -316,11 +319,12 @@ def run_route(map_data: MapData, route_id: str, out_path: Path) -> dict:
 
     expected_activities = [
         "rest_dorm",
+        "play_games",      # 游戏电脑现在在宿舍
         "exercise",
         "campus_walk",
         "attend_class",
         "library_study",
-        "play_games",
+        "create_work",     # 社团楼只剩画架
         "eat_canteen",
     ]
     expected_doors = ["loc_dorm", "loc_classroom", "loc_library", "loc_clubroom", "loc_canteen"]

@@ -77,7 +77,7 @@ DOC_INTERACTABLES = {
     "ia_librarian": ("loc_library", 13.0, 2.0, 1.3, "inspect", "inspect.librarian"),
     "ia_bed": ("loc_dorm", 3.0, 7.0, 1.2, "activity", "rest_dorm"),
     "ia_dorm_desk": ("loc_dorm", 12.0, 7.0, 1.2, "save", "save_point"),
-    "ia_game_pc": ("loc_clubroom", 3.0, 7.0, 1.2, "activity", "play_games"),
+    "ia_game_pc": ("loc_dorm", 7.1, 7.0, 1.2, "activity", "play_games"),
     "ia_easel": ("loc_clubroom", 8.0, 8.0, 1.2, "activity", "create_work"),
     "ia_club_board": ("loc_clubroom", 13.0, 8.0, 1.2, "activity", "join_club"),
     "ia_npc_chenlang": ("loc_library", 11.0, 6.0, 1.3, "npc", "npc_chenlang"),
@@ -158,7 +158,7 @@ def test_interactables_for_scene(map_data):
     campus = map_data.interactables_for(CAMPUS_SCENE)
     assert len(campus) == 8  # 3 室外 + 5 扇门
     assert len(map_data.interactables_for("loc_library")) == 4  # 阅览桌 + 书架 + 苏墨 + 图书管理员
-    assert len(map_data.interactables_for("loc_dorm")) == 2
+    assert len(map_data.interactables_for("loc_dorm")) == 3  # 床 + 书桌 + 游戏电脑
 
 
 def test_to_world_offsets_interior_coordinates(map_data):
@@ -423,3 +423,14 @@ def test_interactables_are_not_buried_inside_props(map_data):
             r = prop.rect
             if r.x0 <= item.x <= r.x1 and r.y0 <= item.y <= r.y1:
                 raise AssertionError(f"{item.id} 落在 {prop.id} 内")
+
+
+def test_game_pc_is_in_the_dorm(map_data):
+    """游戏电脑（打游戏活动）在宿舍，社团楼不再有电脑桌。"""
+    pc = map_data.interactable("ia_game_pc")
+    assert pc.location_id == "loc_dorm"
+    assert pc.target == "play_games"
+    dorm_furniture = {f.id for f in map_data.interior("loc_dorm").furniture}
+    club_furniture = {f.id for f in map_data.interior("loc_clubroom").furniture}
+    assert "furn_game_pc" in dorm_furniture, dorm_furniture
+    assert "furn_pc_desk" not in club_furniture, club_furniture

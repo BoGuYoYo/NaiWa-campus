@@ -17,6 +17,12 @@
       "kind": "activity"
     },
     {
+      "interactable": "ia_game_pc",
+      "type": "activity",
+      "target": "play_games",
+      "kind": "activity"
+    },
+    {
       "exit": "loc_dorm",
       "to": [
         16.924,
@@ -83,9 +89,9 @@
       "kind": "door"
     },
     {
-      "interactable": "ia_game_pc",
+      "interactable": "ia_easel",
       "type": "activity",
-      "target": "play_games",
+      "target": "create_work",
       "kind": "activity"
     },
     {
@@ -129,6 +135,10 @@
       "rest_dorm"
     ],
     [
+      "loc_dorm",
+      "play_games"
+    ],
+    [
       "campus",
       "exercise"
     ],
@@ -146,7 +156,7 @@
     ],
     [
       "loc_clubroom",
-      "play_games"
+      "create_work"
     ],
     [
       "loc_canteen",
@@ -195,6 +205,7 @@
     ]
   ],
   "events": [
+    "activity.done",
     "activity.done",
     "activity.done",
     "activity.done",

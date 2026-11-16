@@ -722,6 +722,26 @@ v2.0.0 重构 + 操场/广场素材接入后，四路审查（结局规则 / 世
 
 ---
 
+## 游戏电脑搬到宿舍（2026-11-16）
+
+用户要求把社团楼的电脑搬进宿舍。
+
+| 位置 | 改动 |
+| --- | --- |
+| `content/world/map.json` | `furn_pc_desk` 从 `loc_clubroom` 移除；`loc_dorm` 新增 `furn_game_pc` rect `[5.6, 8.2, 8.6, 9.8]`（床与书桌之间，贴北墙） |
+| `assets/interior/dorm/furn_game_pc.png` | 由 `interior/club/furn_pc_desk.png` 复制而来（贴图不变） |
+| `assets/manifest.json` | `furn_club_pc_desk` → `furn_dorm_game_pc`，路径改到 `interior/dorm/` |
+| `content/world/interactables.json` | `ia_game_pc` 的 `scene`/`location_id` 改为 `loc_dorm`，站位 `(7.1, 7.0)`；社团楼门名去掉「含游戏室」 |
+| `tests/standalone_c.py` | C-R1 路线：宿舍段加「打游戏」，社团楼段改成「画画」 |
+| `tests/world/test_map_data.py` | 期望表、`interactables_for` 计数同步 |
+
+守卫：`test_game_pc_is_in_the_dorm`（宿舍必须有 `furn_game_pc`、社团楼不得有 `furn_pc_desk`）。
+
+验证：`pytest tests` → 699 passed；autoplay 48 行动 / `errors=[]`；`standalone_a` 14/14；
+C-R1 通过；`assets=164 missing=0`；文本校验通过。
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

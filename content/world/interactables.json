@@ -131,9 +131,9 @@
     {
       "id": "ia_game_pc",
       "name": "游戏电脑",
-      "scene": "loc_clubroom",
-      "location_id": "loc_clubroom",
-      "x": 3.0,
+      "scene": "loc_dorm",
+      "location_id": "loc_dorm",
+      "x": 7.1,
       "y": 7.0,
       "radius": 1.2,
       "type": "activity",
@@ -240,7 +240,7 @@
     },
     {
       "id": "ia_door_clubroom",
-      "name": "社团活动楼（含游戏室）门",
+      "name": "社团活动楼门",
       "scene": "campus",
       "location_id": "loc_clubroom",
       "x": 64.033,

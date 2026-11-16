@@ -1,20 +1,19 @@
 {
   "documented": {
-    "ending_mediocre": 2856,
-    "ending_delayed": 124,
-    "ending_romance_nailong": 17,
-    "ending_kaoyan": 2,
-    "ending_tech_master": 1
+    "ending_mediocre": 2852,
+    "ending_delayed": 129,
+    "ending_romance_nailong": 18,
+    "ending_kaoyan": 1
   },
   "measured": {
-    "ending_mediocre": 2856,
-    "ending_delayed": 124,
-    "ending_romance_nailong": 17,
-    "ending_kaoyan": 2,
-    "ending_tech_master": 1
+    "ending_mediocre": 2852,
+    "ending_delayed": 129,
+    "ending_romance_nailong": 18,
+    "ending_kaoyan": 1
   },
   "invariants": {
     "specialist_rate_max": 0.1,
     "mediocre_rate_min": 0.8
-  }
+  },
+  "note": "日恢复 40→25（2026-11-16）后随机策略几乎拿不到专精结局：ending_tech_master 从 1 局掉到 0 局。固定策略不受影响（tech_master 200/200）。"
 }

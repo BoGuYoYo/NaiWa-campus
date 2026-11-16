@@ -13,7 +13,7 @@
       "npc_chenlang": 100,
       "npc_xiaoyou": 0
     },
-    "min_end_energy": 39
+    "min_end_energy": 34
   },
   "tech_master": {
     "ending_id": "ending_tech_master",
@@ -45,7 +45,7 @@
       "npc_chenlang": 0,
       "npc_xiaoyou": 100
     },
-    "min_end_energy": 56
+    "min_end_energy": 47
   },
   "delayed": {
     "ending_id": "ending_delayed",

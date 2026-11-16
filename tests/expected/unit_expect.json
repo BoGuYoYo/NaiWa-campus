@@ -97,7 +97,7 @@
             ]
           ],
           "expect": {
-            "energy": 64,
+            "energy": 49,
             "day_index": 1,
             "action_slot": 0,
             "phase": "campus"
@@ -170,7 +170,7 @@
             ]
           ],
           "expect": {
-            "energy": 80,
+            "energy": 65,
             "flags": []
           }
         }
@@ -279,11 +279,11 @@
           ],
           "expect": {
             "mood": 45,
-            "energy": 55
+            "energy": 40
           },
           "expect_result": {
             "deltas.mood": -5,
-            "deltas.energy": 40
+            "deltas.energy": 25
           }
         }
       ]

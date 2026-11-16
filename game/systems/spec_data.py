@@ -36,7 +36,10 @@ INITIAL_ENERGY: int = ENERGY_BASE + INITIAL_STATS["stamina"] // ENERGY_PER_STAMI
 # 日结算参数
 LOW_ENERGY_THRESHOLD = 20
 LOW_ENERGY_MOOD_PENALTY = 5
-DAILY_ENERGY_RECOVERY = 40
+#: 每天睡一觉恢复的精力。40 时一天 3 个行动几乎打不满消耗（图书馆×3 = −60，
+#: 加上食堂就溢出），玩家不需要规划补给；降到 25 后必须穿插食堂/休息，
+#: 但仍高于低精力惩罚线，不至于卡死。
+DAILY_ENERGY_RECOVERY = 25
 LATE_NIGHT_RECOVERY_PENALTY = 20
 LATE_NIGHT_FLAG = "stayed_up_late"
 

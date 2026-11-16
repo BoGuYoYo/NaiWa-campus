@@ -140,18 +140,22 @@ class PlayerController:
         self.set_scene(CAMPUS_SCENE, reset=False)
 
     # ------------------------------------------------------------------ 场景
-    def set_scene(self, scene: str, reset: bool = True) -> None:
-        """切换碰撞上下文。室内房间在世界坐标系下渲染，因此矩形整体平移房间原点。"""
+    def set_scene(self, scene: str, reset: bool = True,
+                  collision_rects: tuple[Rect, ...] | None = None) -> None:
+        """切换碰撞上下文；可用渲染场景提供的世界坐标碰撞体覆盖默认地图表。"""
         self._scene = scene
         if scene == CAMPUS_SCENE:
-            self._rects = self.map_data.colliders_for(CAMPUS_SCENE)
+            self._rects = (collision_rects if collision_rects is not None
+                           else self.map_data.colliders_for(CAMPUS_SCENE))
             self._bounds = self.map_data.bounds
         else:
             origin = self.map_data.interior(scene).origin
             size = self.map_data.interior(scene).size
-            self._rects = tuple(
-                Rect(r.x0 + origin[0], r.y0 + origin[1], r.x1 + origin[0], r.y1 + origin[1])
-                for r in self.map_data.colliders_for(scene)
+            self._rects = (
+                collision_rects if collision_rects is not None else tuple(
+                    Rect(r.x0 + origin[0], r.y0 + origin[1], r.x1 + origin[0], r.y1 + origin[1])
+                    for r in self.map_data.colliders_for(scene)
+                )
             )
             self._bounds = Rect(origin[0], origin[1], origin[0] + size[0], origin[1] + size[1])
         if reset:

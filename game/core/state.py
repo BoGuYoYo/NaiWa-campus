@@ -16,6 +16,7 @@ STAT_KEYS = ("academic", "stamina", "social", "interest")
 RELATIONSHIP_KEYS = ("npc_sumo", "npc_chenlang", "npc_xiaoyou")
 #: B 的规则系统（spec_data / content_db）按这个名字取 NPC 列表；与关系键同源
 NPC_IDS = RELATIONSHIP_KEYS
+OPENING_NPCS_ACTIVE = "opening_npcs_active"
 STAT_MIN = 0
 STAT_MAX = 100
 MOOD_MIN = 0

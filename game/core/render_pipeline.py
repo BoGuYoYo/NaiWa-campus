@@ -20,7 +20,7 @@ from .. import config
 # 卡片法线与相机视方向正好反向，像素不会被斜切压缩。
 # 实测记录：P=+50 会让卡片与视方向平行（完全看不见），不要改成正角度。
 CHARACTER_CARD_PITCH = config.CAMERA_TILT_DEGREES
-CHARACTER_CARD_SIZE_METERS = (2.0, 2.0)
+CHARACTER_CARD_SIZE_METERS = config.CHARACTER_CARD_SIZE_METERS
 GRID = 1.0 / config.PIXELS_PER_METER
 
 

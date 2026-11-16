@@ -234,11 +234,30 @@ class SceneManager:
 
     def _exit(self, scene: Any) -> None:
         hook = getattr(scene, "on_exit", None)
-        if callable(hook):
-            try:
+        try:
+            if callable(hook):
                 hook()
-            except Exception as exc:
-                self.log.exception("[SCENE] on_exit failed: %s", exc)
+        except Exception as exc:
+            self.log.exception("[SCENE] on_exit failed: %s", exc)
+        finally:
+            # World scenes render below a shared `render` root. If any part of
+            # on_exit fails, still detach the scene-owned subtree before the
+            # next base scene is entered so old actors cannot remain visible.
+            self._remove_scene_root(scene)
+
+    def _remove_scene_root(self, scene: Any) -> None:
+        root = getattr(scene, "root", None)
+        if root is None:
+            return
+        try:
+            is_empty = getattr(root, "is_empty", None) or getattr(root, "isEmpty", None)
+            if callable(is_empty) and is_empty():
+                return
+            remove_node = getattr(root, "remove_node", None) or getattr(root, "removeNode", None)
+            if callable(remove_node):
+                remove_node()
+        except Exception as exc:
+            self.log.exception("[SCENE] root cleanup failed: %s", exc)
 
     def _emit(self, old: str | None, new: str) -> None:
         if self.bus is not None:

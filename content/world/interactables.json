@@ -178,7 +178,7 @@
       "scene": "loc_canteen",
       "location_id": "loc_canteen",
       "x": 8.0,
-      "y": 8.5,
+      "y": 7.9,
       "radius": 1.5,
       "type": "activity",
       "target": "eat_canteen"
@@ -232,7 +232,7 @@
       "name": "图书馆门",
       "scene": "campus",
       "location_id": "loc_library",
-      "x": 64.568,
+      "x": 62.0,
       "y": 31.017,
       "radius": 1.2,
       "type": "door",

@@ -50,6 +50,9 @@ FURNITURE_HEIGHT = 1.0
 EXIT_COOLDOWN = 1.0
 #: 家具正面卡按镜头俯角后倒的"倒伏系数"：顶端比底边后退 height × CARD_LEAN_SIN
 CARD_LEAN_SIN = abs(math.sin(math.radians(config.CAMERA_TILT_DEGREES)))
+# Character cards lean north by height * sin(camera tilt). Keep their full visual
+# footprint south of the north wall so the sprite cannot clip through its face.
+NORTH_WALL_CLEARANCE = config.CHARACTER_CARD_SIZE_METERS[1] * CARD_LEAN_SIN
 #: 地板贴图一次平铺覆盖的米数（96 px / 4 m = 24 px/m，与游戏像素密度一致）
 FLOOR_TILE_M = 4.0
 #: 墙面贴图一次平铺覆盖的米数；实际由 manifest 的 tile_m 覆盖
@@ -180,15 +183,20 @@ class InteriorScene:
 
     # ------------------------------------------------------------------ 查询
     def colliders_local(self) -> tuple[Rect, ...]:
-        """阻挡矩形，家具按"卡片实际投影"扩展。
+        """阻挡矩形，按室内墙体和家具在 2.5D 视角中的实际投影扩展。
 
         家具是 pitch=-40° 的立牌，顶端比底边后退 height·sin40°。贴北墙的
         家具（打饭窗口、书架、讲台…）底边会被推到房间内侧，卡片投影因此
         比 map.json 里的 rect 更靠南；只按 rect 做碰撞时，玩家能走进卡片里
-        被整个吞掉（食堂取餐口最明显）。这里把每件家具的碰撞体向南扩到
-        卡片底边，玩家就永远停在立牌之外。
+        被整个吞掉（食堂取餐口最明显）。北墙也要给倾斜的角色卡片留出纵深，
+        避免角色脚点还在墙内、上半身已经穿过北墙。
         """
         base = self.map_data.colliders_for(self.building_id)
+        wall_keys = {
+            tuple(rect)
+            for rect in self.map_data.interior_walls(self.building_id)
+            if wall_side(rect, self.size, self.map_data.interior_wall_thickness) == "n"
+        }
         expanded: dict[tuple[float, float, float, float], Rect] = {}
         for furn in self.interior.furniture:
             art = self.furniture_art.get(furn.id)
@@ -202,11 +210,20 @@ class InteriorScene:
             key = (r.x0, r.y0, r.x1, r.y1)
             # 只向南扩（y0 变小），不动北边界与左右
             expanded[key] = Rect(r.x0, foot, r.x1, r.y1)
-        if not expanded:
-            return base
         out = []
         for rect in base:
-            out.append(expanded.get((rect.x0, rect.y0, rect.x1, rect.y1), rect))
+            key = (rect.x0, rect.y0, rect.x1, rect.y1)
+            if key in expanded:
+                out.append(expanded[key])
+            elif key in wall_keys:
+                out.append(Rect(
+                    rect.x0,
+                    max(0.0, rect.y0 - NORTH_WALL_CLEARANCE),
+                    rect.x1,
+                    rect.y1,
+                ))
+            else:
+                out.append(rect)
         return tuple(out)
 
     def _back_face(self) -> float:

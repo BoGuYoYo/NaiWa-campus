@@ -16,13 +16,15 @@ from pathlib import Path
 from typing import Any
 
 APP_NAME = "NaiwaCampus"
-GAME_VERSION = "0.1.3"
+GAME_VERSION = "0.1.4"
 SAVE_VERSION = 2
 
 # 内部画布与像素密度：全项目唯一来源，任何模块都必须从这里取。
 INTERNAL_WIDTH = 480
 INTERNAL_HEIGHT = 270
 PIXELS_PER_METER = 24
+# Shared by character rendering and indoor collision projection.
+CHARACTER_CARD_SIZE_METERS = (2.0, 2.0)
 # Keep the campus framing a little wider so adjacent buildings do not crowd the
 # screen when the player is standing on the central plaza.
 CAMERA_VIEW_SCALE = 1.25

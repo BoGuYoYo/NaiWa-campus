@@ -138,6 +138,72 @@ def test_interior_scene_colliders_are_translated(base, map_data):
         scene.destroy()
 
 
+def test_interior_runtime_collision_matches_character_and_furniture_cards(base, map_data):
+    from types import SimpleNamespace
+
+    from panda3d.core import Filename
+
+    from game import config
+    from game.world.collision import PLAYER_HALF, overlap
+    from game.world.interior_scene import CARD_LEAN_SIN, NORTH_WALL_CLEARANCE, InteriorScene
+    from game.world.player_controller import PlayerController
+
+    window_texture = base.loader.loadTexture(
+        Filename.fromOsSpecific(
+            str(ROOT / "assets" / "interior" / "canteen" / "furn_food_window.png")
+        )
+    )
+    window_art = {
+        "furn_food_window": (
+            window_texture,
+            window_texture.getYSize() / config.PIXELS_PER_METER,
+        )
+    }
+    scene = InteriorScene(map_data, "loc_canteen", base.render, furniture_art=window_art)
+    node = base.render.attachNewNode("canteen_collision_player")
+    try:
+        local = scene.colliders_local()
+        north_base = next(
+            rect for rect in map_data.interior_walls("loc_canteen")
+            if rect.x0 == 0.0 and rect.x1 == 16.0 and rect.y1 == 10.0
+        )
+        north = next(rect for rect in local if rect.x0 == north_base.x0 and rect.x1 == north_base.x1
+                     and rect.y1 == north_base.y1)
+        assert north.y0 == pytest.approx(north_base.y0 - NORTH_WALL_CLEARANCE)
+
+        window = next(f for f in scene.interior.furniture if f.id == "furn_food_window")
+        window_rect = next(
+            rect for rect in local if rect.x0 == window.rect.x0 and rect.x1 == window.rect.x1
+            and rect.y1 == window.rect.y1
+        )
+        expected_foot = min(
+            window.rect.y0,
+            scene._back_face() - window_art["furn_food_window"][1] * CARD_LEAN_SIN,
+        )
+        assert window_rect.y0 == pytest.approx(expected_foot)
+
+        from fixtures.fake_state import FakeState
+
+        state = FakeState()
+        player = PlayerController(map_data, state, node, key_down=lambda key: key == "w")
+        world_rects = scene.colliders_world()
+        player.set_scene("loc_canteen", reset=False, collision_rects=world_rects)
+        ox, oy = scene.origin
+        player.teleport(ox + 8.0, oy + 7.0, "n")
+        for _ in range(300):
+            player.update(1.0 / 60.0)
+        assert player.motion.y <= oy + north.y0 - PLAYER_HALF + 1e-3
+
+        interactable = map_data.interactable("ia_food_window")
+        standing = SimpleNamespace(x=ox + 8.0, y=oy + 7.8)
+        target = SimpleNamespace(x=ox + interactable.x, y=oy + interactable.y)
+        assert ((standing.x - target.x) ** 2 + (standing.y - target.y) ** 2) ** 0.5 <= interactable.radius
+        assert not any(overlap(standing, PLAYER_HALF, rect) for rect in world_rects)
+    finally:
+        node.removeNode()
+        scene.destroy()
+
+
 INTERIOR_IDS = ("loc_dorm", "loc_classroom", "loc_library", "loc_clubroom", "loc_canteen")
 
 

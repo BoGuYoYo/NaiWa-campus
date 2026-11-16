@@ -49,14 +49,14 @@ python -m tests.standalone_c --route C-R1 --fake-services
 | 6 | 教学楼门 `ia_door_classroom` | door | 世界 (18.35, 30.873) r=1.2 | `InteriorScene(loc_classroom)` |
 | 7 | 课桌 `ia_class_desk` | activity | 本地 (8.0, 6.0) r=1.2 | `attend_class` |
 | 8 | 教学楼入口地垫（退出） | — | 本地 (8.0, 0.6) r=0.8 | 退出到世界 (18.35, 29.873) 朝向 `s` |
-| 9 | 图书馆门 `ia_door_library` | door | 世界 (60.896, 31.017) r=1.2 | `InteriorScene(loc_library)` |
+| 9 | 图书馆门 `ia_door_library` | door | 世界 (62.0, 31.017) r=1.2 | `InteriorScene(loc_library)` |
 | 10 | 阅览桌 `ia_reading_desk` | activity | 本地 (6.0, 5.0) r=1.2 | `library_study` |
-| 11 | 图书馆入口地垫（退出） | — | 本地 (8.0, 0.6) r=0.8 | 退出到世界 (60.896, 30.017) 朝向 `s` |
+| 11 | 图书馆入口地垫（退出） | — | 本地 (8.0, 0.6) r=0.8 | 退出到世界 (62.0, 29.217) 朝向 `s` |
 | 12 | 社团楼门 `ia_door_clubroom` | door | 世界 (64.033, 12.123) r=1.2 | `InteriorScene(loc_clubroom)` |
 | 13 | 游戏电脑 `ia_game_pc` | activity | 本地 (3.0, 7.0) r=1.2 | `play_games` |
 | 14 | 社团楼入口地垫（退出） | — | 本地 (8.0, 0.6) r=0.8 | 退出到世界 (64.033, 11.123) 朝向 `s` |
 | 15 | 食堂门 `ia_door_canteen` | door | 世界 (40.0, 47.2) r=1.2 | `InteriorScene(loc_canteen)` |
-| 16 | 打饭窗口 `ia_food_window` | activity | 本地 (8.0, 8.5) r=1.5 | `eat_canteen` |
+| 16 | 打饭窗口 `ia_food_window` | activity | 本地 (8.0, 7.9) r=1.5 | `eat_canteen` |
 | 17 | 食堂入口地垫（退出） | — | 本地 (8.0, 0.6) r=0.8 | 退出到世界 (40.0, 46.2) 朝向 `s` |
 | 18 | 校门告示牌 `ia_gate_notice` | inspect | 世界 (43.0, 4.0) r=1.5 | 推送覆盖层 `EventScene(text_id=insp.gate_notice.body)` |
 
@@ -83,14 +83,14 @@ python -m tests.standalone_c --route C-R1 --fake-services
 7. **教学楼门**（世界 18.35, 30.873）→ 进入 `loc_classroom`；出生本地 `(8.0, 1.6)`。
 8. **课桌**（本地 8.0, 6.0）：按 E 调用 `attend_class`。
 9. **退出教学楼** → 世界 `(18.35, 29.873)` 朝向 `s`。
-10. **图书馆门**（世界 60.896, 31.017，朝向 `s`）→ 进入 `loc_library`。
+10. **图书馆门**（世界 62.0, 31.017，朝向 `s`）→ 进入 `loc_library`。
 11. **阅览桌**（本地 6.0, 5.0）：按 E 调用 `library_study`。
-12. **退出图书馆** → 世界 `(60.896, 30.017)` 朝向 `s`。
+12. **退出图书馆** → 世界 `(62.0, 29.217)` 朝向 `s`。
 13. **社团楼门**（世界 64.033, 12.123，朝向 `s`）→ 进入 `loc_clubroom`。
 14. **游戏电脑**（本地 3.0, 7.0）：按 E 调用 `play_games`。
 15. **退出社团楼** → 世界 `(64.033, 11.123)` 朝向 `s`。
 16. **食堂门**（世界 40.0, 47.2，朝向 `s`）→ 进入 `loc_canteen`。
-17. **打饭窗口**（本地 8.0, 8.5，半径 1.5）：按 E 调用 `eat_canteen`。
+17. **打饭窗口**（本地 8.0, 7.9，半径 1.5）：按 E 调用 `eat_canteen`。
 18. **退出食堂** → 世界 `(40.0, 46.2)` 朝向 `s`。
 19. **绕行到校门告示牌**（世界 43.0, 4.0）：从食堂向南绕过广场，按 E 触发 `inspect`，
     推送覆盖层 `EventScene(text_id=insp.gate_notice.body)`，不调用任务 B 的活动服务。

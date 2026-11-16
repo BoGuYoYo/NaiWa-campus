@@ -37,7 +37,7 @@ def _raw_ia() -> dict:
 DOC_BUILDINGS = {
     "loc_dorm": ((3.915, 9.723, 18.055, 23.939), (16.924, 9.723), "s", (16.924, 8.923)),
     "loc_classroom": ((4.676, 31.673, 20.669, 47.726), (18.35, 31.673), "s", (18.35, 30.873)),
-    "loc_library": ((59.602, 31.817, 75.778, 48.008), (64.568, 31.817), "s", (64.568, 31.017)),
+    "loc_library": ((59.602, 31.817, 75.778, 48.008), (62.0, 31.817), "s", (62.0, 31.017)),
     "loc_clubroom": ((61.56, 12.923, 76.107, 27.429), (64.033, 12.923), "s", (64.033, 12.123)),
     "loc_canteen": ((30.0, 48.0, 50.0, 58.0), (40.0, 48.0), "s", (40.0, 47.2)),
 }
@@ -81,12 +81,12 @@ DOC_INTERACTABLES = {
     "ia_easel": ("loc_clubroom", 8.0, 8.0, 1.2, "activity", "create_work"),
     "ia_club_board": ("loc_clubroom", 13.0, 8.0, 1.2, "activity", "join_club"),
     "ia_npc_chenlang": ("loc_library", 11.0, 6.0, 1.3, "npc", "npc_chenlang"),
-    "ia_food_window": ("loc_canteen", 8.0, 8.5, 1.5, "activity", "eat_canteen"),
+    "ia_food_window": ("loc_canteen", 8.0, 7.9, 1.5, "activity", "eat_canteen"),
     "ia_npc_xiaoyou": ("loc_canteen", 13.0, 4.0, 1.3, "npc", "npc_xiaoyou"),
     "ia_canteen_aunt": ("loc_canteen", 5.0, 8.5, 1.3, "inspect", "inspect.canteen_aunt"),
     "ia_door_dorm": ("campus", 16.924, 8.923, 1.2, "door", "loc_dorm"),
     "ia_door_classroom": ("campus", 18.35, 30.873, 1.2, "door", "loc_classroom"),
-    "ia_door_library": ("campus", 64.568, 31.017, 1.2, "door", "loc_library"),
+    "ia_door_library": ("campus", 62.0, 31.017, 1.2, "door", "loc_library"),
     "ia_door_clubroom": ("campus", 64.033, 12.123, 1.2, "door", "loc_clubroom"),
     "ia_door_canteen": ("campus", 40.0, 47.2, 1.2, "door", "loc_canteen"),
 }
@@ -204,7 +204,7 @@ def test_exit_point_is_outside_the_door_trigger_radius(map_data):
     「进入」提示里，连按 E 会立刻被送回室内。现在落点固定 1.8 米。
     """
     assert map_data.exit_point("loc_dorm") == (16.924, 7.123, "s")
-    assert map_data.exit_point("loc_library") == (64.568, 29.217, "s")
+    assert map_data.exit_point("loc_library") == (62.0, 29.217, "s")
     assert map_data.exit_point("loc_canteen")[:2] == pytest.approx((40.0, 45.4))
     doors = {ia.id: ia for ia in map_data.interactables if ia.id.startswith("ia_door_")}
     for building in map_data.buildings:
@@ -283,7 +283,7 @@ def test_route_waypoints_are_free(map_data):
         (28.0, 17.0),
         (40.0, 33.0),
         (18.35, 30.873),
-        (60.896, 31.017),
+        (62.0, 31.017),
         (58.0, 30.0),
         (64.033, 12.123),
         (40.0, 47.2),

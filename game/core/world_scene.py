@@ -30,7 +30,7 @@ from panda3d.core import TextNode, TextureStage
 from game import config
 from game.core.event_bus import TOPIC_DAY_ENDED
 from game.core.results import EventView
-from game.core.state import GameState
+from game.core.state import OPENING_NPCS_ACTIVE, GameState
 from game.systems.content_db import ContentError
 from game.ui import theme
 from game.ui.day_summary import DaySummary
@@ -187,7 +187,12 @@ class WorldSceneBase:
             animator=self.animator, audio=self.audio_adapter,
             key_down=self._key_down,
         )
-        self.player.set_scene(self.scene_id, reset=False)
+        scene_colliders = getattr(self.scene, "colliders_world", None)
+        self.player.set_scene(
+            self.scene_id,
+            reset=False,
+            collision_rects=scene_colliders() if callable(scene_colliders) else None,
+        )
         if position is not None:
             # 从室内退出时由调用方给出落点（门外 1 米、朝向背离建筑）。
             # 必须走参数而不是"场景建好之后再 teleport"：淡入回调在 fade=0 时
@@ -633,7 +638,9 @@ class CampusSceneAdapter(WorldSceneBase):
         )
 
     def npc_marks(self):
-        return self.md.outdoor_npc_marks
+        if self._state is not None and OPENING_NPCS_ACTIVE in self._state.flags:
+            return self.md.outdoor_npc_marks
+        return ()
 
     def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:
         """按 A 的渲染管线 film 尺寸钳制镜头目标，保证画面不露出地图外。"""
@@ -735,9 +742,8 @@ class InteriorSceneAdapter(WorldSceneBase):
         self.rig.set_interior((ox + self.md.interior(self.scene_id).center[0],
                                oy + self.md.interior(self.scene_id).center[1]))
         self.app.pipeline.align_camera(*self.rig.target)
-        # 通用摆放已经在 super().on_enter() 里做过一次，那时 scene_id 还是旧的；
-        # 进入房间后按新的 scene_id 重摆一次（坐标基准是房间原点）。
-        self._place_npc_marks()
+        if self._state is not None:
+            self._state.flags.discard(OPENING_NPCS_ACTIVE)
 
     def npc_marks(self):
         if not self.scene_id.startswith("loc_"):

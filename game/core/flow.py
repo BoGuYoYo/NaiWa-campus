@@ -24,7 +24,7 @@ from .event_bus import (
 )
 from .results import ActivityResult, DayEndResult, EndingResult, EventResult
 from .scene_manager import SceneManager
-from .state import DEFAULT_SPAWN_LOCATION, NPC_IDS, GameState, WorldPos, new_state
+from .state import DEFAULT_SPAWN_LOCATION, NPC_IDS, OPENING_NPCS_ACTIVE, GameState, WorldPos, new_state
 
 LOG = logging.getLogger("naiwa.flow")
 
@@ -307,6 +307,7 @@ class GameFlow:
                  spawn: str | None = None) -> GameState:
         actual_seed = int(seed) if seed is not None else _random_seed()
         state = new_state(actual_seed)
+        state.flags.add(OPENING_NPCS_ACTIVE)
         self.state = state
         self.paused = False
         self._reset_pending_modals()

@@ -176,6 +176,43 @@ def test_pending_change_is_replaced_by_later_request():
     assert created[-1].scene_id == "GraduationScene"
 
 
+@pytest.mark.parametrize("raise_on_exit", [False, True], ids=["normal-exit", "exit-error"])
+def test_scene_change_detaches_old_world_root_and_npcs(raise_on_exit):
+    from panda3d.core import NodePath
+
+    render = NodePath("render")
+    created = []
+
+    class WorldScene:
+        def __init__(self, scene_id, **_kwargs):
+            self.root = render.attach_new_node(scene_id)
+            self.npc = None
+            if scene_id == "CampusScene":
+                self.npc = self.root.attach_new_node("npc_chenlang")
+
+        def on_enter(self, **_kwargs):
+            pass
+
+        def on_exit(self):
+            if raise_on_exit:
+                raise RuntimeError("scene teardown failed")
+
+    def factory(scene_id, kwargs):
+        scene = WorldScene(scene_id, **kwargs)
+        created.append(scene)
+        return scene
+
+    manager = SceneManager(app=None, factory=factory, fade_seconds=0.0)
+    manager.start("CampusScene")
+    old_root = created[0].root
+
+    manager.change("InteriorScene")
+
+    assert manager.current_id == "InteriorScene"
+    assert old_root.is_empty()
+    assert list(render.find_all_matches("**/npc_*")) == []
+
+
 # --------------------------------------------------------------------------- #
 # on_ready：新场景就绪（淡入结束）后才允许 push 覆盖层
 # --------------------------------------------------------------------------- #

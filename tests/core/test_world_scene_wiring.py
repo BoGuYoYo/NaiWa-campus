@@ -177,3 +177,39 @@ def test_adapter_enters_and_exits_cleanly(adapter_cls, kwargs) -> None:
     leftover = [e for (o, e) in app.input.binds if o is owner]
     assert leftover == [], f"on_exit 之后仍有残留绑定：{leftover}"
     assert adapter.widget is None, "on_exit 之后 widget 没有被释放"
+
+
+def test_interior_scene_places_npc_marks_once(monkeypatch) -> None:
+    from game import config
+    from game.world.map_data import MapData
+
+    state = GameState()
+    map_data = MapData.from_content_root(config.resource_root() / "content")
+    placed: list[str] = []
+
+    class _Player:
+        def teleport(self, *_args) -> None:
+            return None
+
+    class _Rig:
+        target = (0.0, 0.0)
+
+        def set_interior(self, *_args) -> None:
+            return None
+
+    def _base_on_enter(self, spawn=None, state=None, **_kwargs) -> None:
+        self._state = state
+        self.md = map_data
+        self.player = _Player()
+        self.rig = _Rig()
+        self.app = SimpleNamespace(pipeline=SimpleNamespace(align_camera=lambda *_args: None))
+        self._place_npc_marks()
+
+    monkeypatch.setattr(ws.WorldSceneBase, "on_enter", _base_on_enter)
+    monkeypatch.setattr(
+        ws.WorldSceneBase, "_place_npc_marks", lambda self: placed.append(self.scene_id)
+    )
+    adapter = ws.InteriorSceneAdapter(SimpleNamespace())
+    adapter.on_enter(building_id="loc_library", state=state)
+
+    assert placed == ["loc_library"]

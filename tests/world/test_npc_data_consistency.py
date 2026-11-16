@@ -79,3 +79,24 @@ def test_npc_interactables_have_renderable_asset_ids() -> None:
             missing.append(asset_id)
 
     assert missing == [], f"NPC 缺少可渲染的 idle 资源：{missing}"
+
+
+# --------------------------------------------------- 第 17 轮：室外 NPC 不参与靠近互动
+
+def test_outdoor_npcs_are_decoration_only(map_data):
+    """开局争论的两个 NPC 只是布景，不能有交互点。
+
+    用户要求：争论只在开局自动播一次；走近他们时不应触发任何互动
+    （否则会白扣一个行动时段、并弹出一段与剧情无关的对话）。
+    """
+    outdoor_npc = [ia for ia in map_data.interactables
+                   if ia.scene == "campus" and ia.type == "npc"]
+    assert outdoor_npc == [], (
+        "室外不该有 NPC 交互点：" + ", ".join(ia.id for ia in outdoor_npc)
+    )
+
+
+def test_outdoor_npc_marks_exist_for_the_opening_argument(map_data):
+    """路口确有李振兴与符闹吃的立牌（纯展示）。"""
+    names = {mark.name for mark in map_data.outdoor_npc_marks}
+    assert {"李振兴", "符闹吃"} <= names, names

@@ -38,6 +38,10 @@ WALL_HEIGHT = 3.0
 #: 3 米高的南墙会把房间南侧约 1.9 米地面整块挡住（入口地垫整个埋进墙里）。
 #: 剖切矮墙是 2.5D 房间的常规做法，也让贴在墙上的材质只出现在"看得见的那面"。
 SOUTH_WALL_HEIGHT = 0.35
+#: 北墙（背对镜头的那侧）同样剖切：角色卡片高 2 米、pitch -40°，
+#: 顶端的世界高度是 2·cos40° ≈ 1.53 米。3 米高的实心北墙会把贴墙站立的
+#: 人物整个盖住（五栋楼都复现"贴北墙穿模"）；切到 1.6 米后卡片顶端刚好露出。
+NORTH_WALL_HEIGHT = 1.6
 #: 墙体的颜色（剖切面）：南墙矮墙、其余墙的墙顶与外墙
 WALL_COLOR = (0.36, 0.37, 0.42, 1.0)
 #: 室内墙面与墙体之间留的偏移，避免共面闪烁
@@ -117,7 +121,12 @@ class InteriorScene:
         back_face = oy + h
         for r in self.map_data.interior_walls(self.building_id):
             side = wall_side(r, (w, h), thickness)
-            height = SOUTH_WALL_HEIGHT if side == "s" else WALL_HEIGHT
+            if side == "s":
+                height = SOUTH_WALL_HEIGHT
+            elif side == "n":
+                height = NORTH_WALL_HEIGHT
+            else:
+                height = WALL_HEIGHT
             make_box(self.root, ox + r.x0, oy + r.y0, ox + r.x1, oy + r.y1, 0.0, height,
                      WALL_COLOR)
             if side != "s" and self.wall_texture is not None:
@@ -171,7 +180,39 @@ class InteriorScene:
 
     # ------------------------------------------------------------------ 查询
     def colliders_local(self) -> tuple[Rect, ...]:
-        return self.map_data.colliders_for(self.building_id)
+        """阻挡矩形，家具按"卡片实际投影"扩展。
+
+        家具是 pitch=-40° 的立牌，顶端比底边后退 height·sin40°。贴北墙的
+        家具（打饭窗口、书架、讲台…）底边会被推到房间内侧，卡片投影因此
+        比 map.json 里的 rect 更靠南；只按 rect 做碰撞时，玩家能走进卡片里
+        被整个吞掉（食堂取餐口最明显）。这里把每件家具的碰撞体向南扩到
+        卡片底边，玩家就永远停在立牌之外。
+        """
+        base = self.map_data.colliders_for(self.building_id)
+        expanded: dict[tuple[float, float, float, float], Rect] = {}
+        for furn in self.interior.furniture:
+            art = self.furniture_art.get(furn.id)
+            if art is None:
+                continue
+            height = float(art[1])
+            r = furn.rect
+            foot = min(r.y0, self._back_face() - height * CARD_LEAN_SIN)
+            if foot >= r.y0:
+                continue          # 卡片底边没前移，rect 已经覆盖
+            key = (r.x0, r.y0, r.x1, r.y1)
+            # 只向南扩（y0 变小），不动北边界与左右
+            expanded[key] = Rect(r.x0, foot, r.x1, r.y1)
+        if not expanded:
+            return base
+        out = []
+        for rect in base:
+            out.append(expanded.get((rect.x0, rect.y0, rect.x1, rect.y1), rect))
+        return tuple(out)
+
+    def _back_face(self) -> float:
+        """北墙内侧的本地 y（与 _build() 里 back_face 的算法一致）。"""
+        h = self.size[1]
+        return h - self.map_data.interior_wall_thickness - WALL_PANEL_INSET
 
     def colliders_world(self) -> tuple[Rect, ...]:
         ox, oy = self.origin

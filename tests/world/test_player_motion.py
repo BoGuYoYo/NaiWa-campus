@@ -298,6 +298,32 @@ def test_controller_footstep_uses_floor_indoors(map_data):
     assert SFX_FOOTSTEP_GROUND not in audio.played
 
 
+def test_controller_stops_footsteps_when_blocked_but_keeps_sliding(map_data):
+    keys = {"d"}
+    ctrl, _state, _node, animator, audio = _controller(
+        map_data, key_down=lambda key: key in keys
+    )
+    ctrl._rects = (make_rect(41.0, -50.0, 42.0, 50.0),)
+    for _ in range(120):
+        ctrl.update(DT)
+    x, y = ctrl.motion.x, ctrl.motion.y
+    audio.played.clear()
+    for _ in range(120):
+        ctrl.update(DT)
+    assert (ctrl.motion.x, ctrl.motion.y) == pytest.approx((x, y))
+    assert not ctrl.motion.moving
+    assert animator.calls[-1][0] == IDLE_ASSET
+    assert audio.played == []
+
+    keys.add("w")
+    for _ in range(60):
+        ctrl.update(DT)
+    assert ctrl.motion.y > y
+    assert ctrl.motion.moving
+    assert animator.calls[-1][0] == WALK_ASSET
+    assert audio.played
+
+
 def test_controller_teleport_updates_world_and_position(map_data):
     ctrl, state, node, _animator, _audio = _controller(map_data, key_down=_key_down_for())
     ctrl.teleport(12.0, 20.0, "sw")

@@ -96,6 +96,9 @@ class GameState:
     world: WorldPos = field(default_factory=WorldPos)
     tutorial_done: set[str] = field(default_factory=set)
     play_seconds: float = 0.0
+    # 放在原字段之后，保持旧版位置参数顺序；旧存档缺少时使用默认值。
+    today_activities: list[str] = field(default_factory=list)
+    pending_day_start: bool = False
 
     # ------------------------------------------------------------------ #
     # 派生属性（只读）
@@ -185,7 +188,7 @@ class GameState:
     # 序列化：set 序列化为排序后的 list
     # ------------------------------------------------------------------ #
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "save_version": int(self.save_version),
             "seed": int(self.seed),
             "day_index": int(self.day_index),
@@ -206,6 +209,12 @@ class GameState:
             "tutorial_done": sorted(self.tutorial_done),
             "play_seconds": round(float(self.play_seconds), 3),
         }
+        # 两个扩展字段缺省时不写出，以保持既有 v2 存档的序列化兼容。
+        if self.today_activities:
+            payload["today_activities"] = list(self.today_activities)
+        if self.pending_day_start:
+            payload["pending_day_start"] = True
+        return payload
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any]) -> "GameState":
@@ -228,6 +237,8 @@ class GameState:
         today = raw.get("today_counts") if isinstance(raw.get("today_counts"), dict) else {}
         state.today_counts = {str(k): _as_int(v, 0) for k, v in today.items()}
         state.talked_today = _as_str_set(raw.get("talked_today"))
+        state.today_activities = _as_str_list(raw.get("today_activities"))[:ACTIONS_PER_DAY]
+        state.pending_day_start = raw.get("pending_day_start") is True
         state.event_log = _as_str_list(raw.get("event_log"))
         pending = raw.get("pending_event_id")
         state.pending_event_id = str(pending) if pending else None

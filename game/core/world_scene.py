@@ -224,7 +224,7 @@ class WorldSceneBase:
             activity_service=self.app.services.activity,
             relationship_service=self.app.services.relationship,
             scene_manager=self.app.scenes,
-            event_bus=self.app.bus,
+            # 正式游戏由 GameFlow.handle_activity_result 统一广播，避免重复通知。
         )
         self.tutorial = TutorialController(self._state, self.app.text)
         self.tutorial_overlay = TutorialOverlay(
@@ -247,6 +247,11 @@ class WorldSceneBase:
             return
         self.player.teleport(world.x, world.y, world.facing)
         self._last_player_position = (self.player.motion.x, self.player.motion.y)
+        if self.tracker is not None:
+            self.tracker.reset()
+        self._last_ia = None
+        if self.prompt is not None:
+            self.prompt.hide_prompt()
         # 传送后镜头必须立刻落位：相机有死区和平滑，不重设的话换日之后
         # 镜头会从上一帧的位置一路平移过来（玩家看到的是黑场后的长距离滑动）。
         self._apply_scene_camera()
@@ -466,6 +471,9 @@ class WorldSceneBase:
             return
         if self._transitioning():
             return
+        # 输入可能早于下一帧场景更新（尤其是关闭日结算后立刻按 E）。
+        # 按当前脚点重新选择，不能复用传送前的交互目标。
+        self._refresh_prompt(force=True)
         ia_id = self.tracker.active_id if self.tracker else None
         if not ia_id:
             return
@@ -1102,6 +1110,8 @@ class DaySummarySceneAdapter(WidgetSceneBase):
             handler()
 
     def _action_name(self, action_id: str) -> str:
+        if not action_id:
+            return self.app.text.get("ui.day_summary.previous_unknown")
         if action_id.startswith("talk."):
             short = action_id.split(".", 1)[1].removeprefix("npc_")
             npc_name = self.app.text.get(f"npc.{short}.name")

@@ -154,6 +154,7 @@
   "ui.result.event_follow": "有事情发生了……",
   "ui.day_summary.title": "第 {day} 天结束",
   "ui.day_summary.actions_title": "今天的 3 次行动",
+  "ui.day_summary.previous_unknown": "读档前的行动（旧档未记录）",
   "ui.day_summary.energy_recovered": "精力恢复 +{amount}",
   "ui.day_summary.continue": "[Space] 继续",
   "ui.day_summary.semester_event": "接下来，有一件重要的事……",

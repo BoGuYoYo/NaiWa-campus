@@ -84,6 +84,7 @@ class PlayerMotion:
 
     def update(self, pressed, running: bool, dt: float, rects=(), bounds: Rect | None = None) -> bool:
         """推进一帧；pressed 为按下的键集合。返回本帧是否在移动。"""
+        before_x, before_y = self.x, self.y
         dt = clamp_dt(dt)
         dx, dy = input_vector(pressed)
         has_input = dx != 0.0 or dy != 0.0
@@ -104,7 +105,10 @@ class PlayerMotion:
             clamp_to_bounds(pos, bounds)
             self.x, self.y = pos.x, pos.y
 
-        self.moving = has_input and self.speed > FACING_SPEED_EPS
+        # 碰撞和地图边界都处理完后再判断，顶墙时应待机且不播放脚步声。
+        self.moving = has_input and (
+            abs(self.x - before_x) > 1e-7 or abs(self.y - before_y) > 1e-7
+        )
         return self.moving
 
 

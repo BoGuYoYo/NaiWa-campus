@@ -161,8 +161,6 @@ class GraduationScene(UIWidget):
                 line = self._highlight_line(entry)
                 if line and line not in highlights:
                     highlights.append(line)
-                if len(highlights) >= 10:
-                    break
             if not highlights:
                 highlights = [self.text_db.get("ui.graduation.no_highlight")]
             self.content.set_lines(highlights)

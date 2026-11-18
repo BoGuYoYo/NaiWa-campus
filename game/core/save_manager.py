@@ -88,6 +88,8 @@ class SaveManager:
             "saved_at": _dt.datetime.now().astimezone().isoformat(timespec="seconds"),
             "game_version": config.GAME_VERSION,
             "reason": reason or "manual",
+            # 区分已记录换日阶段的新存档与换日前写入的旧自动档。
+            "flow_checkpoint": 1,
             "summary": self._build_summary(state, summary_extra),
             "state": state.to_dict(),
         }
@@ -189,6 +191,9 @@ class SaveManager:
         try:
             state_payload = self._migrate(version, state_payload)
             state = GameState.from_dict(state_payload)
+            # 仅用于恢复旧版自动档的换日阶段，不改变存档格式或手动档语义。
+            state._loaded_save_reason = raw.get("reason")
+            state._loaded_flow_checkpoint = raw.get("flow_checkpoint")
         except Exception as exc:
             return None, SaveError("E_SAVE_CORRUPT", str(path), f"state: {exc}")
         return state, None

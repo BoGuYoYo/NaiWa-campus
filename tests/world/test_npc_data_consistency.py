@@ -1,22 +1,11 @@
 """数据一致性守卫：室内 NPC 交互点坐标 == 室内 `npc_marks`。
 
-背景（BUG-15 的数据侧）：
-- `interactables.json` 里 `type=="npc"` 的点才是玩家真正能交互的位置；
-- `map.json` 的 `npc_marks` 只是渲染用的地标；
-- 实测两者**并不一致**：sumo 差 1.0 米、chenlang 差 1.0 米、xiaoyou 差 0.6 米，
-  且 `npc_marks` 共 5 条而 NPC 只有 3 个（2 条幽灵标记）。
-
-这条用例把"人肉拿尺子量"变成护栏：
-- 现在数据不一致 → 用 `xfail(strict=True)` 标记，CI 保持绿但不隐身；
-- 数据修好之后 → 会变成 **XPASS**，`strict=True` 直接报红，提醒把标记删掉，
-  以免这条护栏在修复后被无声地留成"永远跳过"。
+`interactables.json` 里的 NPC 交互位置必须和 `map.json` 中的立绘站位一致。
 """
 
 from __future__ import annotations
 
 import game.config as config
-import pytest
-
 from game.world.map_data import MapData
 
 
@@ -38,11 +27,6 @@ def _mark_points(md: MapData, building_id: str) -> set[tuple[float, float]]:
     return {(round(ox + m.x, 3), round(oy + m.y, 3)) for m in it.npc_marks}
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="BUG-15：室内 npc_marks 与 NPC 交互点不一致（1.0/1.0/0.6 米偏差 + 2 个幽灵标记）；"
-           "数据统一后本条会 XPASS，请删掉 xfail 标记",
-)
 def test_interior_npc_marks_match_interactables() -> None:
     md = _md()
     mismatches: dict[str, dict[str, set]] = {}

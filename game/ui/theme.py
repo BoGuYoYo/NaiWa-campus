@@ -139,8 +139,9 @@ def ui_px(
     """
     px = x * scale + offset_x
     py = y * scale + offset_y
-    ax = (px - window_w / 2) / (window_h / 2)
-    ay = (window_h / 2 - py) / (window_h / 2)
+    half_short_side = max(1, min(window_w, window_h)) / 2
+    ax = (px - window_w / 2) / half_short_side
+    ay = (window_h / 2 - py) / half_short_side
     return ax, ay
 
 

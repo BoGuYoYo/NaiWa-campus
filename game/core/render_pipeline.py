@@ -146,6 +146,7 @@ class LowResPipeline:
     def resize(self, win_w: int | None = None, win_h: int | None = None) -> Viewport:
         if win_w is None or win_h is None:
             win_w, win_h = self.window_size()
+        win_w, win_h = max(1, int(win_w)), max(1, int(win_h))
         viewport = compute_viewport(win_w, win_h)
         self.viewport = viewport
         if self.card is not None:
@@ -153,11 +154,8 @@ class LowResPipeline:
             sx = (config.INTERNAL_WIDTH * viewport.scale) / float(win_w)
             sy = (config.INTERNAL_HEIGHT * viewport.scale) / float(win_h)
             self.card.setScale(sx, 1.0, sy)
-            self.card.setPos(
-                (viewport.offset_x / win_w) * 2.0,
-                0.0,
-                (viewport.offset_y / win_h) * 2.0,
-            )
+            # 卡片本身以 render2d 原点为中心，offset 是两侧留白，不能再平移一次。
+            self.card.setPos(0.0, 0.0, 0.0)
         self.log.info(
             "[RENDER] window=%dx%d scale=%.4f integer=%s offset=(%.1f, %.1f)",
             win_w, win_h, viewport.scale, viewport.integer, viewport.offset_x, viewport.offset_y,

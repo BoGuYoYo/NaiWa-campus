@@ -105,7 +105,10 @@ class NaiwaApp(ShowBase):
         self.text = TextDB.load(str(config.resource_root() / "content"))
         set_default_font(self.registry.load_ui_font())
         self.ui_root = self.aspect2d.attach_new_node("ui_root")
-        self.ui_transform = UITransform.from_base(self)
+        # 所有控件使用固定逻辑画布；改变窗口时只缩放根节点，已打开的
+        # HUD、面板和后续重排的文字都会一起与世界画面保持对齐。
+        self.ui_transform = UITransform(1.0, config.INTERNAL_WIDTH, config.INTERNAL_HEIGHT)
+        self._apply_ui_viewport(self.pipeline.viewport, self.win.get_x_size(), self.win.get_y_size())
 
         # C 的地图数据：缺失时 C 的适配层装配失败，自动退回 A 的替身场景
         from .world.map_data import MapData
@@ -201,8 +204,8 @@ class NaiwaApp(ShowBase):
         from panda3d.core import CardMaker, TransparencyAttrib
 
         maker = CardMaker("fade_overlay")
-        maker.setFrame(-1.2, 1.2, -1.2, 1.2)
-        card = self.aspect2d.attachNewNode(maker.generate())
+        maker.setFrame(-1.0, 1.0, -1.0, 1.0)
+        card = self.render2d.attachNewNode(maker.generate())
         card.setTransparency(TransparencyAttrib.MAlpha)
         card.setColorScale(0, 0, 0, 0)
         card.setBin("fixed", 100)
@@ -210,6 +213,11 @@ class NaiwaApp(ShowBase):
         card.setDepthWrite(False)
         card.hide()
         return card
+
+    def _apply_ui_viewport(self, viewport, window_width: int, window_height: int) -> None:
+        # aspect2d 在竖屏上以宽度为单位，横屏上以高度为单位。
+        short_side = max(1, min(window_width, window_height))
+        self.ui_root.set_scale(config.INTERNAL_HEIGHT * viewport.scale / short_side)
 
     def _on_window_event(self, window) -> None:
         """窗口事件：自己处理关闭请求，不依赖 ShowBase 的默认分支。
@@ -239,11 +247,9 @@ class NaiwaApp(ShowBase):
             self.log.debug("[APP] windowEvent forward failed: %s", exc)
         try:
             width, height = int(window.getXSize()), int(window.getYSize())
-            self.pipeline.resize(width, height)
-            from .ui.widgets import UITransform
-
-            self.ui_transform = UITransform.from_base(self)
-            self.log.debug("[APP] resize %dx%d ui_scale=%.3f", width, height, self.ui_transform.scale)
+            viewport = self.pipeline.resize(width, height)
+            self._apply_ui_viewport(viewport, width, height)
+            self.log.debug("[APP] resize %dx%d ui_scale=%.3f", width, height, viewport.scale)
         except Exception as exc:
             self.log.warning("[APP] resize failed: %s", exc)
 

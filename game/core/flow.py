@@ -313,7 +313,7 @@ class GameFlow:
         self._reset_pending_modals()
         # 新游戏必须清空上一局的行动摘要：DaySummary 读的就是这个列表，
         # 不清会让"第 1 天结算"列出上一把做过的三件事。
-        self.today_activities = []
+        self.today_activities = state.today_activities
         self.last_activity_result = None
         LOG.info("[FLOW] new game seed=%d skip_intro=%s", actual_seed, skip_intro)
         self.bus.emit(TOPIC_DAY_STARTED, state=state, day_index=state.day_index)
@@ -357,9 +357,14 @@ class GameFlow:
         """
         self.state = state
         self.paused = False
-        self.today_activities = []
+        # 旧版存档没有行动明细，保留已用时段的占位，避免后续行动从 1 重新编号。
+        missing_actions = max(0, state.action_slot - len(state.today_activities))
+        if missing_actions:
+            state.today_activities[:0] = [""] * missing_actions
+        self.today_activities = state.today_activities
         self.last_activity_result = None
         self._reset_pending_modals()
+        self._restore_legacy_day_start(state)
         self._restore_outdoor_after_indoor_save(state)
         self._repair_world_position(state)
 
@@ -385,12 +390,35 @@ class GameFlow:
 
         state.pending_event_id = None
         state.phase = "campus"
+        if state.pending_day_start:
+            self.enter_campus(spawn=spawn, keep_position=True,
+                              on_ready=lambda: self._begin_next_day(state))
+            return
         if state.day_finished:
             # 存档停在"当天行动用完、还没结算"的瞬间：读档后补结算，
             # 否则所有活动都提示没有行动次数，日子推不下去。
             self.enter_campus(spawn=spawn, keep_position=True, on_ready=self.finish_day)
             return
         self.enter_campus(spawn=spawn, keep_position=True)
+
+    def _restore_legacy_day_start(self, state: GameState) -> None:
+        """旧版自动档写在传送前；从写档原因恢复尚未执行的换日。"""
+        if (state.pending_day_start or state.pending_event_id or state.phase != "campus"
+                or state.action_slot != 0 or not 0 < state.day_index < config.TOTAL_DAYS):
+            return
+        if getattr(state, "_loaded_flow_checkpoint", None) == 1:
+            return
+        reason = getattr(state, "_loaded_save_reason", None)
+        if reason == "day_end":
+            state.pending_day_start = True
+            return
+        if reason != "post_event" or state.day_index % config.DAYS_PER_SEMESTER:
+            return
+        calendar_event = getattr(self.services.calendar, "semester_event_id", None)
+        event_id = (calendar_event(state.day_index // config.DAYS_PER_SEMESTER)
+                    if callable(calendar_event) else None)
+        if event_id and self._event_settled(state, event_id):
+            state.pending_day_start = True
 
     def _event_settled(self, state: GameState, event_id: str) -> bool:
         """该事件是否已经结算过（规则层的选择记录 / 日常事件早已立即结算）。"""
@@ -424,6 +452,9 @@ class GameFlow:
             if self._pending_graduation or state.day_index >= config.TOTAL_DAYS:
                 self._pending_graduation = False
                 self._handle_graduation(state)
+            elif self._pending_day_start:
+                self._pending_day_start = False
+                self._begin_next_day(state)
             elif state.day_finished:
                 self.finish_day()
 
@@ -434,6 +465,19 @@ class GameFlow:
             # 必须走毕业。_pending_graduation 由 handle_event_result 消费。
             self._pending_graduation = True
             self._pending_day_start = False
+        else:
+            # 旧存档没有 pending_day_start：只有当前日期对应的学期事件
+            # 才能推断为日结算后的事件，普通关系事件仍留在原地。
+            calendar_event = getattr(self.services.calendar, "semester_event_id", None)
+            legacy_semester = (
+                state.day_index > 0
+                and state.day_index % config.DAYS_PER_SEMESTER == 0
+                and state.action_slot == 0
+                and callable(calendar_event)
+                and calendar_event(state.day_index // config.DAYS_PER_SEMESTER) == event_id
+            )
+            self._pending_day_start = state.pending_day_start or legacy_semester
+            state.pending_day_start = self._pending_day_start
         state.phase = "event"
         self.enter_campus(
             spawn=spawn, keep_position=True,
@@ -615,8 +659,16 @@ class GameFlow:
         # 玩家在日结算面板上直接退出时，day_end 自动存档就是唯一的恢复点，
         # 清掉等于把这一学期的关键事件永久跳过（旗标拿不到，结局判定也跟着变）。
         state.pending_event_id = result.semester_event_id
+        state.pending_day_start = bool(result.semester_event_id and not result.graduated)
         self.bus.emit(TOPIC_DAY_ENDED, result=result, state=state)
-        self._autosave(state, reason="day_end")
+        save_state = state
+        if not result.semester_event_id and not result.graduated:
+            # 日结算面板仍需要当天摘要，自动档则必须代表面板关闭后的新一天。
+            save_state = state.copy()
+            save_state.world = WorldPos()
+            save_state.today_activities.clear()
+            save_state.pending_day_start = True
+        self._autosave(save_state, reason="day_end")
 
         if self.scenes.top_overlay_id == "DaySummary":
             self.scenes.pop()  # 上一天的结算面板还没关，先替换掉
@@ -693,7 +745,9 @@ class GameFlow:
         state.action_slot = 0
         state.phase = "campus"
         state.pending_event_id = None
-        self.today_activities = []
+        state.pending_day_start = False
+        state.today_activities.clear()
+        self.today_activities = state.today_activities
         # 结算时人可能还在室内：只改 state.world 会把 location_id 写成 loc_gate，
         # 而场景仍是 InteriorScene —— 室内交互点全部查不到（"内容缺失"），
         # 出口地垫还留在旧房间里。这里必须把场景一起切回校园。
@@ -728,8 +782,8 @@ class GameFlow:
             self.bus.emit(TOPIC_EVENT_STARTED, event_id=next_id)
             self.scenes.push("EventScene", event_id=next_id)
             return
-        self._autosave(state, reason="post_event")
         if self._pending_graduation or state.phase == "graduation":
+            self._autosave(state, reason="post_event")
             self._pending_graduation = False
             self._pending_day_start = False
             self._pending_day_end = False
@@ -739,7 +793,9 @@ class GameFlow:
             # 学期事件结束后才开始新的一天（DaySummary/EventScene 关闭后由调用方保证顺序）
             self._pending_day_start = False
             self._begin_next_day(state)
+            self._autosave(state, reason="post_event")
             return
+        self._autosave(state, reason="post_event")
         # 当天最后一个行动触发的事件：事件结算后把"这一天结束"补上（P0 卡死修复）。
         # state.day_finished 是兜底：读档重播的事件同样要能把这一天收掉。
         if self._pending_day_end or state.day_finished:

@@ -246,6 +246,158 @@ def test_new_game_clears_today_activities(tmp_path):
     assert flow.activity_log_today() == []
 
 
+def test_manual_save_restores_the_day_action_log(tmp_path):
+    flow = make_flow(tmp_path)
+    state = flow.new_game(seed=42, skip_intro=True)
+    for action in ("attend_class", "library_study"):
+        result = flow.services.activity.start(state, action)
+        flow.handle_activity_result(result)
+    flow.saves.save(state, "slot_1")
+
+    restored = make_flow(tmp_path).load_game("slot_1")
+    assert restored.action_slot == 2
+    assert restored.today_activities == ["attend_class", "library_study"]
+
+
+def test_old_manual_save_preserves_slots_with_unknown_action_placeholders(tmp_path):
+    flow = make_flow(tmp_path)
+    state = flow.new_game(seed=42, skip_intro=True)
+    state.action_slot = 2
+    flow.saves.save(state, "slot_1")
+    resumed = make_flow(tmp_path)
+    restored = resumed.load_game("slot_1")
+    assert resumed.activity_log_today() == ["", ""]
+    result = resumed.services.activity.start(restored, "campus_walk")
+    resumed.handle_activity_result(result)
+    assert resumed.activity_log_today() == ["", "", "campus_walk"]
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_day_end_autosave_resumes_at_spawn_and_emits_day_start(tmp_path, legacy):
+    flow = make_flow(tmp_path)
+    state = flow.new_game(seed=42, skip_intro=True)
+    state.action_slot = 3
+    state.world.x, state.world.y = 40.0, 31.5
+    flow.finish_day()
+    if legacy:
+        # 老版本 day_end 的保存位置仍是前一天结束时的位置，也没有换日标记。
+        saved = flow.saves.load("autosave")
+        saved.world.x, saved.world.y = 40.0, 31.5
+        saved.pending_day_start = False
+        flow.saves.save(saved, "autosave", reason="day_end")
+        path = flow.saves.path_for("autosave")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload.pop("flow_checkpoint")
+        path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    resumed = make_flow(tmp_path)
+    starts = []
+    resumed.bus.subscribe("day.started", lambda **data: starts.append(data["day_index"]))
+    restored = resumed.load_game("autosave")
+    assert (restored.world.x, restored.world.y) == (40.0, 5.0)
+    assert restored.day_index == 1
+    assert restored.pending_day_start is False
+    assert starts == [1]
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+def test_semester_autosave_completes_day_start_after_event(tmp_path, legacy):
+    flow = make_flow(tmp_path)
+    state = flow.new_game(seed=42, skip_intro=True)
+    state.day_index, state.action_slot = 1, 3
+    state.world.x, state.world.y = 40.0, 31.5
+    flow.finish_day()
+    if legacy:
+        saved = flow.saves.load("autosave")
+        saved.pending_day_start = False
+        flow.saves.save(saved, "autosave", reason="day_end")
+        path = flow.saves.path_for("autosave")
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload.pop("flow_checkpoint")
+        path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    resumed = make_flow(tmp_path)
+    starts = []
+    resumed.bus.subscribe("day.started", lambda **data: starts.append(data["day_index"]))
+    restored = resumed.load_game("autosave")
+    assert restored.pending_event_id == "sem_1_club_fair"
+    replay_pending_event(resumed)
+
+    assert (restored.world.x, restored.world.y) == (40.0, 5.0)
+    assert restored.day_index == 2
+    assert starts == [2]
+    after_event = resumed.saves.load("autosave")
+    assert (after_event.world.x, after_event.world.y) == (40.0, 5.0)
+    assert after_event.pending_day_start is False
+    reloaded = make_flow(tmp_path)
+    repeated_starts = []
+    reloaded.bus.subscribe("day.started", lambda **data: repeated_starts.append(data["day_index"]))
+    reloaded.load_game("autosave")
+    assert repeated_starts == []
+
+
+def test_legacy_post_semester_save_resumes_at_spawn(tmp_path):
+    flow = make_flow(tmp_path)
+    state = flow.new_game(seed=42, skip_intro=True)
+    state.day_index = 2
+    state.world.x, state.world.y = 40.0, 31.5
+    state.event_log.append("sem_1_club_fair:fair_club")
+    flow.saves.save(state, "slot_1", reason="post_event")
+    path = flow.saves.path_for("slot_1")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.pop("flow_checkpoint")
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    resumed = make_flow(tmp_path)
+    starts = []
+    resumed.bus.subscribe("day.started", lambda **data: starts.append(data["day_index"]))
+    restored = resumed.load_game("slot_1")
+    assert (restored.world.x, restored.world.y) == (40.0, 5.0)
+    assert starts == [2]
+
+
+def test_day_start_survives_chained_event_autosave(tmp_path):
+    flow = make_flow(tmp_path)
+    state = flow.new_game(seed=42, skip_intro=True)
+    state.day_index, state.action_slot = 1, 3
+    state.world.x, state.world.y = 40.0, 31.5
+    flow.finish_day()
+    flow.scenes.pop()
+    flow.close_day_summary()
+    event_id = state.pending_event_id
+    result = flow.services.event.choose(state, event_id, first_enabled_choice(flow, state, event_id))
+    result.next_event_id = "rel_npc_sumo_1"
+    flow.scenes.pop()
+    flow.handle_event_result(result)
+
+    resumed = make_flow(tmp_path)
+    starts = []
+    resumed.bus.subscribe("day.started", lambda **data: starts.append(data["day_index"]))
+    restored = resumed.load_game("autosave")
+    assert restored.pending_event_id == "rel_npc_sumo_1"
+    replay_pending_event(resumed)
+    assert (restored.world.x, restored.world.y) == (40.0, 5.0)
+    assert starts == [2]
+
+
+def test_old_relationship_event_save_does_not_restart_the_day(tmp_path):
+    flow = make_flow(tmp_path)
+    state = flow.new_game(seed=42, skip_intro=True)
+    state.day_index, state.action_slot = 2, 1
+    state.world.x, state.world.y = 40.0, 31.5
+    state.event_log.append("sem_1_club_fair:fair_club")
+    flow.saves.save(state, "slot_1", reason="post_event")
+    path = flow.saves.path_for("slot_1")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.pop("flow_checkpoint")
+    path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+    resumed = make_flow(tmp_path)
+    restored = resumed.load_game("slot_1")
+    assert (restored.world.x, restored.world.y) == (40.0, 31.5)
+    assert restored.action_slot == 1
+
+
 # --------------------------------------------------------------------------- #
 # 低：链式事件、存档版本号、损坏存档的摘要回退
 # --------------------------------------------------------------------------- #

@@ -64,9 +64,11 @@ class UITransform:
     @classmethod
     def from_base(cls, base) -> "UITransform":
         # 离屏时 base.win 是 GraphicsBuffer（没有 get_properties），只能用 getXSize
+        from game.core.render_pipeline import compute_viewport
+
         w = int(base.win.get_x_size())
         h = int(base.win.get_y_size())
-        return cls(scale=w / theme.CANVAS_W, window_w=w, window_h=h)
+        return cls(scale=compute_viewport(w, h).scale, window_w=w, window_h=h)
 
     def to_aspect2d(self, x: float, y: float) -> tuple[float, float]:
         return theme.ui_px(
@@ -75,7 +77,7 @@ class UITransform:
 
     def px(self, logical_px: float) -> float:
         """逻辑像素尺寸 -> aspect2d 单位（垂直方向）。"""
-        return logical_px * self.scale / (self.window_h / 2)
+        return logical_px * self.scale / (max(1, min(self.window_w, self.window_h)) / 2)
 
 
 class UIWidget:

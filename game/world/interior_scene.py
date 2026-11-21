@@ -134,8 +134,11 @@ class InteriorScene:
                      WALL_COLOR)
             if side != "s" and self.wall_texture is not None:
                 px0, py0, px1, py1 = self._panel_edge(r, side, w, h)
-                make_wall_panel(self.root, ox + px0, oy + py0, ox + px1, oy + py1,
-                                0.0, height, self.wall_texture, self.wall_tile_m)
+                make_wall_panel(
+                    self.root, ox + px0, oy + py0, ox + px1, oy + py1,
+                    0.0, height, self.wall_texture, self.wall_tile_m,
+                    tile_v_m=WALL_HEIGHT,
+                )
             if side == "n":
                 back_face = min(back_face, oy + r.y0 - WALL_PANEL_INSET)
 

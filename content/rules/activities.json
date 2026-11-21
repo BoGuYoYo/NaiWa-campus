@@ -36,7 +36,7 @@
   {
     "id": "play_games",
     "name": "打游戏",
-    "location": "loc_clubroom",
+    "location": "loc_dorm",
     "effects": {
       "energy": -8,
       "mood": 8,

@@ -19,6 +19,7 @@ from typing import Callable, Iterable
 from panda3d.core import (
     CardMaker,
     NodePath,
+    PNMImage,
     Point2,
     TextFont,
     TextNode,
@@ -529,6 +530,7 @@ class StatBar(UIWidget):
 
     BAR_WIDTH = 100.0
     BAR_HEIGHT = 8.0
+    _UV_BOUNDS_CACHE: dict[str, tuple[float, float, float, float, int, int]] = {}
 
     def __init__(
         self,
@@ -546,6 +548,7 @@ class StatBar(UIWidget):
         self._x = x
         self._y = y
         self._registry = asset_registry
+        self._ratio = 1.0
         self.width = float(self.BAR_WIDTH if width is None else width)
         self.fill_inset = max(0.0, min(float(fill_inset), self.BAR_HEIGHT / 2.0))
         fill_width = max(0.0, self.width - self.fill_inset * 2.0)
@@ -558,21 +561,73 @@ class StatBar(UIWidget):
         self.fill = self._make_card(
             self.container, x + self.fill_inset, y + self.fill_inset,
             fill_width, fill_height, fill_color,
-            "ui_bar_fill", asset_registry,
+            "ui_bar_fill", asset_registry, ratio=1.0, inset_tex=self.fill_inset > 0.0,
         )
         super().__init__(self.container)
 
-    def _make_card(self, parent, x, y, w, h, color, asset_id=None, registry=None) -> NodePath:
+    @classmethod
+    def _visible_uv_bounds(cls, tex) -> tuple[float, float, float, float, int, int]:
+        if tex is None:
+            return (0.0, 0.0, 1.0, 1.0, 1, 1)
+        fn = tex.get_filename() if hasattr(tex, "get_filename") else None
+        key = str(fn) if fn else ""
+        if key and key in cls._UV_BOUNDS_CACHE:
+            return cls._UV_BOUNDS_CACHE[key]
+        w = max(1, int(tex.get_x_size())) if hasattr(tex, "get_x_size") else 1
+        h = max(1, int(tex.get_y_size())) if hasattr(tex, "get_y_size") else 1
+        bounds = (0.0, 0.0, 1.0, 1.0, w, h)
+        if fn and hasattr(tex, "has_filename") and tex.has_filename():
+            pnm = PNMImage()
+            if pnm.read(fn) and pnm.has_alpha():
+                pw, ph = pnm.get_x_size(), pnm.get_y_size()
+                cols = [x for x in range(pw) if any(pnm.get_alpha(x, y) > 0.0 for y in range(ph))]
+                rows = [y for y in range(ph) if any(pnm.get_alpha(x, y) > 0.0 for x in range(pw))]
+                if cols and rows:
+                    bounds = (
+                        cols[0] / pw,
+                        1.0 - (rows[-1] + 1) / ph,
+                        (cols[-1] + 1) / pw,
+                        1.0 - rows[0] / ph,
+                        pw,
+                        ph,
+                    )
+        if key:
+            cls._UV_BOUNDS_CACHE[key] = bounds
+        return bounds
+
+    def _make_card(
+        self,
+        parent,
+        x,
+        y,
+        w,
+        h,
+        color,
+        asset_id=None,
+        registry=None,
+        *,
+        ratio: float = 1.0,
+        inset_tex: bool = False,
+    ) -> NodePath:
         cm = CardMaker("statbar_piece")
         cm.set_frame(0, 1, -1, 0)
-        card = parent.attach_new_node(cm.generate())
-        card.set_color(*color)
         tex = None
         if registry is not None and asset_id is not None:
             try:
                 tex = registry.load_texture(asset_id)
             except Exception:
                 tex = None
+        if tex is not None:
+            u0, v0, u1, v1, tw, th = self._visible_uv_bounds(tex)
+            if inset_tex and (u1 - u0) * tw >= 4.0 and (v1 - v0) * th >= 4.0:
+                du = 1.0 / tw
+                dv = 1.0 / th
+                u0, u1 = u0 + du, u1 - du
+                v0, v1 = v0 + dv, v1 - dv
+            u1 = u0 + (u1 - u0) * max(0.0, min(1.0, ratio))
+            cm.set_uv_range(Point2(u0, v0), Point2(u1, v1))
+        card = parent.attach_new_node(cm.generate())
+        card.set_color(*color)
         if tex is not None:
             card.set_texture(tex)
         card.set_transparency(TransparencyAttrib.M_alpha)
@@ -583,12 +638,14 @@ class StatBar(UIWidget):
 
     def set_value(self, value: float, maximum: float = 100.0) -> None:
         ratio = 0.0 if maximum <= 0 else max(0.0, min(1.0, value / maximum))
+        self._ratio = ratio
         width = max(0.0, self.width - self.fill_inset * 2.0) * ratio
         self.fill.remove_node()
         self.fill = self._make_card(
             self.container, self._x + self.fill_inset, self._y + self.fill_inset,
             width, max(0.0, self.BAR_HEIGHT - self.fill_inset * 2.0),
             self._fill_color, "ui_bar_fill", self._registry,
+            ratio=ratio, inset_tex=self.fill_inset > 0.0,
         )
 
     def set_color(self, color) -> None:

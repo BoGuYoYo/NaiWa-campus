@@ -49,8 +49,8 @@ class MainMenu(UIWidget):
         self.enabled = {key: True for _tid, key in ITEMS}
         self.labels: list[UILabel] = []
         for i, (text_id, _key) in enumerate(ITEMS):
-            self.labels.append(UILabel(root, transform, x + 8, y + 4 + i * ITEM_HEIGHT, text_db.get_raw(text_id)))
-        self.cursor = UILabel(root, transform, x - 2, y + 4, ">", color=theme.COLOR_CURSOR)
+            self.labels.append(UILabel(root, transform, x + 18, y + 5 + i * ITEM_HEIGHT, text_db.get_raw(text_id)))
+        self.cursor = UILabel(root, transform, x + 8, y + 5, ">", color=theme.COLOR_CURSOR)
 
         self.save_manager = None
         self.handlers: dict[str, Callable[[], None]] = {}
@@ -169,7 +169,7 @@ class MainMenu(UIWidget):
         if not self.enabled[ITEMS[self.index][1]]:
             self.index = 0
         ax, ay = self.transform.to_aspect2d(
-            theme.RECTS["main_menu"][0] - 2, theme.RECTS["main_menu"][1] + 4 + self.index * ITEM_HEIGHT + 12
+            theme.RECTS["main_menu"][0] + 8, theme.RECTS["main_menu"][1] + 5 + self.index * ITEM_HEIGHT + 12
         )
         self.cursor.root.set_pos(ax, 0, ay)
 

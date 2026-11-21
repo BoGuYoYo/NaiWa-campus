@@ -77,10 +77,13 @@ class SceneManager:
     def blocks_input(self, owner: Any) -> bool:
         """InputRouter 的遮挡判断：这个绑定主人现在还能不能收到按键。
 
-        覆盖层存在时，只有最上层覆盖层自己的绑定有效 —— 否则设置界面
-        没绑定的键（例如 Space）会落到主菜单，在面板背后开新游戏。
-        基础场景总是被遮挡；同一覆盖层的多个控件之间仍按后绑定优先。
+        淡入淡出黑场期间屏蔽全部输入；覆盖层存在时，只有最上层覆盖层
+        自己的绑定有效 —— 否则设置界面没绑定的键（例如 Space）会落到
+        主菜单，在面板背后开新游戏。基础场景总是被遮挡；同一覆盖层的
+        多个控件之间仍按后绑定优先。
         """
+        if self.is_transitioning():
+            return True
         if not self.overlays:
             return False
         return owner is not self.overlays[-1][1]

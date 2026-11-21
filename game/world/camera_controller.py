@@ -84,15 +84,31 @@ def camera_position(target, z: float = 0.0):
 class CameraRig:
     """纯数学的相机跟随：死区 -> 平滑 -> 边界 -> 像素对齐。"""
 
-    def __init__(self, target=DEFAULT_TARGET, interior: bool = False):
+    def __init__(
+        self,
+        target=DEFAULT_TARGET,
+        interior: bool = False,
+        clamp_min=OUTDOOR_TARGET_MIN,
+        clamp_max=OUTDOOR_TARGET_MAX,
+    ):
+        self.clamp_min = (float(clamp_min[0]), float(clamp_min[1]))
+        self.clamp_max = (float(clamp_max[0]), float(clamp_max[1]))
         self.target = (float(target[0]), float(target[1]))
         self.interior = bool(interior)
 
     # ------------------------------------------------------------------ 场景
-    def set_outdoor(self, target=None) -> None:
+    def set_outdoor(self, target=None, clamp_min=None, clamp_max=None) -> None:
         self.interior = False
+        if clamp_min is not None:
+            self.clamp_min = (float(clamp_min[0]), float(clamp_min[1]))
+        if clamp_max is not None:
+            self.clamp_max = (float(clamp_max[0]), float(clamp_max[1]))
         if target is not None:
-            self.target = clamp_target((float(target[0]), float(target[1])))
+            self.target = clamp_target(
+                (float(target[0]), float(target[1])),
+                low=self.clamp_min,
+                high=self.clamp_max,
+            )
 
     def set_interior(self, world_center) -> None:
         """室内视野固定在房间中心（世界坐标），不跟随。"""
@@ -105,7 +121,11 @@ class CameraRig:
         if self.interior:
             return self.camera_xyz()
         desired = deadzone_desired(self.target, player_xy)
-        self.target = clamp_target(smooth(self.target, desired, dt))
+        self.target = clamp_target(
+            smooth(self.target, desired, dt),
+            low=self.clamp_min,
+            high=self.clamp_max,
+        )
         return self.camera_xyz()
 
     def camera_xyz(self):

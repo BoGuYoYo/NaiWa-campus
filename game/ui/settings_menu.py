@@ -67,9 +67,28 @@ class SettingsMenu(UIWidget):
 
         self.on_back: Callable[[], None] | None = None
         self.index = 0
+        self._snapshot: dict[str, object] = {}
+        self._capture_snapshot()
         self._refresh_values()
         super().__init__(root)
         self.hide()
+
+    def _capture_snapshot(self) -> None:
+        self._snapshot = {
+            "text_speed": getattr(self.settings, "text_speed", theme.DEFAULT_TEXT_SPEED),
+            **{key: getattr(self.settings, key, 80) for key in VOLUME_KEYS},
+        }
+
+    def _restore_snapshot(self) -> None:
+        for key, value in self._snapshot.items():
+            setattr(self.settings, key, value)
+
+    def show(self) -> None:
+        self.index = 0
+        self._capture_snapshot()
+        self._refresh_values()
+        self._move_cursor()
+        super().show()
 
     # ------------------------------------------------------------------
     def _speed(self) -> str:
@@ -116,13 +135,15 @@ class SettingsMenu(UIWidget):
                 _log.warning("设置落盘失败（%s），本次修改仅在内存生效", exc)
 
     def confirm(self) -> None:
+        self._capture_snapshot()
         self._persist()
         self.hide()
         if self.on_back:
             self.on_back()
 
     def cancel(self) -> None:
-        self._persist()
+        self._restore_snapshot()
+        self._refresh_values()
         self.hide()
         if self.on_back:
             self.on_back()

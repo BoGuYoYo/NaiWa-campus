@@ -26,10 +26,16 @@ class _FakeAssetRegistry:
         spec = _load("assets.json")
         self._colors = spec["assets"]
 
+    def has_texture(self, asset_id: str) -> bool:
+        return asset_id in self._colors or asset_id.startswith("cg_ending_")
+
     def load_texture(self, asset_id: str):
         from panda3d.core import PNMImage, Texture
 
-        color = self._colors.get(asset_id, {}).get("color", "#808080")
+        if asset_id.startswith("cg_ending_"):
+            color = "#2C3446"
+        else:
+            color = self._colors.get(asset_id, {}).get("color", "#808080")
         h = color.lstrip("#")
         image = PNMImage(8, 8)
         image.fill(
@@ -118,7 +124,7 @@ def render_all_screens(base, text_db, out_dir: str, screens: str) -> None:
     from game.ui import theme
     from game.ui.dialogue_box import DialogueBox
     from game.ui.event_scene import EventScene
-    from game.ui.graduation_scene import GraduationScene
+    from game.ui.graduation_scene import GraduationScene, PAGES
     from game.ui.hud import HUD
     from game.ui.result_panel import ResultPanel
     from game.ui.widgets import UITransform
@@ -198,6 +204,8 @@ def render_all_screens(base, text_db, out_dir: str, screens: str) -> None:
             "stats": state.stats, "relationships": state.relationships,
             "mood": state.mood, "energy": state.energy,
         })
+        for _ in range(len(PAGES) - 2):
+            graduation.on_space()
         base.graphics_engine.render_frame()
         _screenshot(base, os.path.join(out_dir, "graduation.png"))
         graduation.destroy()

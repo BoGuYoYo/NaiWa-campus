@@ -164,9 +164,13 @@ class LowResPipeline:
 
     # ------------------------------------------------------------------ #
     def align_camera(self, x: float, y: float) -> tuple[float, float]:
-        """相机目标对齐 1/24 米网格，避免像素抖动。"""
-        sx = snap_to_pixel_grid(x)
-        sy = snap_to_pixel_grid(y)
+        """相机目标对齐低分辨率缓冲的真实地面像素网格，避免像素抖动。"""
+        px_step_x = config.FILM_WIDTH_METERS / float(config.INTERNAL_WIDTH)
+        px_step_y = (
+            config.FILM_HEIGHT_METERS / float(config.INTERNAL_HEIGHT)
+        ) / max(1e-6, abs(_sin(config.CAMERA_TILT_DEGREES)))
+        sx = snap_to_pixel_grid(x, grid=px_step_x)
+        sy = snap_to_pixel_grid(y, grid=px_step_y)
         self.camera_target = (sx, sy)
         if self.camera_np is None:
             return (sx, sy)

@@ -1,8 +1,7 @@
 # 五个结局 CG · AI 生图提示词
 
-> 结局页当前的排版（`game/ui/graduation_scene.py` 第 3 页）只有标题 + 三行正文，
-> 没有插图位。要挂 CG 的话按这份文档出图即可：
-> **整页 480×270**，下半部留一条暗色带压字，CG 主体放在上半部。
+> 结局页第 3 页已接入五张结局 CG。本文保留画面设定与提示词，供后续重绘或替换素材时参考。
+> CG 按 **480×270 整页**展示，底部由游戏界面加暗色文字带。
 
 ---
 
@@ -201,14 +200,21 @@ logo, UI 界面, 对话框, 对话框气泡, 头像框, 字幕条, 过饱和, �
 
 ---
 
-## 6. 接进游戏要做什么（A 侧，图到了我来）
+## 6. 游戏接入状态
 
-1. 文件放 `assets/cg/ending_<id>.png`（480×270），manifest 登记 `cg_ending_<id>`，
-   许可走 `LIC-0216`。
-2. `GraduationScene` 第 3 页（`page == "ending"`）加一层：先画 CG，再在底部
-   `480×86` 区域盖 `#1B1F2A`（alpha 0.82）暗带，标题与正文挪进暗带里
-   （标题 y≈196、正文 y≈216，正文折行宽度按 460 重算）。
-3. CG 缺失时退回现在的纯文字版，不报错。
+五种结局 CG 已接入 `GraduationScene` 第 3 页。资源放在 `assets/art/cg/ending_<id>.png`，
+尺寸为 480×270；manifest 使用 `cg_ending_<id>`，许可登记为 `LIC-0216`。
+
+| 结局 | 规则 ID | 资源 ID |
+| --- | --- | --- |
+| 普普通通毕业 | `ending_mediocre` | `cg_ending_mediocre` |
+| 技术大牛 | `ending_tech_master` | `cg_ending_tech_master` |
+| 延毕 | `ending_delayed` | `cg_ending_delayed` |
+| 考研 | `ending_kaoyan` | `cg_ending_kaoyan` |
+| 恋爱 | `ending_romance_nailong` | `cg_ending_romance_nailong` |
+
+界面在图片底部 86px 区域叠加 `#1B1F2A` 暗带（alpha 0.92），标题从 y=190 起排、正文从
+y=210 起排。CG 缺失或加载失败时仍显示原有纯文字结局页。
 
 ---
 

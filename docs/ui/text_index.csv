@@ -154,6 +154,7 @@ ui.result.title,2,结果面板
 ui.result.event_follow,8,结果面板
 ui.day_summary.title,11,日结算
 ui.day_summary.actions_title,9,日结算
+ui.day_summary.previous_unknown,13,日结算
 ui.day_summary.energy_recovered,14,日结算
 ui.day_summary.continue,10,日结算
 ui.day_summary.semester_event,13,日结算
@@ -388,6 +389,7 @@ err.save_version,7,错误提示
 err.save_corrupt,5,错误提示
 err.save_io,6,错误提示
 err.slot_empty,6,错误提示
+ui.save.day,9,存读档
 ui.save.graduated,3,存读档
 evt.story_opening.body.1,32,对话框
 evt.story_opening.body.2,43,对话框

@@ -98,7 +98,7 @@ ACTIVITIES: list[dict[str, Any]] = [
     {
         "id": "play_games",
         "name": "打游戏",
-        "location": "loc_clubroom",
+        "location": "loc_dorm",
         "effects": {"energy": -8, "mood": 8, "interest": 3, "rel.npc_xiaoyou": 2},
         "counter": "games_count",
         "daily_limit": None,

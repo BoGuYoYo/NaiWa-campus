@@ -389,5 +389,6 @@
   "err.save_corrupt": "存档已损坏",
   "err.save_io": "存档读写失败",
   "err.slot_empty": "存档位是空的",
+  "ui.save.day": "第 {day} 天",
   "ui.save.graduated": "已毕业"
 }

@@ -486,10 +486,17 @@ class GameFlow:
 
     def _resume_graduation(self, state: GameState) -> None:
         """读档落在一份已毕业的存档上：回到毕业界面，而不是不能操作的校园。"""
-        ending_id = state.ending_id or "ending_mediocre"
+        evaluated = self.services.ending.evaluate(state)
+        if not isinstance(evaluated, EndingResult):
+            evaluated = EndingResult(ending_id=str(evaluated))
+        ending_id = state.ending_id or evaluated.ending_id or "ending_mediocre"
+        if evaluated.ending_id == ending_id:
+            ending = evaluated
+        else:
+            ending = EndingResult(ending_id=ending_id, highlights=list(evaluated.highlights))
         state.phase = "graduation"
         state.ending_id = ending_id
-        self._show_graduation(state, EndingResult(ending_id=ending_id))
+        self._show_graduation(state, ending)
 
     def _repair_world_position(self, state: GameState) -> None:
         """坐标落在阻挡体里就退回该地点的安全出生点。
@@ -684,9 +691,9 @@ class GameFlow:
             self._pending_semester_event = result
             return result
         if result.graduated:
-            self._handle_graduation(state)
+            self._pending_graduation = True
             return result
-        self._begin_next_day(state)
+        self._pending_day_start = True
         return result
 
     def close_day_summary(self) -> None:

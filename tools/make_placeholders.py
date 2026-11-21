@@ -329,6 +329,9 @@ CG_ACTIVITIES = (
     "attend_class", "library_study", "play_games", "create_work", "join_club",
     "exercise", "eat_canteen", "rest_dorm", "campus_walk",
 )
+ENDING_CG_IDS = (
+    "mediocre", "tech_master", "delayed", "kaoyan", "romance_nailong",
+)
 CG_THEME = {
     "attend_class": ("bg_mid", "blue_light"),
     "library_study": ("bg_soft", "gold_light"),
@@ -619,6 +622,9 @@ def asset_specs() -> list[dict]:
     for activity in CG_ACTIVITIES:
         add(f"cg_naiwan_{activity}", "image", f"art/cg/naiwan_{activity}.png", "LIC-0006",
             tags=list(FINAL_GENERATED_TAGS))
+    for ending_id in ENDING_CG_IDS:
+        add(f"cg_ending_{ending_id}", "image", f"art/cg/ending_{ending_id}.png", "LIC-0216",
+            tags=[*FINAL_GENERATED_TAGS, "ending_cg"])
 
     for npc in ("npc_sumo", "npc_chenlang", "npc_xiaoyou"):
         short = npc.split("_")[1]
@@ -700,6 +706,15 @@ LICENSE_ROWS = [
         "notes": "由 tools/import_generated_art.py 落位：活动插图 2752×1536 居中裁 16:9 后 "
                  "面积缩放到 160×90、自适应量化 64 色；表情 1024×1024 抠灰底、按肩宽归一裁成"
                  "半身像后缩到 96×96、量化到项目 32 色、透明像素 RGB 置 0",
+    },
+    {
+        "license_id": "LIC-0216", "asset_ids": "ui_menu_bg;cg_ending_*",
+        "author": "用户提供的 AI 生成游戏封面图与结局 CG",
+        "source_url": "素材/游戏封面.jfif；用户任务附件中的五张 Gemini 生成结局图",
+        "license": "用户提供的 AI 生成素材（生成工具与条款版本见素材来源说明）",
+        "commercial_ok": "yes", "modified": "yes",
+        "date_added": "2026-11-18",
+        "notes": "主菜单背景按 16:9 居中裁切到 480×270；五张结局 CG 分别对应普通毕业、技术大牛、延毕、考研、恋爱，居中裁切为 16:9 后缩到 480×270，使用项目像素画规格落位。",
     },
     {
         "license_id": "LIC-0005", "asset_ids": "portrait_naiwan_*;cg_naiwan_*",

@@ -114,6 +114,7 @@ class AssetRegistry:
         self._texture_cache: dict[str, Any] = {}
         self._model_cache: dict[str, Any] = {}
         self._sound_cache: dict[str, Any] = {}
+        self._music_cache: dict[str, Any] = {}
         self._font_cache: dict[str, Any] = {}
         self._placeholder_texture = None
         self._gray_cube = None
@@ -460,7 +461,29 @@ class AssetRegistry:
         return sound
 
     def load_music(self, asset_id: str):
-        return self.load_sound(asset_id)
+        entry = self._entry_or_missing(asset_id, ("music", "sound"))
+        manager = None
+        if self.loader is not None:
+            manager = getattr(self.loader, "loader", None)
+            if manager is None and (hasattr(self.loader, "loadMusic") or hasattr(self.loader, "loadSfx")):
+                manager = self.loader
+        if entry is None or manager is None:
+            return None
+        if asset_id in self._music_cache:
+            return self._music_cache[asset_id]
+        loader_fn = getattr(manager, "loadMusic", None) or getattr(manager, "loadSfx", None)
+        if not callable(loader_fn):
+            return None
+        try:
+            music = loader_fn(self._filename(self.root / "assets" / entry.path))
+        except Exception as exc:
+            self.log.warning("[ASSET] loadMusic %s failed: %s", asset_id, exc)
+            music = None
+        if music is None:
+            self._mark_missing(asset_id, "engine load failed")
+            return None
+        self._music_cache[asset_id] = music
+        return music
 
     def load_font(self, asset_id: str):
         entry = self._entry_or_missing(asset_id, ("font",))

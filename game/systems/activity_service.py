@@ -100,6 +100,11 @@ class ActivityService:
             state.flags.add(late_rule["flag"])
             added_flags.append(late_rule["flag"])
 
+        for flag in activity.get("add_flags", []) or []:
+            if flag not in state.flags:
+                state.flags.add(flag)
+                added_flags.append(flag)
+
         # 4) 消耗时段
         state.action_slot += 1
 

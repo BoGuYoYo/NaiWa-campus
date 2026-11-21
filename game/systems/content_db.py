@@ -17,6 +17,7 @@ import re
 from pathlib import Path
 from typing import Any, NoReturn
 
+from game import config
 from game.core.state import STAT_KEYS
 
 ID_RE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -145,11 +146,15 @@ def _check_rows(path: Path, rows: Any) -> list[dict[str, Any]]:
     return rows
 
 
+def default_rules_dir() -> Path:
+    return config.content_path("rules")
+
+
 class ContentDB:
     """五个规则文件的只读索引。"""
 
     def __init__(self, rules_dir: Path | None = None) -> None:
-        self.rules_dir = Path(rules_dir) if rules_dir else RULES_DIR
+        self.rules_dir = Path(rules_dir) if rules_dir else default_rules_dir()
         self._load()
 
     # ---- 加载 -----------------------------------------------------------
@@ -361,8 +366,8 @@ class ContentDB:
                     value = getattr(spec_data, name)
                     if isinstance(value, str):
                         produced.add(value)
-            # 活动表里的"计数器达标 / 熬夜"旗标（模拟器与正式流程都用同一份表）
-            for act in getattr(spec_data, "ACTIVITIES", ()) or ():
+            # 活动表里的"计数器达标 / 熬夜"旗标以实际加载的规则文件为准
+            for act in self.activities:
                 for key in ("flag_when_counter", "late_flag_on_daily_count"):
                     rule = act.get(key)
                     if isinstance(rule, dict) and rule.get("flag"):
@@ -414,7 +419,7 @@ def get_db(rules_dir: str | Path | None = None) -> ContentDB:
     规则目录内任一 JSON 的 mtime 变化时自动重建，开发期改内容无需重启进程；
     未变化时返回同一实例（避免 3000 局模拟反复解析）。
     """
-    directory = Path(rules_dir).resolve() if rules_dir else RULES_DIR
+    directory = (Path(rules_dir) if rules_dir else default_rules_dir()).resolve()
     key = str(directory)
     stamp = _content_stamp(directory)
     cached = _CACHE.get(key)

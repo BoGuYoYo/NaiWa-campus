@@ -27,7 +27,19 @@ Z_DEBUG = 0.10
 class DebugDraw:
     """F1~F6 调试绘制。所有节点挂在独立的 DebugDraw 根下，不影响正式场景。"""
 
-    def __init__(self, map_data: MapData, parent, *, camera=None, player=None, state=None, goto=None):
+    def __init__(
+        self,
+        map_data: MapData,
+        parent,
+        *,
+        camera=None,
+        player=None,
+        state=None,
+        goto=None,
+        colliders=None,
+        ia_index: int = 0,
+        on_ia_index=None,
+    ):
         self.map_data = map_data
         self.root = parent.attachNewNode("DebugDraw")
         self.collision_root = self.root.attachNewNode("collision")
@@ -37,12 +49,14 @@ class DebugDraw:
         self.player = player
         self.state = state
         self._goto = goto
+        self._colliders = colliders
         self._scene = CAMPUS_SCENE
         self._collision_built = False
         self._interactables_built = False
         self._text = None
         self._ia_ids = [ia.id for ia in map_data.interactables]
-        self._ia_index = 0
+        self._ia_index = int(ia_index) % len(self._ia_ids) if self._ia_ids else 0
+        self._on_ia_index = on_ia_index
         self.collision_root.hide()
         self.interactable_root.hide()
         self.teleport_root.hide()
@@ -69,6 +83,13 @@ class DebugDraw:
     # ------------------------------------------------------------------ 构建
     def _build_collision(self) -> None:
         if self._collision_built:
+            return
+        if self._colliders is not None:
+            rects = self._colliders() if callable(self._colliders) else self._colliders
+            for r in rects:
+                make_rect_lines(self.collision_root, r.x0, r.y0,
+                                r.x1, r.y1, Z_DEBUG, COLLISION_COLOR)
+            self._collision_built = True
             return
         # 室内的阻挡矩形是房间本地坐标：不加上房间原点，线框会整体画到房间外面
         # （F1 在室内"看着不像碰撞体"就是这个原因）。
@@ -120,9 +141,20 @@ class DebugDraw:
             )
             taskMgr.add(self._status_task, "debug_status")
         else:
+            self._clear_status()
+
+    def _clear_status(self) -> None:
+        if self._text is not None:
             self._text.destroy()
             self._text = None
-            taskMgr.remove("debug_status")
+        mgr = globals().get("taskMgr") or __import__("builtins").__dict__.get("taskMgr")
+        if mgr is not None:
+            mgr.remove("debug_status")
+
+    def destroy(self) -> None:
+        self._clear_status()
+        if self.root is not None and not self.root.isEmpty():
+            self.root.removeNode()
 
     def status_lines(self) -> str:
         if self.state is not None and self.player is not None:
@@ -152,6 +184,8 @@ class DebugDraw:
     def teleport_next_interactable(self) -> str:
         ia_id = self._ia_ids[self._ia_index % len(self._ia_ids)]
         self._ia_index = (self._ia_index + 1) % len(self._ia_ids)
+        if callable(self._on_ia_index):
+            self._on_ia_index(self._ia_index)
         ia = self.map_data.interactable(ia_id)
         x, y = self.map_data.to_world(ia)
         if self._goto is not None:

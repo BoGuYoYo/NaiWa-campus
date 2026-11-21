@@ -2086,6 +2086,61 @@
           270
         ]
       }
+    },
+    {
+      "id": "cg_ending_mediocre",
+      "type": "image",
+      "path": "art/cg/ending_mediocre.png",
+      "license_id": "LIC-0216",
+      "tags": [
+        "final",
+        "generated_from_user_art",
+        "ending_cg"
+      ]
+    },
+    {
+      "id": "cg_ending_tech_master",
+      "type": "image",
+      "path": "art/cg/ending_tech_master.png",
+      "license_id": "LIC-0216",
+      "tags": [
+        "final",
+        "generated_from_user_art",
+        "ending_cg"
+      ]
+    },
+    {
+      "id": "cg_ending_delayed",
+      "type": "image",
+      "path": "art/cg/ending_delayed.png",
+      "license_id": "LIC-0216",
+      "tags": [
+        "final",
+        "generated_from_user_art",
+        "ending_cg"
+      ]
+    },
+    {
+      "id": "cg_ending_kaoyan",
+      "type": "image",
+      "path": "art/cg/ending_kaoyan.png",
+      "license_id": "LIC-0216",
+      "tags": [
+        "final",
+        "generated_from_user_art",
+        "ending_cg"
+      ]
+    },
+    {
+      "id": "cg_ending_romance_nailong",
+      "type": "image",
+      "path": "art/cg/ending_romance_nailong.png",
+      "license_id": "LIC-0216",
+      "tags": [
+        "final",
+        "generated_from_user_art",
+        "ending_cg"
+      ]
     }
   ]
 }

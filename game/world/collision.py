@@ -54,14 +54,16 @@ def move_and_collide(pos, delta, rects: Sequence[Rect], half: float = PLAYER_HAL
     inside = {id(r) for r in rects if overlap(pos, half, r)}
     active = [r for r in rects if id(r) not in inside]
     for _ in range(steps):
-        pos.x += step_x
-        for r in active:
-            if overlap(pos, half, r):
-                pos.x = r.x0 - half - EPS if delta.x > 0 else r.x1 + half + EPS
-        pos.y += step_y
-        for r in active:
-            if overlap(pos, half, r):
-                pos.y = r.y0 - half - EPS if delta.y > 0 else r.y1 + half + EPS
+        if step_x != 0.0:
+            pos.x += step_x
+            for r in active:
+                if overlap(pos, half, r):
+                    pos.x = r.x0 - half - EPS if delta.x > 0 else r.x1 + half + EPS
+        if step_y != 0.0:
+            pos.y += step_y
+            for r in active:
+                if overlap(pos, half, r):
+                    pos.y = r.y0 - half - EPS if delta.y > 0 else r.y1 + half + EPS
     return pos
 
 

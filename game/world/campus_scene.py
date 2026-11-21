@@ -181,10 +181,13 @@ def make_wall_panel(
     texture,
     tile_m: float,
     name: str = "wall_panel",
+    *,
+    tile_v_m: float | None = None,
 ) -> NodePath:
     """竖直墙面（一张四边形）：(x0,y0)-(x1,y1) 是底边，沿 z 立起 z0..z1。
 
-    墙面材质自带踢脚线/墙裙，v 方向铺满整段高度一次、u 方向每 tile_m 米重复一次。
+    墙面材质自带踢脚线/墙裙，v 方向按 ``tile_v_m``（默认整段高度）映射、
+    u 方向每 tile_m 米重复一次。剖切后的北墙传入标准房间高度可避免贴图纵向压扁。
     与 `make_box` 的区别：这里只画"室内能看见的那一面"，墙体本身另用纯色方块，
     于是房间读起来是"被剖开的娃娃屋"，不会因为墙顶/外墙也贴材质而糊成一团。
     """
@@ -192,6 +195,7 @@ def make_wall_panel(
 
     length = max(1e-6, math.hypot(x1 - x0, y1 - y0))
     height = max(1e-6, z1 - z0)
+    v_scale = max(1e-6, float(tile_v_m)) if tile_v_m is not None else height
     nx, ny = -(y1 - y0) / length, (x1 - x0) / length
     fmt = GeomVertexFormat.getV3n3c4t2()
     vdata = GeomVertexData(name, fmt, Geom.UHStatic)
@@ -209,7 +213,7 @@ def make_wall_panel(
         vw.addData3(px, py, pz)
         nw.addData3(nx, ny, 0.0)
         cw.addData4(1.0, 1.0, 1.0, 1.0)
-        tw.addData2(u / max(1e-6, tile_m), (pz - z0) / height)
+        tw.addData2(u / max(1e-6, tile_m), (pz - z0) / v_scale)
     tris = GeomTriangles(Geom.UHStatic)
     tris.addVertices(0, 1, 2)
     tris.addVertices(0, 2, 3)
@@ -361,6 +365,7 @@ def make_building_card(
     *,
     position=None,
     width: float | None = None,
+    height: float | None = None,
 ) -> NodePath:
     """把三视图裁出的正面立面作为相机可读的建筑卡片。
 
@@ -385,9 +390,9 @@ def make_building_card(
     heading = 0.0
 
     ratio = texture.getYSize() / max(1, texture.getXSize())
-    height = width * ratio
+    card_height = float(height) if height is not None else width * ratio
     cm = CardMaker(name)
-    cm.set_frame(-width / 2.0, width / 2.0, 0.0, height)
+    cm.set_frame(-width / 2.0, width / 2.0, 0.0, card_height)
     card = parent.attach_new_node(cm.generate())
     card.set_texture(texture)
     card.set_transparency(TransparencyAttrib.M_binary)
@@ -405,7 +410,7 @@ def make_door_mat(parent: NodePath, dx: float, dy: float, color, facing: str = "
     处在同一侧，玩家走过去看到的就是「门口那块垫子」。
     """
     facing = (facing or "s").lower()
-    half_w, depth, gap = 1.2, 1.0, 0.02
+    half_w, depth, gap = 0.9, 0.7, 0.04
     if facing in ("e", "w"):
         x0, x1 = (dx + gap, dx + gap + depth) if facing == "e" else (dx - gap - depth, dx - gap)
         y0, y1 = dy - half_w, dy + half_w
@@ -506,6 +511,7 @@ class CampusScene:
             texture = side_texture or front_texture
             prefix = "side" if side_texture is not None else "front"
             visual = self.building_visuals.get(building.id, {})
+            card_height = self._cleared_card_height(building, texture, visual)
             make_building_card(
                 self.root,
                 building.rect,
@@ -514,9 +520,39 @@ class CampusScene:
                 facing=building.door_facing,
                 position=visual.get("position"),
                 width=visual.get("width"),
+                height=card_height,
             )
         for prop, (texture, height) in art_props:
             make_prop_card(self.root, prop.rect, texture, height, name=f"prop_{prop.id}")
+
+    def _cleared_card_height(self, building, texture, visual: dict) -> float | None:
+        """Clamp billboard height when an elevation would project onto a northern building's entrance."""
+        from game import config
+
+        r = building.rect
+        width = max(1.0, float(visual.get("width") or (r.x1 - r.x0)))
+        ratio = texture.getYSize() / max(1, texture.getXSize())
+        natural_height = width * ratio
+        pos = visual.get("position")
+        base_x = float(pos[0]) if pos is not None else (r.x0 + r.x1) / 2.0
+        base_y = float(pos[1]) if pos is not None else r.y0
+        x0, x1 = base_x - width / 2.0, base_x + width / 2.0
+        cot = 1.0 / max(1e-6, math.tan(math.radians(abs(config.CAMERA_TILT_DEGREES))))
+        max_reach_y = None
+        for other in self.map_data.buildings:
+            if other.id == building.id or other.rect.y0 <= base_y:
+                continue
+            if other.rect.x0 >= x1 or other.rect.x1 <= x0:
+                continue
+            trigger_y = min(other.rect.y0, other.outside_trigger[1])
+            safe_reach = max(r.y1, trigger_y - 2.5)
+            max_reach_y = safe_reach if max_reach_y is None else min(max_reach_y, safe_reach)
+        if max_reach_y is None:
+            return None
+        max_height = max(1.0, (max_reach_y - base_y) / cot)
+        if natural_height <= max_height:
+            return None
+        return max(max_height, float(visual.get("height") or max_height))
 
     def destroy(self) -> None:
         self.root.removeNode()

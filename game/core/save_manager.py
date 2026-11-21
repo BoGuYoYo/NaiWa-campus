@@ -301,6 +301,22 @@ class SaveManager:
                 result.append(info)
         return result
 
+    def slot_status(self, slot: str) -> str:
+        """返回槽位可用状态：ok / empty / incompatible / corrupt（以可读列表一致为准）。"""
+        self._validate_slot(slot)
+        if self.peek(slot) is not None:
+            return "ok"
+        target = self.path_for(slot)
+        bak = self.bak_path_for(slot)
+        existing = [path for path in (target, bak) if path.exists()]
+        if not existing:
+            return "empty"
+        for candidate in existing:
+            raw = self._read_summary_payload(candidate)
+            if raw is not None and not self._version_supported(raw):
+                return "incompatible"
+        return "corrupt"
+
     def delete(self, slot: str) -> None:
         path = self.path_for(slot)
         bak = self.bak_path_for(slot)

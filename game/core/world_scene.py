@@ -268,8 +268,16 @@ class WorldSceneBase:
         try:
             from game.world.debug_draw import DebugDraw
 
+            scene_colliders = getattr(self.scene, "colliders_world", None)
             debug = DebugDraw(
-                self.md, self.root, player=self.player, state=self._state, goto=self._debug_goto
+                self.md,
+                self.root,
+                player=self.player,
+                state=self._state,
+                goto=self._debug_goto,
+                colliders=scene_colliders if callable(scene_colliders) else None,
+                ia_index=getattr(self.app, "_debug_ia_index", 0),
+                on_ia_index=lambda idx: setattr(self.app, "_debug_ia_index", idx),
             )
             debug.set_scene(self.scene_id)
             debug.bind(self.app)
@@ -289,6 +297,12 @@ class WorldSceneBase:
         if not scene or scene == self.scene_id:
             if self.player is not None:
                 self.player.teleport(x, y, facing)
+            self._last_player_position = (x, y)
+            if self.tracker is not None:
+                self.tracker.reset()
+            self._apply_scene_camera()
+            if hasattr(self, "_refresh_prompt"):
+                self._refresh_prompt(force=True)
             return
         if scene == "campus":
             self.app.scenes.change(
@@ -310,7 +324,12 @@ class WorldSceneBase:
             self.tutorial_overlay = None
         self.tutorial = None
         self._last_player_position = None
-        self.debug = None
+        if self.debug is not None:
+            self.app._debug_ia_index = getattr(self.debug, "_ia_index", 0)
+            destroy = getattr(self.debug, "destroy", None)
+            if callable(destroy):
+                destroy()
+            self.debug = None
         for widget in (self.hud, self.prompt):
             if widget is not None:
                 widget.destroy()
@@ -557,7 +576,7 @@ class CampusSceneAdapter(WorldSceneBase):
         ("prop_plaza_bench", "campus_texture_prop_bench_plaza", 1.17),
         ("prop_fountain", "campus_texture_prop_fountain", 4.33),
         ("prop_flowerbed", "campus_texture_prop_flowerbed", 1.92),
-        ("prop_stele", "campus_texture_prop_stele", 1.75),
+        ("prop_stele", "campus_texture_prop_stele", 2.58),
         ("prop_kiosk", "campus_texture_prop_kiosk", 2.79),
     )
 
@@ -650,8 +669,8 @@ class CampusSceneAdapter(WorldSceneBase):
             return self.md.outdoor_npc_marks
         return ()
 
-    def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:
-        """按 A 的渲染管线 film 尺寸钳制镜头目标，保证画面不露出地图外。"""
+    def _clamp_bounds(self) -> tuple[tuple[float, float], tuple[float, float]]:
+        """按 A 的渲染管线 film 尺寸计算室外镜头 target 边界，保证不露出地图外。"""
         import math
 
         half_w = config.FILM_WIDTH_METERS / 2.0
@@ -659,19 +678,31 @@ class CampusSceneAdapter(WorldSceneBase):
             0.2, math.sin(math.radians(abs(config.CAMERA_TILT_DEGREES)))
         )
         bounds = self.md.bounds
-        x = min(max(target[0], bounds.x0 + half_w), bounds.x1 - half_w)
-        y = min(max(target[1], bounds.y0 + half_d), bounds.y1 - half_d)
-        return (x, y)
+        return (
+            (bounds.x0 + half_w, bounds.y0 + half_d),
+            (bounds.x1 - half_w, bounds.y1 - half_d),
+        )
+
+    def _clamp(self, target: tuple[float, float]) -> tuple[float, float]:
+        low, high = self._clamp_bounds()
+        return (
+            min(max(target[0], low[0]), high[0]),
+            min(max(target[1], low[1]), high[1]),
+        )
 
     def _apply_scene_camera(self) -> None:
         x, y = self.player.motion.x, self.player.motion.y
-        self.rig.set_outdoor((x, y))
-        self.app.pipeline.align_camera(*self._clamp(self.rig.target))
+        low, high = self._clamp_bounds()
+        self.rig.set_outdoor((x, y), clamp_min=low, clamp_max=high)
+        self.app.pipeline.align_camera(*self.rig.target)
 
     def _update_scene_camera(self, dt: float, force: bool) -> None:
         x, y = self.player.motion.x, self.player.motion.y
+        low, high = self._clamp_bounds()
+        self.rig.clamp_min = low
+        self.rig.clamp_max = high
         self.rig.update((x, y), 1.0 if force else dt)
-        self.app.pipeline.align_camera(*self._clamp(self.rig.target))
+        self.app.pipeline.align_camera(*self.rig.target)
 
 
 class InteriorSceneAdapter(WorldSceneBase):
@@ -985,9 +1016,31 @@ class EventSceneAdapter(WidgetSceneBase):
     scene_id = "EventScene"
 
     def on_enter(self, **kwargs: Any) -> None:
+        self._restore_campus_music = False
         super().on_enter(**kwargs)
         self.widget.on_choose = self._choose
         self.widget.on_finished = self._finished
+
+    def on_exit(self) -> None:
+        restore = getattr(self, "_restore_campus_music", False)
+        self._restore_campus_music = False
+        super().on_exit()
+        if restore:
+            self._maybe_restore_campus_music()
+
+    def _maybe_restore_campus_music(self) -> None:
+        scenes = getattr(self.app, "scenes", None)
+        if scenes is None:
+            return
+        if getattr(scenes, "base_id", None) not in ("CampusScene", "InteriorScene"):
+            return
+        if getattr(scenes, "is_transitioning", lambda: False)():
+            return
+        if any(sid == "EventScene" for sid, _ in getattr(scenes, "overlays", ())):
+            return
+        audio = getattr(self.app, "audio", None)
+        if audio is not None and callable(getattr(audio, "play_music", None)):
+            audio.play_music("bgm_campus_day")
 
     def apply(self, event_id: str | None = None, text_id: str | None = None,
               semester: bool = False, story: bool = False, **kwargs: Any) -> None:
@@ -1003,6 +1056,11 @@ class EventSceneAdapter(WidgetSceneBase):
             self._inspect_only = True
             return
         self._inspect_only = False
+        audio = getattr(self.app, "audio", None)
+        if audio is not None and callable(getattr(audio, "play_music", None)):
+            base_id = getattr(getattr(self.app, "scenes", None), "base_id", None)
+            self._restore_campus_music = base_id in ("CampusScene", "InteriorScene")
+            audio.play_music("bgm_event")
         self._event_id = event_id
         view = self._build_view(event_id or "")
         self.widget.load_event(view)
@@ -1087,10 +1145,16 @@ class EventSceneAdapter(WidgetSceneBase):
         # A page-only/inspect event has no result to commit. In particular, do not
         # manufacture choice_id="none", which would look like a real settlement.
         result = getattr(self, "_pending_result", None)
+        restore = getattr(self, "_restore_campus_music", False)
+        self._restore_campus_music = False
         self.app.scenes.pop()
         if getattr(self, "_inspect_only", False) or result is None:
+            if restore:
+                self._maybe_restore_campus_music()
             return
         self.app.flow.handle_event_result(result)
+        if restore:
+            self._maybe_restore_campus_music()
 
 
 class DaySummarySceneAdapter(WidgetSceneBase):
@@ -1244,6 +1308,7 @@ class SettingsMenuSceneAdapter(WidgetSceneBase):
         self._apply_audio_settings()
 
     def _back(self) -> None:
+        self._apply_audio_settings()
         self.app.scenes.pop()
 
 
@@ -1267,6 +1332,7 @@ class SaveMenuSceneAdapter(WidgetSceneBase):
         self.widget.open(
             mode, self.app.saves,
             state_provider=lambda: self.app.flow.state,
+            save_handler=lambda slot: self.app.flow.request_save(slot, manual=True),
         )
 
     def bind_input(self) -> None:

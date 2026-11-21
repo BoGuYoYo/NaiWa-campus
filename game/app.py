@@ -62,7 +62,9 @@ def apply_prc(options: config.Options, settings: config.Settings) -> None:
     """ShowBase 实例化前写入 PRC，窗口尺寸与离屏模式都在这里决定。"""
     from panda3d.core import loadPrcFileData
 
-    width, height = options.windowed
+    width, height = (
+        options.windowed if getattr(options, "windowed_explicit", False) else settings.window_size
+    )
     loadPrcFileData("", f"win-size {width} {height}")
     loadPrcFileData("", "window-title 奶娃：大学四年")
     loadPrcFileData("", "sync-video false")
@@ -167,7 +169,11 @@ class NaiwaApp(ShowBase):
         if not hasattr(self.win, "getProperties"):
             return
         props = self.win.getProperties()
-        width, height = self.settings.window_size
+        width, height = (
+            self.options.windowed
+            if getattr(self.options, "windowed_explicit", False)
+            else self.settings.window_size
+        )
         if (props.getXSize(), props.getYSize()) == (width, height):
             return
         from panda3d.core import WindowProperties
@@ -208,7 +214,7 @@ class NaiwaApp(ShowBase):
         card = self.render2d.attachNewNode(maker.generate())
         card.setTransparency(TransparencyAttrib.MAlpha)
         card.setColorScale(0, 0, 0, 0)
-        card.setBin("fixed", 100)
+        card.setBin("gui-popup", 100)
         card.setDepthTest(False)
         card.setDepthWrite(False)
         card.hide()

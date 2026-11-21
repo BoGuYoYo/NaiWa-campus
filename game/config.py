@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 APP_NAME = "NaiwaCampus"
-GAME_VERSION = "0.1.5"
+GAME_VERSION = "0.1.6"
 SAVE_VERSION = 2
 
 # 内部画布与像素密度：全项目唯一来源，任何模块都必须从这里取。
@@ -221,6 +221,7 @@ class Options:
     load: str | None = None
     skip_intro: bool = False
     windowed: tuple[int, int] = DEFAULT_WINDOW_SIZE
+    windowed_explicit: bool = False
     offscreen: bool = False
     autoplay: bool = False
     frames: int = 6
@@ -250,7 +251,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def parse_args(argv: list[str] | None = None) -> Options:
     namespace = build_parser().parse_args(argv)
-    window = tuple(namespace.windowed) if namespace.windowed else DEFAULT_WINDOW_SIZE
+    window_explicit = namespace.windowed is not None
+    window = tuple(namespace.windowed) if window_explicit else DEFAULT_WINDOW_SIZE
     if window not in ALLOWED_WINDOW_SIZES:
         window = DEFAULT_WINDOW_SIZE
     return Options(
@@ -262,6 +264,7 @@ def parse_args(argv: list[str] | None = None) -> Options:
         load=namespace.load,
         skip_intro=namespace.skip_intro,
         windowed=window,
+        windowed_explicit=window_explicit,
         offscreen=namespace.offscreen,
         autoplay=namespace.autoplay,
         frames=max(1, namespace.frames),

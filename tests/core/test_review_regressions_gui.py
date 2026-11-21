@@ -88,9 +88,9 @@ def test_loaded_actions_summary_and_no_stale_interaction(app):
         assert [line.get_text() for line in rows if line.visible] == [
             "1. 校园闲逛", "2. 校园闲逛", "3. 校园闲逛",
         ]
-        assert (state.world.x, state.world.y) == (40.0, 5.0)
         now[0] += 1.0
         app.input.dispatch("space")
+        assert (state.world.x, state.world.y) == (40.0, 5.0)
         app.input.dispatch("e")  # 同一帧关面板并交互，不能使用广场的旧目标
         assert app.scenes.top_overlay_id is None
         assert state.action_slot == 0
@@ -157,6 +157,46 @@ def test_ui_viewport_and_fade_cover_existing_window_after_resize(app):
         app._update_fade()
         app.adjustWindowAspectRatio(1280 / 600)
         app._on_window_event(app.win)
+
+
+@pytest.mark.parametrize("ending_id", [
+    "ending_mediocre",
+    "ending_tech_master",
+    "ending_delayed",
+    "ending_kaoyan",
+    "ending_romance_nailong",
+])
+def test_graduation_shows_the_matching_ending_cg(app, ending_id):
+    widget = GraduationScene(app.ui_root, app.ui_transform, app.text, app.registry)
+    try:
+        widget.open(EndingResult(ending_id=ending_id))
+        widget.on_space()
+        widget.on_space()
+
+        asset_id = f"cg_{ending_id}"
+        assert app.registry.has_texture(asset_id)
+        assert not widget.ending_cg.is_hidden()
+        assert not widget.ending_cg_scrim.is_hidden()
+        assert widget.panel.is_shown() is False
+        assert widget.ending_title.get_text() == app.text.get(f"ending.{ending_id}.title")
+    finally:
+        widget.destroy()
+
+
+def test_graduation_falls_back_to_text_when_ending_cg_is_unavailable(app):
+    widget = GraduationScene(app.ui_root, app.ui_transform, app.text)
+    try:
+        widget.open(EndingResult(ending_id="ending_mediocre"))
+        widget.on_space()
+        widget.on_space()
+
+        assert widget.ending_cg.is_hidden()
+        assert widget.ending_cg_scrim.is_hidden()
+        assert widget.panel.is_shown()
+        assert widget.page_title.is_shown()
+        assert widget.ending_title.get_text() == app.text.get("ending.ending_mediocre.title")
+    finally:
+        widget.destroy()
 
 
 def test_graduation_review_keeps_all_eight_semester_choices(app):

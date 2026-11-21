@@ -53,20 +53,23 @@ class SaveMenu(UIWidget):
         self.index = 0
         self.save_manager = None
         self.state_provider = None   # fn() -> GameState
+        self.save_handler = None     # fn(slot: str) -> bool
         self.on_done = None          # fn(success: bool) -> None
         self.on_loaded = None        # fn(state) -> None
         super().__init__(root)
         self.hide()
 
-    def _show_status(self, text: str) -> None:
+    def _show_status(self, text: str, color=theme.COLOR_WARN) -> None:
+        self.status.set_color(color)
         self.status.set_text(text)
         self.status.show()
 
     # ------------------------------------------------------------------
-    def open(self, mode: str, save_manager, state_provider=None) -> None:
+    def open(self, mode: str, save_manager, state_provider=None, save_handler=None) -> None:
         self.mode = mode
         self.save_manager = save_manager
         self.state_provider = state_provider
+        self.save_handler = save_handler
         self.index = 0
         self.status.set_text("")
         self.status.hide()
@@ -97,6 +100,17 @@ class SaveMenu(UIWidget):
             out[str(slot)] = dict(meta or {})
         return out
 
+    def _slot_status(self, slot: str, slots: dict[str, dict]) -> str:
+        if slot in slots:
+            return "ok"
+        checker = getattr(self.save_manager, "slot_status", None)
+        if callable(checker):
+            try:
+                return str(checker(slot))
+            except Exception as exc:  # pragma: no cover - 依赖 A 的实现
+                _log.warning("slot_status 失败 slot=%s: %s", slot, exc)
+        return "empty"
+
     def refresh(self) -> None:
         slots = self._slots()
         for i, slot in enumerate(self.rows):
@@ -105,15 +119,30 @@ class SaveMenu(UIWidget):
             else:
                 name = self.text_db.get("ui.save.slot", n=i + 1)
             meta = slots.get(slot)
+            status = self._slot_status(slot, slots)
+            color = theme.COLOR_TEXT
             if meta is None:
-                text = f"{name}  {self.text_db.get('ui.save.empty')}"
+                if status == "incompatible":
+                    suffix = self.text_db.get("ui.menu.reason.incompatible_save")
+                    color = theme.COLOR_WARN
+                elif status == "corrupt":
+                    suffix = self.text_db.get("err.save_corrupt")
+                    color = theme.COLOR_LOSS
+                else:
+                    suffix = self.text_db.get("ui.save.empty")
+                text = f"{name}  {suffix}"
             else:
                 # 毕业档的 day_index 已经推到 TOTAL_DAYS（16），+1 会显示「第 17 天」。
                 raw_day = int(meta.get("day_index", 0))
                 if raw_day >= config.TOTAL_DAYS:
                     text = f"{name}  {self.text_db.get('ui.save.graduated')}"
+                elif self.text_db.has("ui.save.day"):
+                    text = f"{name}  {self.text_db.get('ui.save.day', day=raw_day + 1)}"
                 else:
                     text = f"{name}  第 {raw_day + 1} 天"
+            if slot == AUTOSAVE and self.mode == "save":
+                color = theme.COLOR_DISABLED
+            self.row_labels[i].set_color(color)
             self.row_labels[i].set_text(text)
         ax, ay = self.transform.to_aspect2d(
             RECT[0] + 8, RECT[1] + 6 + 2 * theme.LINE_HEIGHT + self.index * ROW_HEIGHT + 12
@@ -143,21 +172,30 @@ class SaveMenu(UIWidget):
             return
         slot = self.rows[self.index]
         if self.mode == "save":
-            state = self.state_provider() if self.state_provider else None
-            if state is None:
-                _log.error("没有可保存的 GameState，忽略本次存档")
-                self._show_status(self.text_db.get("ui.save.failed"))
-                return
-            try:
-                self.save_manager.save(state, slot)
-            except Exception as exc:
-                _log.error("存档失败 slot=%s: %s", slot, exc)
-                self._show_status(self.text_db.get("ui.save.failed"))
-                return
+            if self.save_handler is not None:
+                try:
+                    ok = bool(self.save_handler(slot))
+                except Exception as exc:
+                    _log.error("存档失败 slot=%s: %s", slot, exc)
+                    self._show_status(self.text_db.get("ui.save.failed"))
+                    return
+                if not ok:
+                    self._show_status(self.text_db.get("ui.save.failed"))
+                    return
+            else:
+                state = self.state_provider() if self.state_provider else None
+                if state is None:
+                    _log.error("没有可保存的 GameState，忽略本次存档")
+                    self._show_status(self.text_db.get("ui.save.failed"))
+                    return
+                try:
+                    self.save_manager.save(state, slot)
+                except Exception as exc:
+                    _log.error("存档失败 slot=%s: %s", slot, exc)
+                    self._show_status(self.text_db.get("ui.save.failed"))
+                    return
             self.refresh()
-            self._show_status(self.text_db.get("ui.save.saved"))
-            if self.on_done:
-                self.on_done(True)
+            self._show_status(self.text_db.get("ui.save.saved"), color=theme.COLOR_GAIN)
             return
         try:
             state = self.save_manager.load(slot)

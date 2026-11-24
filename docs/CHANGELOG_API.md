@@ -770,6 +770,80 @@ C-R1 通过；`assets=164 missing=0`；文本校验通过。
 
 ---
 
+## 开学典礼礼堂（2026-11-22，`OpeningCeremonyScene`）
+
+第 1 天结束（`day_index` 0 → 1）自动播一段开学典礼：先看校长讲话，再自由走动和三位同学聊天，
+踩南侧出口地垫回到主校园开始第 2 天。场景独立于主校园与 5 栋室内房间，礼堂里走动不写 `state.world`。
+
+| 文件 | 变更 |
+| --- | --- |
+| `game/world/ceremony_scene.py`（新增） | 礼堂占位几何：18×12 m（坐标 (400, 0)）、大厅地板 + 中央红毯、三面实墙 + 南墙 0.35 m 剖切矮墙（中间 3 m 出口豁口）、2.6/2.4 m 侧墙与北墙、红幕布与横幅、抬高主席台（0.55 m）+ 台阶 + 演讲台（台座/柜体/读稿板/话筒）、台上校长人形占位（西装配色）、左右各 2 排看台长椅、台下 3 位同学站位圈、出口地垫；纯逻辑碰撞 `build_local_colliders()` / `build_world_colliders()` 与 `make_ceremony_candidates()` |
+| `game/core/world_scene.py` | 新增 `OpeningCeremonySceneAdapter`：两阶段（`speech` 演出 → `roam` 自由走动）。演出阶段锁定移动、播放 `ceremony.opening.page.1..5`；自由阶段解锁 WASD/Shift、礼堂碰撞与室内脚步声、靠近 NPC 显示 `[E] 和 X 聊天` 并播 `ceremony.chat.<short>.page.*`（不占当日时段）、踩出口地垫调 `finish_opening_ceremony()`；HUD/对话框/提示框与 `Tab`/`Esc` 暂停均可用 |
+| `game/core/state.py` | 新增旗标 `OPENING_CEREMONY_DONE = "opening_ceremony_done"`（不改 `SAVE_VERSION`，旧档兼容） |
+| `game/core/flow.py` | `_begin_next_day()`：**先**完成新一天初始化（slot=0、清 `today_activities`、`world=(40,5)`、发 `TOPIC_DAY_STARTED`），**再**判定 `_should_hold_opening_ceremony()` 切礼堂；`enter_opening_ceremony()` / `finish_opening_ceremony()`（写旗标、`world=(40,5)`、`post_ceremony` 自动档、回校园）；读档时 `day_index==1` 且无旗标 → 补播典礼 |
+| `game/core/scene_manager.py` | `BASE_SCENES` 增加 `OpeningCeremonyScene` |
+| `game/app.py` | `SCENE_MODULES` 注册适配层；新增 `StubOpeningCeremony` 兜底（适配层装配失败也不会卡在礼堂）；`--scene OpeningCeremonyScene` 调试直达；`AutoplayDriver` 检测到礼堂场景自动走完，报告新增 `ceremonies` |
+| `game/core/audio.py` | 礼堂沿用 `bgm_event` |
+| `content/text/zh_CN/dialogues.json` | 新增 11 页：校长讲话 5 页（`npc_principal`，头像复用占位图 `char_extra_1`）+ 符闹吃/李振兴/奈珑各 2 页（对齐各自 `portrait_npc_*_neutral`）；每页 ≤ 4 行、每行 ≤ 26 字 |
+| `content/text/zh_CN/strings.json` | 新增 `npc.principal.name = 校长` |
+| `tools/make_text_index.py` | `SCREEN_RULES` 增加 `ceremony.` → 开学典礼；重建 `docs/ui/text_index.csv`（458 行） |
+| `tests/core/test_opening_ceremony.py`（新增） | 10 条：换日→典礼的顺序（DAY_STARTED 先于切场景）、礼堂走动不污染落点、离场写旗标 + `post_ceremony` 存档、不重复触发、读档补播（`day_end` 自动档 / 第 1 天存档）、有旗标则直接回校园、碰撞覆盖墙体/舞台/看台、出口地垫位置与冷却、出生点不压碰撞体 |
+| `tests/ui/test_fixtures.py` | NPC 名称白名单加入 `principal`（校长只用于对话框署名，不进关系表） |
+| `tests/systems/test_event_pages_consistency.py` | 说话人立牌守卫增加 `CODE_DRAWN_SPEAKERS = {"npc_principal"}`：代码几何绘制、不依赖 `char_npc_*_idle`，但必须自带 `portrait` |
+
+验证：`pytest tests` → 761 passed / 5 skipped；`pytest -m gui` → 47 passed；`--autoplay` 日志出现
+`[FLOW] opening ceremony (day_index=1)` → `post_ceremony` 自动档 → 回校园，`ok=True`（报告 `ceremonies=['day1']`）；
+`--scene OpeningCeremonyScene` 直达可玩；截图见 `reports/review/ceremony/`。
+
+---
+
+## 校长正式立绘接入（2026-11-22，`LIC-0217`）
+
+用户提供 `素材/人物/校长.jfif`（2048×2048、像素风正面站姿、纯白底 + 脚下一块灰色底座）。
+开学典礼里的校长从"代码几何方块 + `char_extra_1` 占位头像"换成正式立绘：
+
+| 文件 | 变更 |
+| --- | --- |
+| `tools/import_principal_character.py`（新增） | **从四边泛洪**去白底（白衬衫与背景同色，全局阈值会把衬衫一起抠掉）→ 按"底部连续宽行"切掉灰色底座 → alpha 预乘面积缩放 → 量化 32 色；产出立牌 48×48（人物 40 px、脚点 24/46）与头像 96×96（头顶往下 32% 头肩特写） |
+| `assets/characters/npc/principal_idle.png` / `assets/portraits/principal/neutral.png` | 新增两张成品 |
+| `assets/manifest.json` | `char_npc_principal_idle`（sprite_sheet 48×48、cols/rows 1、pivot 24,46、row_order s）、`portrait_npc_principal_neutral`（image 96×96） |
+| `assets/LICENSES.csv` | `LIC-0217`（用户提供的 AI 生成校长立绘，含导入参数） |
+| `game/world/ceremony_scene.py` | 新增 `PRINCIPAL_ART = "char_npc_principal_idle"`；`CeremonyScene(..., draw_principal_placeholder=True)`：有立牌就不画代码几何 |
+| `game/core/world_scene.py` | `OpeningCeremonySceneAdapter` 新增 `_load_sprite()` / `_place_principal_card()`：立牌摆在演讲台后方（脚点 `z = 0.55` 台高），缺图自动退回代码几何 |
+| `content/text/zh_CN/dialogues.json` | 典礼 5 页讲话的 `portrait` 从 `char_extra_1` 改为 `portrait_npc_principal_neutral` |
+| `tests/systems/test_event_pages_consistency.py` | 去掉上一版为代码几何校长加的 `CODE_DRAWN_SPEAKERS` 例外，说话人立牌守卫恢复严格 |
+| `tests/world/test_principal_asset.py`（新增） | 4 条：`PRINCIPAL_ART` 与 manifest 一致、立牌 48×48 + 脚点 24,46 + 人物 ≥32 px、头像 96×96 且不是占位图、典礼 5 页都挂新头像 |
+
+验证：`pytest tests` 全绿；`pytest -m gui` 全绿；礼堂实机截图（`reports/review/ceremony/speech_page1.png`、
+`roam_npc_prompt.png`、`roam_chat.png`）里校长均为新立绘；导入预览见
+`reports/review/principal/contact_sheet.png`。**其它人物与道具未改动。**
+
+---
+
+## 礼堂三件贴图接入（2026-11-22，`LIC-0218`）
+
+用户按 `docs/art/character_prop_prompts.md` §3.2 的画布直接出图，原样入库（未缩放、未调色）：
+
+| 资产 id | 文件 | 画布 | 用途 |
+| --- | --- | --- | --- |
+| `ceremony_carpet` | `campus/textures/ceremony/carpet.png` | 86×163 | 中央红毯，`make_ground` 整块铺满（UV 0..1，3.6×6.8 m），自带金色滚边 |
+| `ceremony_curtain` | `campus/textures/ceremony/curtain.png` | 288×43 | 北墙幕布（12 m×1.8 m），金穗已在图里 → 代码不再叠金色横幅块 |
+| `ceremony_podium` | `campus/textures/ceremony/podium.png` | 41×43 | 演讲台立牌（1.71×1.79 m），金徽 + 讲稿 + 话筒 |
+
+| 文件 | 变更 |
+| --- | --- |
+| `game/world/campus_scene.py` | `make_ground` 支持 `tile_m=None`（整块 UV 0..1）；`make_wall_panel` 新增 `alpha_test=True`：立牌类贴图四周是透明留白，关掉 alpha 测试会画成白底方块（本次实机踩到并修正） |
+| `game/world/ceremony_scene.py` | 新增 `CEREMONY_ART` / `PODIUM_CARD_WIDTH,HEIGHT`；`CeremonyScene(..., textures=None)`：红毯/幕布/演讲台有图就用贴图，缺图退回原纯色块（含金边、横幅、演讲台 6 个方块） |
+| `game/core/world_scene.py` | `OpeningCeremonySceneAdapter._load_texture()`：按 `CEREMONY_ART` 取三张贴图（nearest + mipmap），缺图只 warn 不阻塞 |
+| `assets/manifest.json` / `assets/LICENSES.csv` | 3 条 `ceremony_*` + `LIC-0218`（含画布与"原样入库"说明） |
+| `tests/world/test_ceremony_assets.py`（新增） | 5 条：三张图的尺寸/manifest `canvas` 一致、演讲台米数 = 41×43÷24、"给 textures 时不再画纯色几何"（源码断言，防重影） |
+
+验证：`pytest tests` → **770 passed / 5 skipped**；`pytest -m gui` → 47 passed；`--autoplay` 典礼正常
+（`ok=True`，无 `[ASSET] missing`）；礼堂实机三张截图更新（红毯织纹、幕布竖褶、演讲台金徽清晰）。
+**其它素材未改动。**
+
+---
+
 ## 待办接口（尚未提供，先登记）
 
 | 编号 | 内容 | 需求方 | 状态 |

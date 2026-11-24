@@ -75,8 +75,9 @@ def test_official_content_covers_required_ids(project_root):
     endings = {k.split(".")[1] for k in strings if k.startswith("ending.") and k.endswith(".title")}
     assert len(endings) == 5
 
+    # 三位可攻略同学 + 开学典礼里的校长（NPC id 只用于对话框署名，不在关系表里）
     npc = {k.split(".")[1] for k in strings if k.startswith("npc.") and k.endswith(".name")}
-    assert npc == {"sumo", "chenlang", "xiaoyou"}
+    assert npc == {"sumo", "chenlang", "xiaoyou", "principal"}
 
     for err_id in ("err.no_slot", "err.low_energy", "err.daily_limit", "err.already_talked",
                    "err.wrong_phase", "err.unknown_id", "err.choice_locked"):

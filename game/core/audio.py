@@ -137,7 +137,7 @@ class AudioManager:
             self.play_music("bgm_campus_day")
         elif new == "MainMenu":
             self.play_music("bgm_title")
-        elif new in ("EventScene",):
+        elif new in ("EventScene", "OpeningCeremonyScene"):
             self.play_music("bgm_event")
         elif new in ("GraduationScene",):
             self.play_music("bgm_graduation")

@@ -46,6 +46,7 @@ SCREEN_RULES: tuple[tuple[str, str], ...] = (
     ("ending.", "毕业界面"),
     ("act.", "结果面板"),
     ("evt.", "事件场景"),
+    ("ceremony.", "开学典礼"),
     ("stat.", "数值显示"),
 )
 

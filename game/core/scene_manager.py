@@ -12,7 +12,8 @@ from typing import Any, Callable, Protocol
 from .event_bus import TOPIC_SCENE_CHANGED, EventBus
 
 FADE_SECONDS = 0.25
-BASE_SCENES = ("MainMenu", "CampusScene", "InteriorScene", "GraduationScene")
+BASE_SCENES = ("MainMenu", "CampusScene", "InteriorScene", "GraduationScene",
+               "OpeningCeremonyScene")
 OVERLAY_SCENES = (
     "EventScene",
     "ResultPanel",

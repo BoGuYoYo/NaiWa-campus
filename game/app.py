@@ -29,7 +29,7 @@ from .core.render_pipeline import LowResPipeline
 from .core.results import ActivityResult, DayEndResult, EndingResult, EventResult
 from .core.save_manager import SaveLoadError, SaveManager
 from .core.scene_manager import SceneManager
-from .core.state import WorldPos
+from .core.state import OPENING_CEREMONY_DONE, WorldPos
 
 # 任务 sort 常量（其他人只读）
 SORT_INPUT_POLL = 10
@@ -55,6 +55,7 @@ SCENE_MODULES: dict[str, tuple[str, str]] = {
     "SettingsMenu": ("game.core.world_scene", "SettingsMenuSceneAdapter"),
     "SaveMenu": ("game.core.world_scene", "SaveMenuSceneAdapter"),
     "GraduationScene": ("game.core.world_scene", "GraduationSceneAdapter"),
+    "OpeningCeremonyScene": ("game.core.world_scene", "OpeningCeremonySceneAdapter"),
 }
 
 
@@ -302,6 +303,11 @@ class NaiwaApp(ShowBase):
             # EventScene 是覆盖层，不能单独当基础场景：以前直接 start 会带着
             # state=None 装配，PlayerController 抛 AttributeError 崩溃。
             self.flow.new_game(seed=options.seed, skip_intro=True)
+            return
+        if options.scene == "OpeningCeremonyScene":
+            # 调试直达：先建立新游戏状态（保证 HUD/服务可用），再切礼堂。
+            self.flow.new_game(seed=options.seed, skip_intro=True)
+            self.flow.enter_opening_ceremony()
             return
         try:
             self.scenes.start(options.scene)
@@ -861,6 +867,21 @@ class StubGraduation(StubScene):
         self.app.flow.finish_graduation()
 
 
+class StubOpeningCeremony(StubScene):
+    """礼堂适配层装配失败时的兜底：一句提示 + 按确认离开，绝不把玩家卡在场景里。"""
+
+    def on_enter(self, **kwargs: Any) -> None:
+        self.root = self.app.render2d.attachNewNode("stub_ceremony")
+        self.label = self._panel("OPENING CEREMONY\n\nEnter / Space: leave",
+                                 pos=(-0.55, 0.05))
+        self.bind("enter", self._leave)
+        self.bind("space", self._leave)
+        self.bind("e", self._leave)
+
+    def _leave(self) -> None:
+        self.app.flow.finish_opening_ceremony()
+
+
 class AutoplayDriver:
     """--autoplay：一帧一步的脚本化通关，用于 A-06 与冒烟流程自检。"""
 
@@ -884,6 +905,7 @@ class AutoplayDriver:
         self.phase_trail: list[str | None] = []
         self.activity_log: list[str] = []
         self.event_log: list[str] = []
+        self.ceremony_log: list[str] = []
         self.errors: list[str] = []
         self.ok = False
         self.done = False
@@ -915,12 +937,32 @@ class AutoplayDriver:
         if state is None:
             return self._finish(self.ok)
 
+        # 开学典礼是纯演出场景：自动演示里直接走完（踩出口 → 回校园）。
+        ceremony_pending = (
+            (scenes.base_id == "OpeningCeremonyScene"
+             and OPENING_CEREMONY_DONE not in state.flags)
+            or bool(getattr(scenes, "_pending", None)
+                    and scenes._pending[0] == "OpeningCeremonyScene")
+        )
+        if ceremony_pending:
+            if scenes.base_id == "CampusScene" or scenes.base_id is None:
+                # 还没真正切进礼堂：等这次 change 落地，避免把切换顶掉。
+                return False
+            self.ceremony_log.append(f"day{state.day_index}")
+            flow.finish_opening_ceremony()
+            self._record_phase()
+            return False
+
         while scenes.overlays and scenes.top_overlay_id != "EventScene":
             if scenes.top_overlay_id == "DaySummary":
                 scenes.pop()
                 flow.close_day_summary()
             else:
                 scenes.pop()
+
+        if (getattr(scenes, "_pending", None)
+                and scenes._pending[0] == "OpeningCeremonyScene"):
+            return False
 
         if state.phase == "graduation":
             self.ending_id = state.ending_id
@@ -985,6 +1027,7 @@ class AutoplayDriver:
             "phase_trail": self.phase_trail,
             "activities": len(self.activity_log),
             "events": self.event_log,
+            "ceremonies": list(self.ceremony_log),
             "ending_id": self.ending_id,
             "day_index": self.final_day_index if self.final_day_index is not None
             else (state.day_index if state is not None else None),
@@ -1014,6 +1057,7 @@ STUB_SCENES = {
     "SettingsMenu": StubPauseMenu,
     "SaveMenu": StubPauseMenu,
     "GraduationScene": StubGraduation,
+    "OpeningCeremonyScene": StubOpeningCeremony,
 }
 
 

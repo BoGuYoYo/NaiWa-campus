@@ -2141,6 +2141,83 @@
         "generated_from_user_art",
         "ending_cg"
       ]
+    },
+    {
+      "id": "char_npc_principal_idle",
+      "type": "sprite_sheet",
+      "path": "characters/npc/principal_idle.png",
+      "license_id": "LIC-0217",
+      "frame_w": 48,
+      "frame_h": 48,
+      "cols": 1,
+      "rows": 1,
+      "fps": 0,
+      "pivot": [
+        24,
+        46
+      ],
+      "row_order": [
+        "s"
+      ],
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ]
+    },
+    {
+      "id": "portrait_npc_principal_neutral",
+      "type": "image",
+      "path": "portraits/principal/neutral.png",
+      "license_id": "LIC-0217",
+      "tags": [
+        "final",
+        "generated_from_user_art"
+      ]
+    },
+    {
+      "id": "ceremony_carpet",
+      "type": "image",
+      "path": "campus/textures/ceremony/carpet.png",
+      "license_id": "LIC-0218",
+      "canvas": [
+        86,
+        163
+      ],
+      "tags": [
+        "final",
+        "ceremony",
+        "generated_from_user_art"
+      ]
+    },
+    {
+      "id": "ceremony_curtain",
+      "type": "image",
+      "path": "campus/textures/ceremony/curtain.png",
+      "license_id": "LIC-0218",
+      "canvas": [
+        288,
+        43
+      ],
+      "tags": [
+        "final",
+        "ceremony",
+        "generated_from_user_art"
+      ]
+    },
+    {
+      "id": "ceremony_podium",
+      "type": "image",
+      "path": "campus/textures/ceremony/podium.png",
+      "license_id": "LIC-0218",
+      "canvas": [
+        41,
+        43
+      ],
+      "tags": [
+        "final",
+        "ceremony",
+        "generated_from_user_art"
+      ]
     }
   ]
 }

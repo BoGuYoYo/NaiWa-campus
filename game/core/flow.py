@@ -24,7 +24,15 @@ from .event_bus import (
 )
 from .results import ActivityResult, DayEndResult, EndingResult, EventResult
 from .scene_manager import SceneManager
-from .state import DEFAULT_SPAWN_LOCATION, NPC_IDS, OPENING_NPCS_ACTIVE, GameState, WorldPos, new_state
+from .state import (
+    DEFAULT_SPAWN_LOCATION,
+    NPC_IDS,
+    OPENING_CEREMONY_DONE,
+    OPENING_NPCS_ACTIVE,
+    GameState,
+    WorldPos,
+    new_state,
+)
 
 LOG = logging.getLogger("naiwa.flow")
 
@@ -394,6 +402,12 @@ class GameFlow:
             self.enter_campus(spawn=spawn, keep_position=True,
                               on_ready=lambda: self._begin_next_day(state))
             return
+        if self._should_hold_opening_ceremony(state):
+            # 存档停在"第 2 天已经开始、典礼还没看完"（暂停菜单里存的）：
+            # 旗标没写就说明典礼没结束，读档直接把玩家送回礼堂补播。
+            state.world = WorldPos()
+            self.enter_opening_ceremony(state)
+            return
         if state.day_finished:
             # 存档停在"当天行动用完、还没结算"的瞬间：读档后补结算，
             # 否则所有活动都提示没有行动次数，日子推不下去。
@@ -559,6 +573,32 @@ class GameFlow:
         # 校园场景真正建好再压上去，否则会被旧场景的 on_exit 拆掉按键绑定。
         self.scenes.change("CampusScene", spawn=state.world.location_id, state=state,
                            on_ready=on_ready)
+
+    def enter_opening_ceremony(self, state: GameState | None = None) -> None:
+        """进入独立礼堂场景播放开学典礼（第 1 天结束后自动触发）。
+
+        礼堂里用独立的 PlayerMotion，不写 state.world：这样无论玩家中途退出、
+        读档还是在礼堂里乱走，主校园落点始终是校门 (40, 5)。
+        """
+        target = state if state is not None else self.require_state()
+        target.phase = "campus"
+        LOG.info("[FLOW] opening ceremony (day_index=%d)", target.day_index)
+        self.scenes.change("OpeningCeremonyScene", state=target)
+
+    def finish_opening_ceremony(self) -> None:
+        """玩家在礼堂走入南侧出口离开典礼：记旗标、写自动档并回到主校园。"""
+        if self.state is None:
+            return
+        state = self.state
+        already_done = OPENING_CEREMONY_DONE in state.flags
+        state.flags.add(OPENING_CEREMONY_DONE)
+        state.flags.discard(OPENING_NPCS_ACTIVE)
+        state.phase = "campus"
+        state.world = WorldPos()
+        if not already_done:
+            self._autosave(state, reason="post_ceremony")
+        LOG.info("[FLOW] opening ceremony finished (repeat=%s)", already_done)
+        self.enter_campus()
 
     def teleport_to_spawn(self) -> None:
         state = self.require_state()
@@ -753,6 +793,8 @@ class GameFlow:
         state.phase = "campus"
         state.pending_event_id = None
         state.pending_day_start = False
+        # 第 1 天结束后开场路口争论不再出现（即使第 1 天全在室外活动未进室内）
+        state.flags.discard(OPENING_NPCS_ACTIVE)
         state.today_activities.clear()
         self.today_activities = state.today_activities
         # 结算时人可能还在室内：只改 state.world 会把 location_id 写成 loc_gate，
@@ -766,6 +808,17 @@ class GameFlow:
         self._day_start_emitted_for = state.day_index
         LOG.info("[FLOW] new day index=%d (year=%d sem=%d day=%d)",
                  state.day_index, state.year, state.semester, state.day)
+        # 第 1 天结束（day_index 0 -> 1）的开学典礼：新的一天已经初始化完毕
+        # （action_slot / today_activities / world / DAY_STARTED 全部就绪），
+        # 再切礼堂 —— 这样回归测试对"新一天状态"的断言不受影响，
+        # 礼堂里走动也不会污染 state.world。
+        if self._should_hold_opening_ceremony(state):
+            state.world = WorldPos()
+            self.enter_opening_ceremony(state)
+
+    @staticmethod
+    def _should_hold_opening_ceremony(state: GameState) -> bool:
+        return state.day_index == 1 and OPENING_CEREMONY_DONE not in state.flags
 
     # ------------------------------------------------------------------ #
     # 事件结果

@@ -29,11 +29,12 @@ from panda3d.core import TextNode, TextureStage
 
 from game import config
 from game.core.event_bus import TOPIC_DAY_ENDED
-from game.core.results import EventView
+from game.core.results import EventView, PromptView
 from game.core.state import OPENING_NPCS_ACTIVE, GameState
 from game.systems.content_db import ContentError
 from game.ui import theme
 from game.ui.day_summary import DaySummary
+from game.ui.dialogue_box import DialogueBox
 from game.ui.event_scene import EventScene
 from game.ui.graduation_scene import GraduationScene
 from game.ui.hud import HUD
@@ -858,6 +859,429 @@ class InteriorSceneAdapter(WorldSceneBase):
         )
 
 
+class OpeningCeremonySceneAdapter:
+    """开学典礼独立礼堂场景适配层（两阶段：纯演出讲话 → 自由走动/闲聊/出口离开）。"""
+
+    is_overlay = False
+    scene_id = "OpeningCeremonyScene"
+
+    def __init__(self, app, **kwargs: Any) -> None:
+        self.app = app
+        self.log = LOG
+        self.root = None
+        self.scene = None
+        self.rig = None
+        self.card = None
+        self.animator = None
+        self.audio_adapter = None
+        self.motion = None
+        self.hud = None
+        self.prompt = None
+        self.dialogue = None
+        self.tracker = None
+        self.candidates = ()
+        self.principal_sheet = None
+        self.stage = "speech"
+        self._state: GameState | None = None
+        self._footstep = None
+        self._rects = ()
+        self._bounds = None
+        self._last_ia: str | None = None
+        self._active_pages: list[dict[str, Any]] = []
+        self._page_index = 0
+        self._leaving = False
+
+    def _make_hud(self):
+        return HUD(self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry)
+
+    def _make_prompt(self):
+        return InteractionPrompt(
+            self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry
+        )
+
+    def _make_dialogue(self):
+        return DialogueBox(
+            self.app.ui_root, self.app.ui_transform, self.app.text, self.app.registry
+        )
+
+    def on_enter(self, state: GameState | None = None, **kwargs: Any) -> None:
+        from game.world.camera_controller import CameraRig
+        from game.world.ceremony_scene import CEREMONY_ART, PRINCIPAL_ART, CeremonyScene
+        from game.world.input_map import FootstepTimer
+        from game.world.player_controller import IDLE_ASSET, IDLE_FPS, PlayerMotion
+        from game.world.trigger_zone import PromptTracker
+
+        self._state = state if state is not None else self.app.flow.state
+        self.root = self.app.render.attachNewNode("OpeningCeremonySceneAdapter")
+        # 校长：有正式立牌就用立牌，缺图才退回代码几何（不会出现"人凭空消失"）
+        self.principal_sheet = self._load_sprite(PRINCIPAL_ART, "principal")
+        # 礼堂贴图（红毯 / 幕布 / 演讲台）：缺哪张就用对应纯色块
+        self.scene_textures = {
+            key: texture
+            for key, asset_id in CEREMONY_ART.items()
+            if (texture := self._load_texture(asset_id)) is not None
+        }
+        self.scene = CeremonyScene(
+            self.root,
+            draw_principal_placeholder=self.principal_sheet is None,
+            textures=self.scene_textures,
+        )
+        self.rig = CameraRig()
+        self.rig.set_interior(self.scene.center_world())
+        self.app.pipeline.align_camera(*self.rig.target)
+
+        sx, sy, facing = self.scene.player_spawn_world()
+        self.card = self.app.pipeline.make_character_card(self.root, "naiwan_card")
+        self.animator = SpriteAnimator(self.card, self.app.registry)
+        self.audio_adapter = SfxAdapter(self.app.audio)
+        self.motion = PlayerMotion(sx, sy, facing)
+        self._footstep = FootstepTimer()
+        self._rects = self.scene.colliders_world()
+        self._bounds = self.scene.bounds_world()
+        self.card.setPos(self.motion.x, self.motion.y, 0.0)
+        self.card.setH(0.0)
+        self.animator.play(IDLE_ASSET, row=self.motion.facing, fps=IDLE_FPS)
+
+        self._place_npc_cards()
+        self._place_principal_card()
+        self.candidates = self.scene.candidates_world()
+        self.tracker = PromptTracker()
+        self._last_ia = None
+
+        self.hud = self._make_hud()
+        if self._state is not None:
+            self.hud.update(self._state)
+        self.prompt = self._make_prompt()
+        self.dialogue = self._make_dialogue()
+
+        self.stage = "speech"
+        self._active_pages = []
+        self._page_index = 0
+        self._leaving = False
+        self._bind_input()
+
+        speech_pages = self._collect_pages("ceremony.opening.page.")
+        if speech_pages:
+            self._start_dialogue(speech_pages)
+        else:
+            self._enter_roam_stage()
+
+    def _place_npc_cards(self) -> None:
+        if self.scene is None or self.app.registry is None:
+            return
+        for spec, wx, wy in self.scene.npc_spots_world():
+            try:
+                sheet = self.app.registry.load_sprite(f"char_npc_{spec.short_id}_idle")
+            except Exception as exc:
+                self.log.warning("[CEREMONY] NPC 立绘加载失败 %s: %s", spec.short_id, exc)
+                continue
+            if sheet is None:
+                continue
+            card = self.app.pipeline.make_character_card(self.root, f"npc_{spec.short_id}")
+            card.set_texture(sheet.texture, 1)
+            stage = TextureStage.getDefault()
+            u0, v0, u1, v1 = sheet.frame_uv("s", 0)
+            card.set_tex_offset(stage, u0, v0)
+            card.set_tex_scale(stage, u1 - u0, v1 - v0)
+            card.set_pos(wx, wy, 0.0)
+            card.set_h(0.0)
+
+    def _load_texture(self, asset_id: str):
+        """礼堂贴图：缺图返回 None（调用方退回纯色块，不阻塞典礼）。"""
+        registry = self.app.registry
+        if registry is None:
+            return None
+        if hasattr(registry, "file_exists") and not registry.file_exists(asset_id):
+            self.log.warning("[CEREMONY] 贴图缺失，用纯色块代替：%s", asset_id)
+            return None
+        try:
+            texture = registry.load_texture(asset_id)
+        except Exception as exc:
+            self.log.warning("[CEREMONY] 贴图加载失败 %s: %s", asset_id, exc)
+            return None
+        from panda3d.core import SamplerState
+
+        texture.set_magfilter(SamplerState.FT_nearest)
+        texture.set_minfilter(SamplerState.FT_nearest_mipmap_linear)
+        return texture
+
+    def _load_sprite(self, asset_id: str, label: str):
+        """取立牌精灵表；缺资源返回 None（调用方自己决定退路）。"""
+        if self.app.registry is None:
+            return None
+        if hasattr(self.app.registry, "file_exists") and not self.app.registry.file_exists(asset_id):
+            self.log.warning("[CEREMONY] 立牌缺失，退回占位：%s", asset_id)
+            return None
+        try:
+            return self.app.registry.load_sprite(asset_id)
+        except Exception as exc:
+            self.log.warning("[CEREMONY] 立牌加载失败 %s (%s): %s", asset_id, label, exc)
+            return None
+
+    def _place_principal_card(self) -> None:
+        """把校长立牌摆在演讲台后方（舞台上，脚点 z = 台高）。"""
+        if self.scene is None or self.principal_sheet is None:
+            return
+        card = self.app.pipeline.make_character_card(self.root, "npc_principal")
+        card.set_texture(self.principal_sheet.texture, 1)
+        stage = TextureStage.getDefault()
+        u0, v0, u1, v1 = self.principal_sheet.frame_uv("s", 0)
+        card.set_tex_offset(stage, u0, v0)
+        card.set_tex_scale(stage, u1 - u0, v1 - v0)
+        px, py, pz = self.scene.principal_world()
+        card.set_pos(px, py, pz)
+        card.set_h(0.0)
+
+    def _collect_pages(self, prefix: str) -> list[dict[str, Any]]:
+        dialogues = getattr(self.app.text, "dialogues", {})
+        keys = [k for k in dialogues if k.startswith(prefix)]
+        keys.sort(key=lambda k: int(k.rsplit(".", 1)[-1]))
+        pages: list[dict[str, Any]] = []
+        for key in keys:
+            page = self.app.text.get_dialogue(key)
+            if page is not None:
+                pages.append(dict(page))
+        return pages
+
+    def _apply_text_speed(self) -> None:
+        if self.dialogue is not None:
+            speed = getattr(getattr(self.app, "settings", None), "text_speed", "normal")
+            self.dialogue.set_text_speed(speed)
+
+    def _dialogue_active(self) -> bool:
+        return bool(self._active_pages) and self.dialogue is not None and bool(self.dialogue.visible)
+
+    def _start_dialogue(self, pages: list[dict[str, Any]]) -> None:
+        if not pages or self.dialogue is None:
+            return
+        self._active_pages = list(pages)
+        self._page_index = 0
+        if self.hud is not None:
+            self.hud.hide()
+        if self.prompt is not None:
+            self.prompt.hide_prompt()
+        self._show_current_page()
+
+    def _show_current_page(self) -> None:
+        if self.dialogue is None or not self._active_pages:
+            return
+        self._apply_text_speed()
+        page = self._active_pages[self._page_index]
+        self.dialogue.show_page(page)
+        self.dialogue.set_page_indicator(self._page_index + 1, len(self._active_pages))
+
+    def _advance_dialogue(self) -> None:
+        if not self._dialogue_active():
+            return
+        if self._transitioning() or getattr(self.app.scenes, "overlays", ()):
+            return
+        if self.dialogue.advance():
+            return
+        self._page_index += 1
+        if self._page_index < len(self._active_pages):
+            self._show_current_page()
+            return
+        self.dialogue.hide()
+        self._active_pages = []
+        self._page_index = 0
+        if self.stage == "speech":
+            self._enter_roam_stage()
+        else:
+            if self.hud is not None and self._state is not None:
+                self.hud.update(self._state)
+                self.hud.show()
+            self._refresh_prompt(force=True)
+
+    def _enter_roam_stage(self) -> None:
+        self.stage = "roam"
+        if self.hud is not None and self._state is not None:
+            self.hud.update(self._state)
+            self.hud.show()
+        self._refresh_prompt(force=True)
+
+    def _transitioning(self) -> bool:
+        return bool(getattr(self.app.scenes, "is_transitioning", lambda: False)())
+
+    def _key_down(self, key: str) -> bool:
+        from game.world.player_controller import key_down
+
+        return key_down(getattr(self.app, "mouseWatcherNode", None), key)
+
+    def bind(self, event: str, handler) -> None:
+        self.app.input.bind(self, event, handler)
+
+    def _bind_input(self) -> None:
+        self.bind("space", self._on_advance_or_confirm)
+        self.bind("enter", self._on_advance_or_confirm)
+        self.bind("mouse1", self._on_advance_or_confirm)
+        self.bind("e", self._on_e_key)
+        self.bind("tab", self._on_tab)
+        self.bind("escape", self._on_escape)
+
+    def _unbind_input(self) -> None:
+        self.app.input.unbind(self)
+
+    def _on_advance_or_confirm(self) -> None:
+        if self._dialogue_active():
+            self._advance_dialogue()
+
+    def _on_e_key(self) -> None:
+        if self._dialogue_active():
+            self._advance_dialogue()
+            return
+        self._interact_npc()
+
+    def _interact_npc(self) -> None:
+        if self.stage != "roam" or self._dialogue_active():
+            return
+        if self._transitioning() or getattr(self.app.scenes, "input_locked", False):
+            return
+        self._refresh_prompt(force=True)
+        ia_id = self.tracker.active_id if self.tracker is not None else None
+        if not ia_id:
+            return
+        short = ia_id.removeprefix("ceremony_").removeprefix("npc_")
+        pages = self._collect_pages(f"ceremony.chat.{short}.page.")
+        if not pages:
+            return
+        audio = getattr(self.app, "audio", None)
+        if audio is not None and callable(getattr(audio, "play_sfx", None)):
+            audio.play_sfx("sfx_interact")
+        self._start_dialogue(pages)
+
+    def _on_tab(self) -> None:
+        if self._state is None or self.stage != "roam" or self._dialogue_active():
+            return
+        if getattr(self.app.scenes, "overlays", ()) or self._transitioning():
+            return
+        self.app.scenes.push("TabPanel", state=self._state)
+
+    def _on_escape(self) -> None:
+        if getattr(self.app.scenes, "overlays", ()) or self._transitioning():
+            return
+        if self._dialogue_active():
+            self._advance_dialogue()
+            return
+        if self._state is None:
+            return
+        self.app.flow.set_paused(True)
+        self.app.scenes.push("PauseMenu")
+
+    def _refresh_prompt(self, force: bool = False) -> None:
+        if self.prompt is None or self.tracker is None or self.motion is None:
+            return
+        if self.stage != "roam" or self._dialogue_active():
+            if self._last_ia is not None or force:
+                self.prompt.hide_prompt()
+            self._last_ia = None
+            return
+        candidate = self.tracker.update(self.candidates, self.motion.x, self.motion.y)
+        ia_id = candidate.id if candidate is not None else None
+        if ia_id is None:
+            if self._last_ia is not None or force:
+                self.prompt.hide_prompt()
+            self._last_ia = None
+            return
+        self._last_ia = ia_id
+        short = candidate.interactable.target.removeprefix("npc_")
+        view = PromptView(
+            interactable_id=ia_id,
+            label_text_id=f"npc.{short}.talk_prompt",
+            enabled=True,
+            reason_code=None,
+            cost_preview={},
+        )
+        try:
+            self.prompt.show_prompt(view)
+        except Exception as exc:
+            self.log.exception("[CEREMONY] prompt render failed for %s: %s", ia_id, exc)
+            self.prompt.hide_prompt()
+
+    def on_update(self, dt: float) -> None:
+        from game.world.player_controller import (
+            IDLE_ASSET,
+            IDLE_FPS,
+            SFX_FOOTSTEP_FLOOR,
+            WALK_ASSET,
+            WALK_FPS,
+        )
+
+        if self._state is None or self.motion is None:
+            return
+        locked = bool(getattr(self.app.scenes, "input_locked", False))
+        if locked:
+            self.motion.speed = 0.0
+            self.motion.moving = False
+            if self._footstep is not None:
+                self._footstep.reset()
+            if self.animator is not None:
+                self.animator.play(IDLE_ASSET, row=self.motion.facing, fps=IDLE_FPS)
+            if self.hud is not None:
+                self.hud.hide()
+            if self.prompt is not None:
+                self.prompt.hide_prompt()
+            return
+
+        if self._dialogue_active():
+            self.motion.speed = 0.0
+            self.motion.moving = False
+            if self._footstep is not None:
+                self._footstep.reset()
+            if self.animator is not None:
+                self.animator.play(IDLE_ASSET, row=self.motion.facing, fps=IDLE_FPS)
+                self.animator.tick(dt)
+            if self.hud is not None and self.hud.visible:
+                self.hud.hide()
+            if self.prompt is not None:
+                self.prompt.hide_prompt()
+            if self.dialogue is not None:
+                self.dialogue.tick(dt)
+            return
+
+        keys = ("w", "a", "s", "d", "up", "down", "left", "right")
+        pressed = {k for k in keys if self._key_down(k)}
+        running = self._key_down("shift")
+        moving = self.motion.update(pressed, running, dt, self._rects, self._bounds)
+        if self.card is not None:
+            self.card.setPos(self.motion.x, self.motion.y, 0.0)
+            self.card.setH(0.0)
+        if self.animator is not None:
+            if moving:
+                self.animator.play(WALK_ASSET, row=self.motion.facing, fps=WALK_FPS)
+            else:
+                self.animator.play(IDLE_ASSET, row=self.motion.facing, fps=IDLE_FPS)
+            self.animator.tick(dt)
+        if self._footstep is not None and self.audio_adapter is not None:
+            if self._footstep.tick(dt, moving, running):
+                self.audio_adapter.play(SFX_FOOTSTEP_FLOOR)
+        if self.hud is not None:
+            if not self.hud.visible:
+                self.hud.show()
+            self.hud.update(self._state)
+            self.hud.tick(dt)
+        self._refresh_prompt()
+        if not self._leaving and self.scene is not None:
+            if self.scene.update_exit_mat(self.motion.x, self.motion.y, dt):
+                self._leaving = True
+                audio = getattr(self.app, "audio", None)
+                if audio is not None and callable(getattr(audio, "play_sfx", None)):
+                    audio.play_sfx("sfx_door")
+                self.app.flow.finish_opening_ceremony()
+
+    def on_exit(self) -> None:
+        self._unbind_input()
+        for widget in (self.hud, self.prompt, self.dialogue):
+            if widget is not None:
+                widget.destroy()
+        self.hud = self.prompt = self.dialogue = None
+        if self.scene is not None:
+            self.scene.destroy()
+            self.scene = None
+        if self.root is not None and not self.root.is_empty():
+            self.root.remove_node()
+        self.root = None
+
+
 # --------------------------------------------------------------------------- #
 # 覆盖层 / 基础界面
 # --------------------------------------------------------------------------- #
@@ -1385,6 +1809,7 @@ class GraduationSceneAdapter(WidgetSceneBase):
 __all__ = [
     "CampusSceneAdapter",
     "InteriorSceneAdapter",
+    "OpeningCeremonySceneAdapter",
     "MainMenuSceneAdapter",
     "ResultPanelSceneAdapter",
     "EventSceneAdapter",

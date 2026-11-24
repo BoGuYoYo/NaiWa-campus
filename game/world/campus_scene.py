@@ -183,6 +183,7 @@ def make_wall_panel(
     name: str = "wall_panel",
     *,
     tile_v_m: float | None = None,
+    alpha_test: bool = False,
 ) -> NodePath:
     """竖直墙面（一张四边形）：(x0,y0)-(x1,y1) 是底边，沿 z 立起 z0..z1。
 
@@ -225,7 +226,9 @@ def make_wall_panel(
     texture.set_wrap_u(Texture.WM_repeat)
     texture.set_wrap_v(Texture.WM_repeat)
     np.set_texture(texture)
-    np.set_transparency(TransparencyAttrib.M_none)
+    # 立牌类贴图四周是透明留白：关掉 alpha 测试会把留白画成白底方块
+    np.set_transparency(TransparencyAttrib.M_binary if alpha_test
+                        else TransparencyAttrib.M_none)
     np.setTwoSided(True)
     np.setLightOff()
     return np

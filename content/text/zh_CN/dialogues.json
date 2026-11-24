@@ -1,139 +1,90 @@
 {
-  "evt.story_opening.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "九月的校门口人潮涌动。",
-      "奶娃拖着行李箱，站在了大学的第一块地砖上。"
-    ]
-  },
-  "evt.story_opening.body.2": {
-    "speaker": "npc_sumo",
-    "portrait": "portrait_npc_sumo_argue",
-    "lines": [
-      "路口传来争执声。符闹吃把袖子一撸：",
-      "「像素方块的硬核才是王道，你那卡通画风根本没技巧。」"
-    ]
-  },
-  "evt.story_opening.body.3": {
+  "ceremony.chat.chenlang.page.1": {
     "speaker": "npc_chenlang",
-    "portrait": "portrait_npc_chenlang_argue",
+    "portrait": "portrait_npc_chenlang_neutral",
     "lines": [
-      "李振兴抱着手臂，寸步不让：",
-      "「萌趣的世界才受世界喜爱，",
-      "你的硬核玩法早就被世界落败。」"
+      "你也是今年的新生吧？我叫李振兴。",
+      "刚才那段话里，我最在意的是图书馆。"
     ]
   },
-  "evt.story_opening.body.4": {
-    "speaker": null,
-    "portrait": null,
+  "ceremony.chat.chenlang.page.2": {
+    "speaker": "npc_chenlang",
+    "portrait": "portrait_npc_chenlang_neutral",
     "lines": [
-      "告示牌上写着：",
-      "大学四年，每学期两天，每天三件事。"
+      "我整理了一份自习时间表，需要的话可以一起看。",
+      "先把基础打好，后面的课才不至于手忙脚乱。"
     ]
   },
-  "evt.story_opening.body.5": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "操作提示：WASD 移动，E 互动。",
-      "Tab 查看状态，Esc 打开菜单。"
-    ]
-  },
-  "evt.story_opening.body.6": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "今天的目标只有一个：",
-      "去任意地点，做一件想做的事。"
-    ]
-  },
-  "evt.story_opening.body.7": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "深呼吸。",
-      "大学生活，开始了！"
-    ]
-  },
-  "evt.rel_npc_sumo_1.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "招新海报缺人手贴。",
-      "符闹吃抱着一卷海报跑过广场。"
-    ]
-  },
-  "evt.rel_npc_sumo_1.body.2": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "奶娃接过一半。",
-      "两个人跑遍了三栋教学楼。"
-    ]
-  },
-  "evt.rel_npc_sumo_1.body.3": {
-    "speaker": "npc_sumo",
-    "portrait": "portrait_npc_sumo_happy",
-    "lines": [
-      "够意思！",
-      "明天的招新，全靠咱们了！"
-    ]
-  },
-  "evt.rel_npc_sumo_2.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "活动前夜，场地突然被占。",
-      "符闹吃第一次露出慌张的神色。"
-    ]
-  },
-  "evt.rel_npc_sumo_2.body.2": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "奶娃提议去旧礼堂试试。",
-      "两个人磨了半个小时，借到了钥匙。"
-    ]
-  },
-  "evt.rel_npc_sumo_2.body.3": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "深夜的旧礼堂，桌椅一张张摆好。",
-      "符闹吃长长地出了一口气。"
-    ]
-  },
-  "evt.rel_npc_sumo_2.body.4": {
-    "speaker": "npc_sumo",
-    "portrait": "portrait_npc_sumo_happy",
-    "lines": [
-      "幸好有你。",
-      "这种事，我可一个人干不来。"
-    ]
-  },
-  "evt.rel_npc_sumo_3.body.1": {
-    "speaker": null,
-    "portrait": null,
-    "lines": [
-      "毕业季临近，社团要换负责人了。",
-      "符闹吃把一串钥匙放在奶娃面前。"
-    ]
-  },
-  "evt.rel_npc_sumo_3.body.2": {
+  "ceremony.chat.sumo.page.1": {
     "speaker": "npc_sumo",
     "portrait": "portrait_npc_sumo_neutral",
     "lines": [
-      "活动室、储物柜、荣誉柜。",
-      "这串钥匙，我交给你了。"
+      "喂，新来的！刚才校长说的三个时段，你打算怎么分？",
+      "我得先去社团楼盯着招新，活动室忙不过来了。"
     ]
   },
-  "evt.rel_npc_sumo_3.body.3": {
-    "speaker": null,
-    "portrait": null,
+  "ceremony.chat.sumo.page.2": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_neutral",
     "lines": [
-      "钥匙比想象中沉。",
-      "那是一整届活动的心血。"
+      "有空记得来社团楼找我，一起办活动可带劲了。",
+      "不过说真的，宿舍那张床太危险了，别老躺平。"
+    ]
+  },
+  "ceremony.chat.xiaoyou.page.1": {
+    "speaker": "npc_xiaoyou",
+    "portrait": "portrait_npc_xiaoyou_neutral",
+    "lines": [
+      "……你好。我在画这个礼堂的红毯。",
+      "从门口一直到台前，颜色比我想的更好看。"
+    ]
+  },
+  "ceremony.chat.xiaoyou.page.2": {
+    "speaker": "npc_xiaoyou",
+    "portrait": "portrait_npc_xiaoyou_neutral",
+    "lines": [
+      "如果之后在食堂看到我在画画，可以坐过来。",
+      "我不太会主动说话，但不会赶人走。"
+    ]
+  },
+  "ceremony.opening.page.1": {
+    "speaker": "npc_principal",
+    "portrait": "portrait_npc_principal_neutral",
+    "lines": [
+      "同学们，欢迎来到这所学校。",
+      "我是校长。从今天起，这里的每一块地砖都会记得你们。"
+    ]
+  },
+  "ceremony.opening.page.2": {
+    "speaker": "npc_principal",
+    "portrait": "portrait_npc_principal_neutral",
+    "lines": [
+      "四年很长，也很短。",
+      "每天只有三个时段，别把它们都留在宿舍的床上。"
+    ]
+  },
+  "ceremony.opening.page.3": {
+    "speaker": "npc_principal",
+    "portrait": "portrait_npc_principal_neutral",
+    "lines": [
+      "图书馆给想做学问的人，操场给想跑起来的人，",
+      "社团给想找同伴的人。选你要的那一个，然后坚持下去。"
+    ]
+  },
+  "ceremony.opening.page.4": {
+    "speaker": "npc_principal",
+    "portrait": "portrait_npc_principal_neutral",
+    "lines": [
+      "也别忘了身边的人。",
+      "四年之后你记住的，往往不是分数，而是谁陪你熬过夜。"
+    ]
+  },
+  "ceremony.opening.page.5": {
+    "speaker": "npc_principal",
+    "portrait": "portrait_npc_principal_neutral",
+    "lines": [
+      "典礼到此结束，接下来请自由活动。",
+      "想和同学说话就靠近按 E；离开请走南侧红毯出口。"
     ]
   },
   "evt.rel_npc_chenlang_1.body.1": {
@@ -214,6 +165,86 @@
     "lines": [
       "奶娃没有说话，只是点了点头。",
       "有些梦想，不需要形容词。"
+    ]
+  },
+  "evt.rel_npc_sumo_1.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "招新海报缺人手贴。",
+      "符闹吃抱着一卷海报跑过广场。"
+    ]
+  },
+  "evt.rel_npc_sumo_1.body.2": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "奶娃接过一半。",
+      "两个人跑遍了三栋教学楼。"
+    ]
+  },
+  "evt.rel_npc_sumo_1.body.3": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_happy",
+    "lines": [
+      "够意思！",
+      "明天的招新，全靠咱们了！"
+    ]
+  },
+  "evt.rel_npc_sumo_2.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "活动前夜，场地突然被占。",
+      "符闹吃第一次露出慌张的神色。"
+    ]
+  },
+  "evt.rel_npc_sumo_2.body.2": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "奶娃提议去旧礼堂试试。",
+      "两个人磨了半个小时，借到了钥匙。"
+    ]
+  },
+  "evt.rel_npc_sumo_2.body.3": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "深夜的旧礼堂，桌椅一张张摆好。",
+      "符闹吃长长地出了一口气。"
+    ]
+  },
+  "evt.rel_npc_sumo_2.body.4": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_happy",
+    "lines": [
+      "幸好有你。",
+      "这种事，我可一个人干不来。"
+    ]
+  },
+  "evt.rel_npc_sumo_3.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "毕业季临近，社团要换负责人了。",
+      "符闹吃把一串钥匙放在奶娃面前。"
+    ]
+  },
+  "evt.rel_npc_sumo_3.body.2": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_neutral",
+    "lines": [
+      "活动室、储物柜、荣誉柜。",
+      "这串钥匙，我交给你了。"
+    ]
+  },
+  "evt.rel_npc_sumo_3.body.3": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "钥匙比想象中沉。",
+      "那是一整届活动的心血。"
     ]
   },
   "evt.rel_npc_xiaoyou_1.body.1": {
@@ -430,6 +461,63 @@
     "lines": [
       "窗外有人在拍毕业照。",
       "奶娃打开了最后一封通知。"
+    ]
+  },
+  "evt.story_opening.body.1": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "九月的校门口人潮涌动。",
+      "奶娃拖着行李箱，站在了大学的第一块地砖上。"
+    ]
+  },
+  "evt.story_opening.body.2": {
+    "speaker": "npc_sumo",
+    "portrait": "portrait_npc_sumo_argue",
+    "lines": [
+      "路口传来争执声。符闹吃把袖子一撸：",
+      "「像素方块的硬核才是王道，你那卡通画风根本没技巧。」"
+    ]
+  },
+  "evt.story_opening.body.3": {
+    "speaker": "npc_chenlang",
+    "portrait": "portrait_npc_chenlang_argue",
+    "lines": [
+      "李振兴抱着手臂，寸步不让：",
+      "「萌趣的世界才受世界喜爱，",
+      "你的硬核玩法早就被世界落败。」"
+    ]
+  },
+  "evt.story_opening.body.4": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "告示牌上写着：",
+      "大学四年，每学期两天，每天三件事。"
+    ]
+  },
+  "evt.story_opening.body.5": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "操作提示：WASD 移动，E 互动。",
+      "Tab 查看状态，Esc 打开菜单。"
+    ]
+  },
+  "evt.story_opening.body.6": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "今天的目标只有一个：",
+      "去任意地点，做一件想做的事。"
+    ]
+  },
+  "evt.story_opening.body.7": {
+    "speaker": null,
+    "portrait": null,
+    "lines": [
+      "深呼吸。",
+      "大学生活，开始了！"
     ]
   }
 }

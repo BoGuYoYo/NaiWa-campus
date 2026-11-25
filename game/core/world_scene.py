@@ -579,6 +579,18 @@ class CampusSceneAdapter(WorldSceneBase):
         ("prop_flowerbed", "campus_texture_prop_flowerbed", 1.92),
         ("prop_stele", "campus_texture_prop_stele", 2.58),
         ("prop_kiosk", "campus_texture_prop_kiosk", 2.79),
+        ("prop_cherry", "campus_texture_prop_cherry_tree", 4.4),
+        ("prop_ginkgo", "campus_texture_prop_ginkgo_tree", 4.5),
+        ("prop_pine", "campus_texture_prop_pine_tree", 4.8),
+        ("prop_willow", "campus_texture_prop_willow_tree", 4.6),
+        ("prop_bamboo", "campus_texture_prop_bamboo", 3.4),
+        ("prop_bush", "campus_texture_prop_bush", 1.2),
+        ("prop_flowershrub", "campus_texture_prop_flower_shrub", 1.3),
+        ("prop_hedge", "campus_texture_prop_hedge", 1.1),
+        ("prop_potted", "campus_texture_prop_potted_plant", 1.6),
+        ("prop_pavilion", "campus_texture_prop_pavilion", 4.0),
+        ("prop_rockery", "campus_texture_prop_rockery", 1.9),
+        ("prop_pond", "campus_texture_prop_lotus_pond", 3.6),
     )
 
     #: 区域地面贴图：area_id -> (asset_id, 平铺米数|None)。None = 一张图整块铺满该区域。

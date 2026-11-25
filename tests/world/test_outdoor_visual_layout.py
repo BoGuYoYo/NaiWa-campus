@@ -56,3 +56,45 @@ def test_stele_asset_keeps_the_whole_pedestal():
     # 最宽行之外不应再出现孤立的透明缺口把底座切开。
     bottom = alpha[-1].astype(bool)
     assert bottom.sum() >= w * 0.5, "石碑底座没有铺到画布下缘"
+
+
+def test_new_landscape_props_registered_and_rendered_cleanly(map_data):
+    """新增的室外景观与植物贴图均已入库、无缺失许可且与 PROP_ART 映射一致。"""
+    import json
+
+    from game.core.asset_registry import AssetRegistry
+    from game.core.world_scene import CampusSceneAdapter
+
+    expected = {
+        "prop_cherry": "campus_texture_prop_cherry_tree",
+        "prop_ginkgo": "campus_texture_prop_ginkgo_tree",
+        "prop_pine": "campus_texture_prop_pine_tree",
+        "prop_willow": "campus_texture_prop_willow_tree",
+        "prop_bamboo": "campus_texture_prop_bamboo",
+        "prop_bush": "campus_texture_prop_bush",
+        "prop_flowershrub": "campus_texture_prop_flower_shrub",
+        "prop_hedge": "campus_texture_prop_hedge",
+        "prop_potted": "campus_texture_prop_potted_plant",
+        "prop_pavilion": "campus_texture_prop_pavilion",
+        "prop_rockery": "campus_texture_prop_rockery",
+        "prop_pond": "campus_texture_prop_lotus_pond",
+    }
+
+    prop_art_map = {prefix: asset_id for prefix, asset_id, _h in CampusSceneAdapter.PROP_ART}
+    for prefix, asset_id in expected.items():
+        assert prop_art_map.get(prefix) == asset_id
+        assert any(p.id.startswith(prefix) for p in map_data.props), f"map.json 未使用 {prefix}"
+
+    registry = AssetRegistry()
+    assert not registry.manifest_errors
+    assert not registry.release_blockers()
+    manifest_raw = json.loads((ROOT / "assets" / "manifest.json").read_text(encoding="utf-8"))
+    by_id = {entry["id"]: entry for entry in manifest_raw["assets"]}
+
+    for asset_id in expected.values():
+        assert registry.file_exists(asset_id), f"缺失资源文件: {asset_id}"
+        rel = by_id[asset_id]["path"]
+        img = Image.open(ROOT / "assets" / rel).convert("RGBA")
+        alpha = np.asarray(img)[:, :, 3]
+        assert (alpha == 0).any(), f"{rel} 缺少透明背景"
+        assert set(np.unique(alpha)).issubset({0, 255}), f"{rel} alpha 应为二值 0/255 以适配 M_binary"

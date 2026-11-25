@@ -2218,6 +2218,234 @@
         "ceremony",
         "generated_from_user_art"
       ]
+    },
+    {
+      "id": "campus_texture_prop_cherry_tree",
+      "type": "image",
+      "path": "campus/textures/props/cherry_tree.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          249,
+          256
+        ],
+        "width_m": 4.28,
+        "height_m": 4.4
+      }
+    },
+    {
+      "id": "campus_texture_prop_ginkgo_tree",
+      "type": "image",
+      "path": "campus/textures/props/ginkgo_tree.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          226,
+          256
+        ],
+        "width_m": 3.973,
+        "height_m": 4.5
+      }
+    },
+    {
+      "id": "campus_texture_prop_pine_tree",
+      "type": "image",
+      "path": "campus/textures/props/pine_tree.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          150,
+          256
+        ],
+        "width_m": 2.812,
+        "height_m": 4.8
+      }
+    },
+    {
+      "id": "campus_texture_prop_willow_tree",
+      "type": "image",
+      "path": "campus/textures/props/willow_tree.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          207,
+          256
+        ],
+        "width_m": 3.72,
+        "height_m": 4.6
+      }
+    },
+    {
+      "id": "campus_texture_prop_bamboo",
+      "type": "image",
+      "path": "campus/textures/props/bamboo.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          142,
+          200
+        ],
+        "width_m": 2.414,
+        "height_m": 3.4
+      }
+    },
+    {
+      "id": "campus_texture_prop_bush",
+      "type": "image",
+      "path": "campus/textures/props/bush.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          136,
+          88
+        ],
+        "width_m": 1.855,
+        "height_m": 1.2
+      }
+    },
+    {
+      "id": "campus_texture_prop_flower_shrub",
+      "type": "image",
+      "path": "campus/textures/props/flower_shrub.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          116,
+          96
+        ],
+        "width_m": 1.571,
+        "height_m": 1.3
+      }
+    },
+    {
+      "id": "campus_texture_prop_hedge",
+      "type": "image",
+      "path": "campus/textures/props/hedge.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          276,
+          84
+        ],
+        "width_m": 3.614,
+        "height_m": 1.1
+      }
+    },
+    {
+      "id": "campus_texture_prop_potted_plant",
+      "type": "image",
+      "path": "campus/textures/props/potted_plant.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          83,
+          120
+        ],
+        "width_m": 1.107,
+        "height_m": 1.6
+      }
+    },
+    {
+      "id": "campus_texture_prop_pavilion",
+      "type": "image",
+      "path": "campus/textures/props/pavilion.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          249,
+          232
+        ],
+        "width_m": 4.293,
+        "height_m": 4.0
+      }
+    },
+    {
+      "id": "campus_texture_prop_rockery",
+      "type": "image",
+      "path": "campus/textures/props/rockery.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          195,
+          128
+        ],
+        "width_m": 2.895,
+        "height_m": 1.9
+      }
+    },
+    {
+      "id": "campus_texture_prop_lotus_pond",
+      "type": "image",
+      "path": "campus/textures/props/lotus_pond.png",
+      "license_id": "LIC-0219",
+      "tags": [
+        "final",
+        "prop_card",
+        "generated_landscape"
+      ],
+      "raw": {
+        "canvas": [
+          227,
+          180
+        ],
+        "width_m": 4.54,
+        "height_m": 3.6
+      }
     }
   ]
 }
